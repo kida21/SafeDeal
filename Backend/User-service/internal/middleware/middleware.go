@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -8,25 +9,26 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-
-
 func NewJwtMiddleware() fiber.Handler {
     return func(c fiber.Ctx) error {
-       authHeader := c.Get("Authorization")
+       
+
+        authHeader := c.Get("Authorization")
         if authHeader == "" {
-            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-                "error": "Missing authorization header",
-            })
+            fmt.Println("[JWT Middleware] Missing Authorization header")
+            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing authorization header"})
         }
+
         parts := strings.Split(authHeader, " ")
         if len(parts) != 2 || parts[0] != "Bearer" {
-            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-                "error": "Invalid authorization format",
-            })
+            fmt.Println("[JWT Middleware] Invalid token format")
+            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid authorization format"})
         }
 
         tokenString := parts[1]
-      token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+        fmt.Println("[JWT Middleware] Token string:", tokenString) //  Log token
+
+        token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
             if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
                 return nil, fiber.ErrUnauthorized
             }
@@ -34,10 +36,13 @@ func NewJwtMiddleware() fiber.Handler {
         })
 
         if err != nil || !token.Valid {
-            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-                "error": "Invalid or expired token",
-            })
+            fmt.Println("[JWT Middleware] Token invalid:", err) 
+            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})
         }
-     return c.Next()
+
+        c.Locals("user", token)
+        fmt.Println("[JWT Middleware] Token set in locals") 
+
+        return c.Next()
     }
 }

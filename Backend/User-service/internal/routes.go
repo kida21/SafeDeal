@@ -13,10 +13,11 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
         c.Locals("db", db)
         return c.Next()
     })
-
+    
     // Public routes
     app.Post("/register", handlers.Register)
     app.Post("/login", handlers.Login)
+
     api := app.Group("/api")
     api.Use(middleware.NewJwtMiddleware())
      {

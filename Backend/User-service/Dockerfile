@@ -12,11 +12,11 @@ COPY go.sum ./
 
 COPY .envrc ./
 
-RUN direnv allow .
-
 RUN go mod download
 
 COPY . .
+
+RUN direnv allow .
 
 RUN go build -o /api cmd/api/main.go
 

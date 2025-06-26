@@ -2,18 +2,21 @@
 package handlers
 
 import (
+	
+	"log"
 	"os"
 	"time"
 
 	"user_service/internal/model"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/golang-jwt/jwt"
+    "github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-var jwtSecret = os.Getenv("JWT_SECRET_KEY")
+var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
+
 
 func Login(c fiber.Ctx) error {
     type LoginInput struct {
@@ -39,10 +42,13 @@ func Login(c fiber.Ctx) error {
 
     
     claims := jwt.MapClaims{
-        "user_email": user.Email,
+        "user_id": user.ID,
         "exp":     time.Now().Add(time.Hour * 72).Unix(),
     }
 
+    if jwtSecret == nil {
+        log.Fatal("JWT secret key not set")
+    }
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
     t, err := token.SignedString(jwtSecret)
     if err != nil {
@@ -102,15 +108,39 @@ func Register(c fiber.Ctx) error {
 }
 
 func Profile(c fiber.Ctx) error {
-    claims := c.Locals("claims").(jwt.MapClaims)
-    userID := uint(claims["user_id"].(float64))
-
-    var userModel model.User
-    db := c.Locals("db").(*gorm.DB)
-
-    if err := db.Select("id", "name", "email").First(&userModel, userID).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+    token, ok := c.Locals("user").(*jwt.Token)
+    if !ok || token == nil {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid or missing token",
+        })
     }
-    
-    return c.JSON(userModel.Email,userModel.FirstName,userModel.LastName)
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok || !token.Valid {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
+    userIDFloat, ok := claims["user_id"].(float64)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "User ID not found in token",
+        })
+    }
+    userID := uint(userIDFloat)
+    db := c.Locals("db").(*gorm.DB)
+    var userModel model.User
+
+    if err := db.Select("id","firstname","lastname", "email").First(&userModel, userID).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "User not found",
+        })
+    }
+   return c.JSON(fiber.Map{
+        "user": fiber.Map{
+            "id":    userModel.ID,
+            "firstname":  userModel.FirstName,
+            "lastname":userModel.LastName,
+            "email": userModel.Email,
+        },
+    })
 }
