@@ -1,9 +1,11 @@
 package internal
 
 import (
-    "github.com/gofiber/fiber/v3"
-    "user_service/internal/handlers"
-    "gorm.io/gorm"
+	"user_service/internal/handlers"
+	"user_service/internal/middleware"
+
+	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 )
 
 func SetupRoutes(app *fiber.App, db *gorm.DB) {
@@ -12,17 +14,12 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
         return c.Next()
     })
 
-    auth := app.Group("/auth")
-    {
-        auth.Post("/register", handlers.Register)
-        auth.Post("/login", handlers.Login)
-    }
-
-    users := app.Group("/users")
-    {
-        users.Get("/me", func(c fiber.Ctx) error {
-            user := c.Locals("user")
-            return c.JSON(user)
-        })
-    }
+    // Public routes
+    app.Post("/register", handlers.Register)
+    app.Post("/login", handlers.Login)
+    api := app.Group("/api")
+    api.Use(middleware.NewJwtMiddleware())
+     {
+        api.Get("/profile", handlers.Profile)
+     }
 }

@@ -55,6 +55,8 @@ func Register(c fiber.Ctx) error {
     type RegisterInput struct {
         Name     string `json:"name"`
         Email    string `json:"email"`
+		FirstName string `json:"firstname"`
+		LastName  string  `json:"lastname"`
         Password string `json:"password"`
     }
 
@@ -84,6 +86,8 @@ func Register(c fiber.Ctx) error {
     
     user := model.User{
         Email:    input.Email,
+		FirstName: input.FirstName,
+		LastName: input.LastName,
         Password: string(hashedPassword),
     }
 
@@ -95,4 +99,18 @@ func Register(c fiber.Ctx) error {
             "email": user.Email,
         },
     })
+}
+
+func Profile(c fiber.Ctx) error {
+    claims := c.Locals("claims").(jwt.MapClaims)
+    userID := uint(claims["user_id"].(float64))
+
+    var userModel model.User
+    db := c.Locals("db").(*gorm.DB)
+
+    if err := db.Select("id", "name", "email").First(&userModel, userID).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+    }
+    
+    return c.JSON(userModel.Email,userModel.FirstName,userModel.LastName)
 }
