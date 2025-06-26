@@ -39,7 +39,7 @@ func Login(c fiber.Ctx) error {
 
     
     claims := jwt.MapClaims{
-        "user_id": user.ID,
+        "user_email": user.Email,
         "exp":     time.Now().Add(time.Hour * 72).Unix(),
     }
 
@@ -53,7 +53,6 @@ func Login(c fiber.Ctx) error {
 }
 func Register(c fiber.Ctx) error {
     type RegisterInput struct {
-        Name     string `json:"name"`
         Email    string `json:"email"`
 		FirstName string `json:"firstname"`
 		LastName  string  `json:"lastname"`
@@ -89,6 +88,7 @@ func Register(c fiber.Ctx) error {
 		FirstName: input.FirstName,
 		LastName: input.LastName,
         Password: string(hashedPassword),
+		Role: model.Customer,
     }
 
     db.Create(&user)
