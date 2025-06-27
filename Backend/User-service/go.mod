@@ -8,6 +8,7 @@ require (
 	golang.org/x/crypto v0.39.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
+	// SafeDeal/proto v0.0.0
 )
 
 require (
