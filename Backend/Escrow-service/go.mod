@@ -1,8 +1,9 @@
-module esrow_service
+module escrow_service
 
 go 1.23.4
 
 require gorm.io/gorm v1.30.0
+
 // require SafeDeal/proto v0.0.0
 // replace SafeDeal/proto => ../..
 require (
@@ -10,16 +11,13 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
 	golang.org/x/sync v0.15.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
 )
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
-	github.com/gofiber/fiber/v3 v3.0.0-beta.4 // indirect
+	github.com/gofiber/fiber/v3 v3.0.0-beta.4
 	github.com/gofiber/schema v1.5.0 // indirect
 	github.com/gofiber/utils/v2 v2.0.0-beta.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -32,12 +30,10 @@ require (
 	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.62.0 // indirect
-	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
-	google.golang.org/grpc v1.73.0
 	gorm.io/driver/postgres v1.6.0
 )

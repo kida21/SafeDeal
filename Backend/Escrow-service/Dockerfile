@@ -2,29 +2,28 @@ FROM golang:latest as builder
 
 WORKDIR /app
 
-
+# Install direnv (optional)
 RUN apt-get update && \
     apt-get install --no-install-recommends -y direnv && \
     rm -rf /var/lib/apt/lists/*
 
-
-COPY go.mod ./
-
-COPY go.sum ./
-
+# Module setup
+COPY go.mod .
+COPY go.sum .
 RUN go mod download
 
-COPY .envrc ./
 
+COPY .envrc .
 RUN direnv allow .
 
-COPY ../proto /go/src/SafeDeal/proto
 
 COPY . .
 
+# Build escrow-service Go binary
 RUN eval "$(direnv export bash)" && \
-    CGO_ENABLED=0 go build -o /escrow-service main.go
+    CGO_ENABLED=0 go build -o /escrow-service ./cmd/api
 
+# 🧊 Final image
 FROM gcr.io/distroless/static-debian12
 
 COPY --from=builder /escrow-service /escrow-service
