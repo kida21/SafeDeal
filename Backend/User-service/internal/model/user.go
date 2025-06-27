@@ -12,10 +12,10 @@ const (
 type User struct {
     gorm.Model
     ID        uint   `json:"id" gorm:"primaryKey"`
-    FirstName string `json:"firstname"`
-	LastName string `json:"lastname"`
-    Email    string `gorm:"unique" json:"email"`
-    Password string `json:"password"`
+    FirstName string `json:"first_name" gorm:"column:first_name;not null"`
+    LastName  string `json:"last_name" gorm:"column:last_name;not null"`
+    Email     string `json:"email" gorm:"uniqueIndex;not null"`
+    Password  string `json:"-" gorm:"not null"`
 	Role     Role   `json:"role"`
     
 }

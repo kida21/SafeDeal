@@ -10,6 +10,7 @@ import (
 
 func main() {
     db.ConnectDB()
+    // db.DB.Exec("DROP TABLE IF EXISTS users")(for development purpose)
     db.DB.AutoMigrate(&model.User{})
 
     app := fiber.New()

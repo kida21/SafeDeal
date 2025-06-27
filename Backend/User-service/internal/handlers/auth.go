@@ -130,7 +130,7 @@ func Profile(c fiber.Ctx) error {
     db := c.Locals("db").(*gorm.DB)
     var userModel model.User
 
-    if err := db.Select("id","firstname","lastname", "email").First(&userModel, userID).Error; err != nil {
+    if err := db.Select("id","first_name","last_name", "email").First(&userModel, userID).Error; err != nil {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
             "error": "User not found",
         })
