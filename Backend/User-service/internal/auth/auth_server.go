@@ -3,8 +3,10 @@ package auth
 import (
 	"context"
 	"fmt"
+	
 	"os"
-    "github.com/SafeDeal/proto/auth/v1"
+
+	"github.com/SafeDeal/proto/auth/v1"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -14,6 +16,7 @@ type AuthServer struct {
 
 func (s *AuthServer) VerifyToken(ctx context.Context, req *v1.VerifyTokenRequest) (*v1.VerifyTokenResponse, error) {
     tokenString := req.GetToken()
+    
     if tokenString == "" {
         return &v1.VerifyTokenResponse{Valid: false}, nil
     }

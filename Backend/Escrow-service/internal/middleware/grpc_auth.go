@@ -1,9 +1,11 @@
 package middleware
 
 import (
-    "github.com/gofiber/fiber/v3"
-    "escrow_service/internal/auth"
-    "strings"
+	"escrow_service/internal/auth"
+	
+	"strings"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 var userServiceClient, _ = auth.NewUserServiceClient("user-service:50051")
@@ -22,10 +24,13 @@ func AuthMiddleware() fiber.Handler {
 
         token := parts[1]
         resp, err := userServiceClient.VerifyToken(token)
+        if resp == nil{
+            return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error":"nil response from verification"})
+        }
         if err != nil || !resp.Valid {
             return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})
         }
-
+ 
         c.Locals("user_id", resp.UserId)
         return c.Next()
     }
