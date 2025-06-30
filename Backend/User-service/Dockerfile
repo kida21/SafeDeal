@@ -1,25 +1,33 @@
-FROM golang:latest
-
-RUN apt-get update && \
-    apt-get install -y direnv && \
-    apt-get clean
+FROM golang:latest AS builder
 
 WORKDIR /app
 
-COPY go.mod ./
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y direnv && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY go.sum ./
+COPY Backend/User-service/go.mod ./Backend/User-service/go.mod
 
-COPY .envrc ./
+COPY Backend/User-service/go.sum ./Backend/User-service/go.sum
 
-RUN go mod download
+COPY Backend/User-service/.envrc ./Backend/User-service/.envrc
 
-COPY . .
+COPY proto/auth ./Proto/auth
+
+COPY Backend/User-service ./Backend/User-service
+
+WORKDIR /app/Backend/User-service
 
 RUN direnv allow .
 
-RUN go build -o /api cmd/api/main.go
+RUN go mod tidy && go mod download
+
+RUN CGO_ENABLED=0 go build -v -o /user-service ./cmd/api
+
+FROM gcr.io/distroless/static-debian12
+
+COPY --from=builder /user-service /user-service
 
 EXPOSE 8081
 
-CMD ["/api"]
+CMD ["/user-service"]
