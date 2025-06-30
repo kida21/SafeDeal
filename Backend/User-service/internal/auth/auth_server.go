@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-
-	"github.com/SafeDeal/proto/auth/v1"
+    "github.com/SafeDeal/proto/auth/v1"
 	"github.com/golang-jwt/jwt/v5"
 )
 
