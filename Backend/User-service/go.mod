@@ -3,13 +3,16 @@ module user_service
 go 1.23.4
 
 require (
+	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	golang.org/x/crypto v0.39.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
-	// SafeDeal/proto v0.0.0
+
 )
+
+replace github.com/SafeDeal/proto/auth => ../../Proto/auth
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
@@ -35,4 +38,7 @@ require (
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/grpc v1.73.0 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 )
