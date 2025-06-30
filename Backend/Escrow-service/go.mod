@@ -7,7 +7,7 @@ require (
 	gorm.io/gorm v1.30.0
 )
 
-replace github.com/SafeDeal/proto/auth => ../../../SafeDeal/Proto/auth
+replace github.com/SafeDeal/proto/auth => ../../Proto/auth
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect

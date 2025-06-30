@@ -1,33 +1,35 @@
-FROM golang:latest as builder
 
-WORKDIR /app
+    FROM golang:latest AS builder
 
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y direnv && \
-    rm -rf /var/lib/apt/lists/*
+    WORKDIR /app
+    
+    RUN apt-get update && \
+        apt-get install --no-install-recommends -y direnv && \
+        rm -rf /var/lib/apt/lists/*
 
-COPY go.mod .
+    COPY Backend/Escrow-service/go.mod ./Backend/Escrow-service/go.mod
 
-COPY go.sum .
+    COPY Backend/Escrow-service/go.sum ./Backend/Escrow-service/go.sum
 
-COPY .envrc .
+    COPY Backend/Escrow-service/.envrc ./Backend/Escrow-service/.envrc
+    
+    COPY proto/auth ./Proto/auth
 
-RUN direnv allow .
-
-RUN eval "$(direnv export bash)" && \
-    go mod download
-
-COPY ../.. /go/src/SafeDeal
-
-COPY . .
-
-RUN eval "$(direnv export bash)" && \
-    CGO_ENABLED=0 go build -o /escrow-service ./cmd/api
-
-FROM gcr.io/distroless/static-debian12
-
-COPY --from=builder /escrow-service /escrow-service
-
-EXPOSE 8082
-
-CMD ["/escrow-service"]
+    COPY Backend/Escrow-service ./Backend/Escrow-service
+    
+    WORKDIR /app/Backend/Escrow-service
+    
+    RUN direnv allow .
+    
+    RUN go mod tidy && go mod download
+    
+    RUN CGO_ENABLED=0 go build -v -o /escrow-service ./cmd/api
+    
+    FROM gcr.io/distroless/static-debian12
+    
+    COPY --from=builder /escrow-service /escrow-service
+    
+    EXPOSE 8082
+    
+    CMD ["/escrow-service"]
+    
