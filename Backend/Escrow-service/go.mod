@@ -4,10 +4,13 @@ go 1.23.4
 
 require (
 	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
+	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
 	gorm.io/gorm v1.30.0
 )
 
 replace github.com/SafeDeal/proto/auth => ../../Proto/auth
+
+replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -20,6 +23,7 @@ require (
 )
 
 require (
+	
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4
