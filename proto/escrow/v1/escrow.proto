@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package escrow.v1;
+
+option go_package = "./proto/escrow/v1";
+
+service EscrowService {
+  // Update escrow status via external services (e.g., Payment)
+  rpc UpdateStatus(UpdateEscrowStatusRequest) returns (UpdateEscrowStatusResponse);
+
+  // Get escrow details
+  rpc GetEscrow(GetEscrowRequest) returns (EscrowResponse);
+}
+
+message UpdateEscrowStatusRequest {
+  uint32 escrow_id = 1;
+  string new_status = 2; // e.g., "Funded", "Released"
+}
+
+message UpdateEscrowStatusResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetEscrowRequest {
+  uint32 escrow_id = 1;
+}
+
+message EscrowResponse {
+  uint32 id = 1;
+  uint32 buyer_id = 2;
+  uint32 seller_id = 3;
+  float amount = 4;
+  string status = 5;
+  string conditions = 6;
+}
