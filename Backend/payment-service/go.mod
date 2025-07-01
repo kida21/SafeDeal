@@ -2,7 +2,12 @@ module payment_service
 
 go 1.23.4
 
-require gorm.io/gorm v1.30.0
+require (
+	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
+	gorm.io/gorm v1.30.0
+)
+
+replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
@@ -23,16 +28,19 @@ require (
 	github.com/valyala/fasthttp v1.58.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 )
 
 require (
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+	google.golang.org/grpc v1.73.0
 	gorm.io/driver/postgres v1.6.0
 )
