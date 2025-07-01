@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "./proto/payment/v1";
+
+service PaymentService {
+  rpc InitiateEscrowPayment(InitiateEscrowPaymentRequest) returns (InitiateEscrowPaymentResponse);
+  rpc VerifyPayment(VerifyPaymentRequest) returns (VerifyPaymentResponse);
+}
+
+message InitiateEscrowPaymentRequest {
+  uint32 escrow_id = 1;
+  float amount = 2;
+  string currency = 3;
+  string email = 4;
+}
+
+message InitiateEscrowPaymentResponse {
+  string payment_url = 1;
+  string transaction_ref = 2;
+}
+
+message VerifyPaymentRequest {
+  string transaction_ref = 1;
+}
+
+message VerifyPaymentResponse {
+  bool success = 1;
+}
