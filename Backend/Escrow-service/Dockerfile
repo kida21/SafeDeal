@@ -15,6 +15,8 @@
     
     COPY proto/auth ./Proto/auth
 
+    COPY proto/escrow ./Proto/escrow
+
     COPY Backend/Escrow-service ./Backend/Escrow-service
     
     WORKDIR /app/Backend/Escrow-service
