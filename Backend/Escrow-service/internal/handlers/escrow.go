@@ -1,9 +1,11 @@
 package handlers
 
 import (
-    "github.com/gofiber/fiber/v3"
-    "escrow_service/internal/model"
-    "gorm.io/gorm"
+	"escrow_service/internal/model"
+	"strconv"
+
+	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 )
 
 func CreateEscrow(c fiber.Ctx) error {
@@ -24,12 +26,29 @@ func CreateEscrow(c fiber.Ctx) error {
 
 func GetEscrow(c fiber.Ctx) error {
     id := c.Params("id")
-    var escrow model.Escrow
-    db := c.Locals("db").(*gorm.DB)
-
-    if err := db.First(&escrow, id).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Escrow not found"})
+    escrowID, err := strconv.ParseUint(id, 10, 32)
+    if err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid escrow ID",
+        })
     }
 
-    return c.JSON(escrow)
+    db := c.Locals("db").(*gorm.DB)
+    var escrow model.Escrow
+
+    if err := db.First(&escrow, uint(escrowID)).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "Escrow not found",
+        })
+    }
+    userID := c.Locals("user_id").(uint32)
+    if userID != uint32(escrow.BuyerID) && userID != uint32(escrow.SellerID) {
+        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+            "error": "You do not have access to this escrow",
+        })
+    }
+
+    return c.JSON(fiber.Map{
+        "escrow": escrow,
+    })
 }
