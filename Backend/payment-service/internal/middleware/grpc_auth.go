@@ -2,10 +2,8 @@ package middleware
 
 import (
 	"payment_service/internal/auth"
-	
 	"strings"
-
-	"github.com/gofiber/fiber/v3"
+    "github.com/gofiber/fiber/v3"
 )
 
 var userServiceClient, _ = auth.NewUserServiceClient("user-service:50051")
