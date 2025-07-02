@@ -3,11 +3,14 @@ module payment_service
 go 1.23.4
 
 require (
+	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
 	gorm.io/gorm v1.30.0
 )
 
 replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
+
+replace github.com/SafeDeal/proto/auth => ../../Proto/auth
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
