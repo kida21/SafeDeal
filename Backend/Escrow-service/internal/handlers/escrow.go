@@ -24,6 +24,7 @@ func CreateEscrow(c fiber.Ctx) error {
     return c.Status(fiber.StatusCreated).JSON(escrow)
 }
 
+
 func GetEscrow(c fiber.Ctx) error {
     id := c.Params("id")
     escrowID, err := strconv.ParseUint(id, 10, 32)

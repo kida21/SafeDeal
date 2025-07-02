@@ -2,12 +2,6 @@ package model
 
 import "gorm.io/gorm"
 
-type Role string
-
-const (
-    Customer Role = "customer"
-    
-)
 
 type User struct {
     gorm.Model
@@ -16,6 +10,6 @@ type User struct {
     LastName  string `json:"last_name" gorm:"column:last_name;not null"`
     Email     string `json:"email" gorm:"uniqueIndex;not null"`
     Password  string `json:"-" gorm:"not null"`
-	Role     Role   `json:"role"`
+	ActiveToken string `json:"-"`
     
 }

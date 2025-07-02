@@ -94,7 +94,8 @@ func Register(c fiber.Ctx) error {
 		FirstName: input.FirstName,
 		LastName: input.LastName,
         Password: string(hashedPassword),
-		Role: model.Customer,
+        ActiveToken: "",
+		
     }
 
     db.Create(&user)
