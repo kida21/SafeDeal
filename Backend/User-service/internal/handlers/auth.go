@@ -1,15 +1,17 @@
 package handlers
 
 import (
-	
-	"log"
+	"context"
 	"os"
+	"strconv"
 	"time"
 
 	"user_service/internal/model"
-
+	"user_service/pkg/redis"
+    tokenhelpers"user_service/pkg/token"
 	"github.com/gofiber/fiber/v3"
-    "github.com/golang-jwt/jwt/v5"
+	"github.com/golang-jwt/jwt/v5"
+	
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -28,34 +30,44 @@ func Login(c fiber.Ctx) error {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
     }
 
-    var user model.User
     db := c.Locals("db").(*gorm.DB)
+    var user model.User
 
     if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
     }
 
     if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
     }
 
-    
-    claims := jwt.MapClaims{
-        "user_id": user.ID,
-        "exp":     time.Now().Add(time.Hour * 72).Unix(),
+    // Revoke previous token
+    if user.ActiveToken != "" {
+        redisclient.Client.Set(context.Background(), "token:"+user.ActiveToken, "revoked", 72*time.Hour)
     }
 
-    if jwtSecret == nil {
-        log.Fatal("JWT secret key not set")
+    // Create new access token
+    claims := jwt.RegisteredClaims{
+        Issuer:    "user-service",
+        Subject:   strconv.Itoa(int(user.ID)),
+        ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+        IssuedAt:  jwt.NewNumericDate(time.Now()),
     }
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    t, err := token.SignedString(jwtSecret)
-    if err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not generate token"})
-    }
+    signedToken, _ := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
 
-    return c.JSON(fiber.Map{"token": t})
+    // Save active token in DB
+    db.Model(&user).Update("active_token", signedToken)
+
+    // Generate refresh token
+    refreshToken := tokenhelpers.GenerateRefreshToken(user.ID)
+
+    return c.JSON(fiber.Map{
+        "access_token":  signedToken,
+        "refresh_token": refreshToken,
+    })
 }
+
 func Register(c fiber.Ctx) error {
     type RegisterInput struct {
         Email    string `json:"email"`
