@@ -21,7 +21,8 @@ func AuthMiddleware() fiber.Handler {
         }
 
         token := parts[1]
-        resp, err := userServiceClient.VerifyToken(token)
+        
+         resp, err := userServiceClient.VerifyToken(token)
         
         if resp == nil{
             return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error":"nil response from verification"})

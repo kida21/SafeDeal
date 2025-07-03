@@ -41,10 +41,14 @@ func (s *AuthServer) VerifyToken(ctx context.Context, req *v1.VerifyTokenRequest
     if !ok {
         return &v1.VerifyTokenResponse{Valid: false}, nil
     }
-
+    sessionID, ok := claims["jti"].(string)
+    if !ok {
+        return &v1.VerifyTokenResponse{Valid: false}, nil
+    }
     return &v1.VerifyTokenResponse{
         Valid:     true,
         UserId:    uint32(userIDFloat),
+        SessionId: sessionID,
         ExpiresAt: int64(claims["exp"].(float64)),
     }, nil
 }
