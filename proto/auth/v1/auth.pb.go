@@ -69,7 +69,8 @@ type VerifyTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
 	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	ExpiresAt     int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	SessionId     string                 `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	ExpiresAt     int64                  `protobuf:"varint,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,6 +119,13 @@ func (x *VerifyTokenResponse) GetUserId() uint32 {
 	return 0
 }
 
+func (x *VerifyTokenResponse) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
 func (x *VerifyTokenResponse) GetExpiresAt() int64 {
 	if x != nil {
 		return x.ExpiresAt
@@ -131,12 +139,14 @@ const file_proto_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"\x18proto/auth/v1/auth.proto\x12\aauth.v1\"*\n" +
 	"\x12VerifyTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"c\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\x82\x01\n" +
 	"\x13VerifyTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\rR\x06userId\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\x03R\texpiresAt2W\n" +
+	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x04 \x01(\x03R\texpiresAt2W\n" +
 	"\vAuthService\x12H\n" +
 	"\vVerifyToken\x12\x1b.auth.v1.VerifyTokenRequest\x1a\x1c.auth.v1.VerifyTokenResponseB\x11Z\x0f./proto/auth/v1b\x06proto3"
 

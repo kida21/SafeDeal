@@ -15,5 +15,6 @@ message VerifyTokenRequest {
 message VerifyTokenResponse {
   bool valid = 1;
   uint32 user_id = 2;
-  int64 expires_at = 3;
+  string session_id = 3;
+  int64 expires_at = 4;
 }

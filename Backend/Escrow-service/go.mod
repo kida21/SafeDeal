@@ -23,7 +23,6 @@ require (
 )
 
 require (
-	
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4
