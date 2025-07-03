@@ -1,55 +1,127 @@
 package handlers
 
 import (
+	"context"
 	"os"
+	"strconv"
 	"time"
-    "user_service/internal/model"
+
+	"user_service/internal/model"
+	"user_service/pkg/refresh"
 	"user_service/pkg/session"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
-	
+    "github.com/redis/go-redis/v9"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
+var redisClient *redis.Client
+
+func SetRedisClient(client *redis.Client) {
+    redisClient = client
+}
+
 func Login(c fiber.Ctx) error {
-    type LoginInput struct {
+    type Request struct {
         Email    string `json:"email"`
         Password string `json:"password"`
     }
 
-    var input LoginInput
-    if err := c.Bind().Body(&input); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+    var req Request
+    if err := c.Bind().Body(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
     }
 
     db := c.Locals("db").(*gorm.DB)
     var user model.User
 
-    if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+    if err := db.Where("email = ?", req.Email).First(&user).Error; err != nil {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
     }
 
-    if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+    if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
     }
+
+    // Revoke all existing sessions & refresh tokens
     session.RevokeAllSessionsForUser(user.ID)
+    refresh.RevokeAllRefreshTokensForUser(user.ID)
+
+    // Generate session ID
     sessionID := session.GenerateSessionID(user.ID)
 
-    // Create new access token
+    // Generate refresh token linked to session ID
+    refreshToken := refresh.GenerateRefreshToken(sessionID)
+
+    // Create access token with session ID
     claims := jwt.RegisteredClaims{
         Issuer:    "user-service",
-        Subject:   sessionID,
+        Subject:   strconv.Itoa(int(user.ID)),
+        ID:        sessionID,
         ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
         IssuedAt:  jwt.NewNumericDate(time.Now()),
     }
+
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
     signedToken, _ := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+
     return c.JSON(fiber.Map{
         "access_token":  signedToken,
-        })
+        "refresh_token": refreshToken,
+    })
 }
+// internal/handlers/auth.go
+func RefreshToken(c fiber.Ctx) error {
+    type Request struct {
+        RefreshToken string `json:"refresh_token"`
+    }
+    
+    var req Request
+    if err := c.Bind().Body(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+    }
 
+   
+    valid, sessionID := refresh.ValidateRefreshToken(req.RefreshToken)
+    if !valid {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid refresh token"})
+    }
+
+    // Get session info to validate ownership
+    ctx := context.Background()
+    val, _ := redisClient.Get(ctx, "session:"+sessionID).Result()
+    userID, _ := strconv.Atoi(val)
+
+   
+    claims := jwt.RegisteredClaims{
+        Issuer:    "user-service",
+        Subject:   strconv.Itoa(userID),
+        ID:        sessionID,
+        ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+        IssuedAt:  jwt.NewNumericDate(time.Now()),
+    }
+
+    newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    signedToken, _ := newToken.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+
+    return c.JSON(fiber.Map{
+        "access_token": signedToken,
+    })
+}
+func Logout(c fiber.Ctx) error {
+    user := c.Locals("user").(map[string]interface{})
+    sessionID := user["session_id"].(string)
+
+    if err := session.RevokeSession(sessionID); err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to revoke session",
+        })
+    }
+   return c.SendStatus(fiber.StatusOK)
+}
 func Register(c fiber.Ctx) error {
     type RegisterInput struct {
         Email    string `json:"email"`
@@ -102,39 +174,21 @@ func Register(c fiber.Ctx) error {
 }
 
 func Profile(c fiber.Ctx) error {
-    token, ok := c.Locals("user").(*jwt.Token)
-    if !ok || token == nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid or missing token",
-        })
-    }
-    claims, ok := token.Claims.(jwt.MapClaims)
-    if !ok || !token.Valid {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid token claims",
-        })
-    }
-    userIDFloat, ok := claims["user_id"].(float64)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "User ID not found in token",
-        })
-    }
-    userID := uint(userIDFloat)
+    user := c.Locals("user").(map[string]interface{})
+    userID := user["user_id"].(uint)
+
     db := c.Locals("db").(*gorm.DB)
     var userModel model.User
 
-    if err := db.Select("id","first_name","last_name", "email").First(&userModel, userID).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-            "error": "User not found",
-        })
+    if err := db.Select("id", "first_name","last_name", "email").First(&userModel, userID).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
     }
-   return c.JSON(fiber.Map{
-        "user": fiber.Map{
-            "id":    userModel.ID,
-            "firstname":  userModel.FirstName,
-            "lastname":userModel.LastName,
-            "email": userModel.Email,
-        },
-    })
+
+    return c.JSON(fiber.Map{"user": fiber.Map{
+        "id":userModel.ID,
+        "firstname":userModel.FirstName,
+        "lastname":userModel.LastName,
+        "email":userModel.Email,
+    }})
 }
+

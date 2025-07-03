@@ -4,12 +4,17 @@ import (
 	"log"
 	"net"
 	"user_service/internal"
+	"user_service/internal/auth"
 	"user_service/internal/db"
+	"user_service/internal/handlers"
 	"user_service/internal/model"
-     "user_service/internal/auth"
+	"user_service/pkg/redis"
+	"user_service/pkg/refresh"
+	"user_service/pkg/session"
+
+	proto "github.com/SafeDeal/proto/auth/v1"
 	"github.com/gofiber/fiber/v3"
-    proto"github.com/SafeDeal/proto/auth/v1"
-    "google.golang.org/grpc"
+	"google.golang.org/grpc"
 )
 
 func startGRPCServer() {
@@ -32,6 +37,11 @@ func main() {
     // db.DB.Exec("DROP TABLE IF EXISTS users")(for development purpose)
     db.DB.AutoMigrate(&model.User{})
     go startGRPCServer()
+    redisclient.InitRedis()
+
+    handlers.SetRedisClient(redisclient.Client)
+    session.InitSession(redisclient.Client)
+    refresh.InitRefresh(redisclient.Client)
     app := fiber.New()
     internal.SetupRoutes(app, db.DB)
 

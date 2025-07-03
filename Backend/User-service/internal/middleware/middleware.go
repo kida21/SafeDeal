@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"context"
 	"os"
+	"strconv"
 	"strings"
-    "user_service/pkg/redis"
+	"user_service/pkg/session"
     "github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -22,11 +22,8 @@ func NewJwtMiddleware() fiber.Handler {
         }
 
         tokenStr := parts[1]
-        isRevoked, _ := redisclient.Client.Get(context.Background(), "token:"+tokenStr).Result()
-        if isRevoked == "revoked" {
-            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token revoked"})
-        }
-        token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
+
+        token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
             return []byte(os.Getenv("JWT_SECRET_KEY")), nil
         })
 
@@ -34,7 +31,22 @@ func NewJwtMiddleware() fiber.Handler {
             return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})
         }
 
-        c.Locals("user", token.Claims.(jwt.MapClaims))
+        claims := token.Claims.(jwt.MapClaims)
+
+        sessionID := claims["jti"].(string)
+        userIDFloat, _ := strconv.ParseUint(claims["sub"].(string), 10, 64)
+        userID := uint(userIDFloat)
+
+        if !session.ValidateSession(sessionID, userID) {
+            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Session revoked"})
+        }
+
+        c.Locals("user", map[string]any{
+            "session_id": sessionID,
+            "user_id":    userID,
+        })
+
         return c.Next()
     }
+
 }

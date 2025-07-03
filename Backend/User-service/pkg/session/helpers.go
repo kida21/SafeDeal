@@ -11,7 +11,7 @@ import (
 
 var redisClient *redis.Client = nil 
 
-func InitRedis(r *redis.Client) {
+func InitSession(r *redis.Client) {
 	redisClient = r
 }
 //creates a unique session ID and stores it in Redis

@@ -17,10 +17,12 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     // Public routes
     app.Post("/register", handlers.Register)
     app.Post("/login", handlers.Login)
+    app.Post("/refresh-token",handlers.RefreshToken)
 
     api := app.Group("/api")
     api.Use(middleware.NewJwtMiddleware())
-     {
+     {  
         api.Get("/profile", handlers.Profile)
+        api.Get("/logout",handlers.Logout)
      }
 }
