@@ -14,7 +14,28 @@ func CreateEscrow(c fiber.Ctx) error {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
     }
 
-    userID := c.Locals("user_id").(uint32)
+    user := c.Locals("user")
+    if user == nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "User data not found in context",
+        })
+    }
+
+    userMap, ok := user.(map[string]interface{})
+    if !ok {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Invalid user data format",
+        })
+    }
+
+    userIDInterface := userMap["user_id"]
+    userID, ok := userIDInterface.(uint32)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid or missing user ID",
+        })
+    }
+
     escrow.BuyerID = uint(userID)
     escrow.Status = model.Pending
 
