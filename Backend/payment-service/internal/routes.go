@@ -22,6 +22,6 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
     {
         api.Post("/initiate", handlers.InitiateEscrowPayment)
-        // future routes like /status, /history go here
+       
     }
 }
