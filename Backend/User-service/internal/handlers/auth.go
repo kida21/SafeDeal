@@ -5,14 +5,13 @@ import (
 	"os"
 	"strconv"
 	"time"
-
 	"user_service/internal/model"
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
-    "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -57,12 +56,15 @@ func Login(c fiber.Ctx) error {
     refreshToken := refresh.GenerateRefreshToken(sessionID)
 
     // Create access token with session ID
-    claims := jwt.RegisteredClaims{
-        Issuer:    "user-service",
-        Subject:   strconv.Itoa(int(user.ID)),
-        ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
-        IssuedAt:  jwt.NewNumericDate(time.Now()),
-        ID:        sessionID,
+    claims := CustomClaims{
+        UserID: uint32(user.ID),
+        RegisteredClaims: jwt.RegisteredClaims{
+            Issuer:    "user-service",
+            Subject:   strconv.Itoa(int(user.ID)),
+            ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+            IssuedAt:  jwt.NewNumericDate(time.Now()),
+            ID:        sessionID,
+        },
     }
 
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

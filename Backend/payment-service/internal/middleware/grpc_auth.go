@@ -12,7 +12,7 @@ func AuthMiddleware() fiber.Handler {
     return func(c fiber.Ctx) error {
         authHeader := c.Get("Authorization")
         if authHeader == "" {
-            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing token"})
+            return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing authorization header"})
         }
 
         parts := strings.Split(authHeader, " ")
@@ -22,8 +22,8 @@ func AuthMiddleware() fiber.Handler {
 
         token := parts[1]
         resp, err := userServiceClient.VerifyToken(token)
-        if resp == nil{
-            return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error":"nil response from verification"})
+        if resp == nil || !resp.Valid{
+            return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error":"nil response from verification or invalid"})
         }
         if err != nil || !resp.Valid {
             return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})

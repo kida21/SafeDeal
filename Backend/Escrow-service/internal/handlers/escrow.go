@@ -25,6 +25,7 @@ func CreateEscrow(c fiber.Ctx) error {
 }
 
 
+// internal/handlers/escrow.go
 func GetEscrow(c fiber.Ctx) error {
     id := c.Params("id")
     escrowID, err := strconv.ParseUint(id, 10, 32)
@@ -42,14 +43,41 @@ func GetEscrow(c fiber.Ctx) error {
             "error": "Escrow not found",
         })
     }
-    userID := c.Locals("user_id").(uint32)
-    if userID != uint32(escrow.BuyerID) && userID != uint32(escrow.SellerID) {
-        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-            "error": "You do not have access to this escrow",
+
+    // Safely extract user data from middleware
+    userData := c.Locals("user")
+    if userData == nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "User data missing from context",
         })
     }
 
-    return c.JSON(fiber.Map{
-        "escrow": escrow,
-    })
+    userMap, ok := userData.(map[string]interface{})
+    if !ok {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Invalid user data format",
+        })
+    }
+
+    userIDInterface := userMap["user_id"]
+    if userIDInterface == nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Missing user_id in token",
+        })
+    }
+
+    userID, ok := userIDInterface.(uint32)
+    if !ok {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Invalid user_id type",
+        })
+    }
+
+    if userID != uint32(escrow.BuyerID) && userID != uint32(escrow.SellerID) {
+        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+            "error": "Access denied to this escrow",
+        })
+    }
+
+    return c.JSON(escrow)
 }

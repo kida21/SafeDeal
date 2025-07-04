@@ -24,7 +24,7 @@ func startGRPCServer() {
     }
 
     s := grpc.NewServer()
-    proto.RegisterAuthServiceServer(s, &auth.AuthServer{})
+    proto.RegisterAuthServiceServer(s, &auth.AuthServer{RedisClient: redisclient.Client})
     log.Println("gRPC server running on port :50051")
 
     if err := s.Serve(lis); err != nil {
@@ -32,12 +32,12 @@ func startGRPCServer() {
     }
 }
 func main() {
+    redisclient.InitRedis()
     db.ConnectDB()
     // db.DB.Exec("DROP TABLE IF EXISTS users")(for development purpose)
     db.DB.AutoMigrate(&model.User{})
     go startGRPCServer()
-    redisclient.InitRedis()
-
+    
     handlers.SetRedisClient(redisclient.Client)
     session.InitSession(redisclient.Client)
     refresh.InitRefresh(redisclient.Client)
