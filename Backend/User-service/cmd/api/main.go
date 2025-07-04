@@ -12,7 +12,7 @@ import (
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
 
-	proto "github.com/SafeDeal/proto/auth/v1"
+	proto "github.com/SafeDeal/proto/auth/v0"
 	"github.com/gofiber/fiber/v3"
 	"google.golang.org/grpc"
 )
@@ -24,7 +24,6 @@ func startGRPCServer() {
     }
 
     s := grpc.NewServer()
-
     proto.RegisterAuthServiceServer(s, &auth.AuthServer{})
     log.Println("gRPC server running on port :50051")
 

@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.30.2
-// source: proto/auth/v1/auth.proto
+// source: proto/auth/v0/auth.proto
 
-package v1
+package v0
 
 import (
 	context "context"
@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_VerifyToken_FullMethodName = "/auth.v1.AuthService/VerifyToken"
+	AuthService_VerifyToken_FullMethodName = "/auth.v0.AuthService/VerifyToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -108,7 +108,7 @@ func _AuthService_VerifyToken_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "auth.v1.AuthService",
+	ServiceName: "auth.v0.AuthService",
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -117,5 +117,5 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/auth/v1/auth.proto",
+	Metadata: "proto/auth/v0/auth.proto",
 }

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package auth.v1;
+package auth.v0;
 
-option go_package = "./proto/auth/v1";
+option go_package = "./proto/auth/v0";
 
 service AuthService {
   rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);

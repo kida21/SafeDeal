@@ -6,6 +6,7 @@ require (
 	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
 	gorm.io/gorm v1.30.0
+
 )
 
 replace github.com/SafeDeal/proto/auth => ../../Proto/auth
@@ -20,6 +21,7 @@ require (
 	golang.org/x/sync v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
+
 )
 
 require (

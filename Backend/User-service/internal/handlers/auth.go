@@ -60,9 +60,9 @@ func Login(c fiber.Ctx) error {
     claims := jwt.RegisteredClaims{
         Issuer:    "user-service",
         Subject:   strconv.Itoa(int(user.ID)),
-        ID:        sessionID,
         ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
         IssuedAt:  jwt.NewNumericDate(time.Now()),
+        ID:        sessionID,
     }
 
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
