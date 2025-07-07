@@ -42,11 +42,18 @@ func CreateEscrow(c fiber.Ctx) error {
     db := c.Locals("db").(*gorm.DB)
     db.Create(&escrow)
 
-    return c.Status(fiber.StatusCreated).JSON(escrow)
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "id": escrow.ID,
+        "buyer_id": escrow.BuyerID,
+        "seller_id": escrow.SellerID,
+        "amount": escrow.Amount,
+        "status": escrow.Status,
+        "conditions": escrow.Conditions,
+        "created_at": escrow.CreatedAt,
+        "updated_at": escrow.UpdatedAt,
+    })
 }
 
-
-// internal/handlers/escrow.go
 func GetEscrow(c fiber.Ctx) error {
     id := c.Params("id")
     escrowID, err := strconv.ParseUint(id, 10, 32)
@@ -65,7 +72,7 @@ func GetEscrow(c fiber.Ctx) error {
         })
     }
 
-    // Safely extract user data from middleware
+    //extract user data from middleware
     userData := c.Locals("user")
     if userData == nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
