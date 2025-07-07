@@ -49,7 +49,7 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
         PhoneNumber:       req.Phone,
         TxRef:             txRef,
         CallbackURL:       "https://webhook.site/077164d6-29cb-40df-ba29-8a00e59a7e60",
-        ReturnURL:         "http://your-app.com/payment/success",
+        ReturnURL:         "",
         CustomTitle:       "Escrow Payment",
         CustomDescription: "Secure escrow transaction via Chapa",
         HideReceipt:       "true",
@@ -76,11 +76,11 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
     return c.JSON(fiber.Map{"payment_url": paymentURL, "tx_ref": txRef})
 }
 
-// HandleChapaWebhook receives Chapa's webhook after payment completion
+// receives Chapa's webhook after payment completion
 func HandleChapaWebhook(c fiber.Ctx) error {
     type ChapaWebhookPayload struct {
         TxRef  string `json:"tx_ref"`
-        Status string `json:"status"` // success or failed
+        Status string `json:"status"` 
     }
 
     var payload ChapaWebhookPayload
