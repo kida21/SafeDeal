@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 	"user_service/internal/model"
 	"user_service/pkg/refresh"
@@ -75,7 +76,7 @@ func Login(c fiber.Ctx) error {
         "refresh_token": refreshToken,
     })
 }
-// internal/handlers/auth.go
+
 func RefreshToken(c fiber.Ctx) error {
     type Request struct {
         RefreshToken string `json:"refresh_token"`
@@ -114,15 +115,39 @@ func RefreshToken(c fiber.Ctx) error {
     })
 }
 func Logout(c fiber.Ctx) error {
-    user := c.Locals("user").(map[string]interface{})
-    sessionID := user["session_id"].(string)
-
-    if err := session.RevokeSession(sessionID); err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to revoke session",
-        })
+    authHeader := c.Get("Authorization")
+    if authHeader == "" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing token"})
     }
-   return c.SendStatus(fiber.StatusOK)
+
+    parts := strings.Split(authHeader, " ")
+    if len(parts) != 2 || parts[0] != "Bearer" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token format"})
+    }
+
+    tokenStr := parts[1]
+
+    token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
+        return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+    })
+
+    if err != nil || !token.Valid {
+        // Even if expired or invalid, we still want to revoke session
+        claims := token.Claims.(jwt.MapClaims)
+        sessionID := claims["jti"].(string)
+       if sessionID != "" {
+            session.RevokeSession(sessionID)
+        }
+
+        return c.JSON(fiber.Map{"message": "Already logged out or token invalid"})
+    }
+
+    claims := token.Claims.(jwt.MapClaims)
+    sessionID := claims["jti"].(string)
+
+    session.RevokeSession(sessionID)
+
+    return c.SendStatus(fiber.StatusOK)
 }
 func Register(c fiber.Ctx) error {
     type RegisterInput struct {

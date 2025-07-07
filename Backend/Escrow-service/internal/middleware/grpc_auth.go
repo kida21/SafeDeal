@@ -23,11 +23,12 @@ func AuthMiddleware() fiber.Handler {
         token := parts[1]
         
          resp, err := userServiceClient.VerifyToken(token)
-        if resp == nil || !resp.Valid{
-            return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error":"nil response from verification or invalid"})
-        }
+        
         if err != nil || !resp.Valid {
             return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})
+        }
+        if resp == nil || !resp.Valid{
+            return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error":"nil response from verification or invalid"})
         }
         
         c.Locals("user",map[string]any{
