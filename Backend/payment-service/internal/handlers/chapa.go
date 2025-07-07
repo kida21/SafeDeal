@@ -1,13 +1,16 @@
 package handlers
 
 import (
-    "payment_service/internal/model"
-    "payment_service/internal/escrow"
-    "payment_service/pkg/chapa"
-    "payment_service/pkg/utils"
-    "os"
-    "github.com/gofiber/fiber/v3"
-    "gorm.io/gorm"
+	"fmt"
+	"log"
+	"os"
+	"payment_service/internal/escrow"
+	"payment_service/internal/model"
+	"payment_service/pkg/chapa"
+	"payment_service/pkg/utils"
+
+	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 )
 
 var chapaClient = chapa.NewChapaClient(os.Getenv("CHAPA_SECRET_KEY"))
@@ -22,62 +25,55 @@ func init() {
 }
 func InitiateEscrowPayment(c fiber.Ctx) error {
     type Request struct {
-        EscrowID uint    `json:"escrow_id"`
-        Amount   float64 `json:"amount"`
-        Currency string  `json:"currency"`
-        Email    string  `json:"email"`
+        EscrowID   uint   `json:"escrow_id"`
+        Amount     float64 `json:"amount"`  
+        Currency   string `json:"currency"`
+        Email      string `json:"email"`      
+        FirstName  string `json:"first_name"`   
+        LastName   string `json:"last_name"`  
+        Phone      string `json:"phone_number"` 
     }
 
     var req Request
     if err := c.Bind().Body(&req); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid request payload",
-        })
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
     }
 
     txRef := utils.GenerateTxRef()
-
     paymentURL, _, err := chapaClient.InitiatePayment(chapa.ChapaRequest{
-        Amount:      req.Amount,
-        Currency:    req.Currency,
-        Email:       req.Email,
-        FirstName:   "User",
-        LastName:    "",
-        CallbackURL: "http://payment-service:8083/webhooks/chapa",
-        ReturnURL:   "http://frontend.com/payment/success",
-        TxRef:       txRef,
+        Amount:           fmt.Sprintf("%.2f", req.Amount),
+        Currency:          req.Currency,
+        Email:             req.Email,
+        FirstName:         req.FirstName,
+        LastName:          req.LastName,
+        PhoneNumber:       req.Phone,
+        TxRef:             txRef,
+        CallbackURL:       "https://webhook.site/077164d6-29cb-40df-ba29-8a00e59a7e60",
+        ReturnURL:         "http://your-app.com/payment/success",
+        CustomTitle:       "Escrow Payment",
+        CustomDescription: "Secure escrow transaction via Chapa",
+        HideReceipt:       "true",
     })
 
     if err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+        log.Println("Chapa Error:", err.Error())
+       return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to initiate payment with Chapa",
         })
     }
 
     db := c.Locals("db").(*gorm.DB)
-    if db == nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Database connection not available",
-        })
-    }
-    if err := db.Create(&model.EscrowPayment{
+    db.Create(&model.EscrowPayment{
         EscrowID:       req.EscrowID,
         TransactionRef: txRef,
         Amount:         req.Amount,
         Currency:       req.Currency,
         Status:         model.Pending,
         PaymentURL:     paymentURL,
-    }).Error; err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to save transaction to database",
-        })
-    }
-    escrowClient.UpdateEscrowStatus(uint32(req.EscrowID), "Funded")
-
-    return c.JSON(fiber.Map{
-        "payment_url":     paymentURL,
-        "transaction_ref": txRef,
     })
+
+    escrowClient.UpdateEscrowStatus(uint32(req.EscrowID), "Funded")
+    return c.JSON(fiber.Map{"payment_url": paymentURL, "tx_ref": txRef})
 }
 
 // HandleChapaWebhook receives Chapa's webhook after payment completion
