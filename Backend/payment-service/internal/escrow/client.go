@@ -28,3 +28,7 @@ func (c *EscrowServiceClient) UpdateEscrowStatus(escrowID uint32, newStatus stri
     })
     return err
 }
+func (c *EscrowServiceClient) GetEscrow(id uint32) (*v1.EscrowResponse, error) {
+    client := v1.NewEscrowServiceClient(c.conn)
+    return client.GetEscrow(context.Background(), &v1.GetEscrowRequest{EscrowId: id})
+}

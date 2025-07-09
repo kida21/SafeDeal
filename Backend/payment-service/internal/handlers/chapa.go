@@ -75,3 +75,51 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
     return c.JSON(fiber.Map{"payment_url": paymentURL, "tx_ref": txRef})
 }
 
+func ConfirmPayment(c fiber.Ctx) error {
+    txRef := c.Query("tx_ref")
+    if txRef == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing tx_ref"})
+    }
+
+    db := c.Locals("db").(*gorm.DB)
+    var payment model.EscrowPayment
+
+    if err := db.Where("transaction_ref = ?", txRef).First(&payment).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
+    }
+
+    
+    escrowResp, err := escrowClient.GetEscrow(uint32(payment.EscrowID))
+    if err != nil || escrowResp == nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Could not fetch escrow details",
+        })
+    }
+
+    user := c.Locals("user").(map[string]any)
+    userID := user["user_id"].(uint32)
+
+    if userID != escrowResp.BuyerId {
+        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+            "error": "Only buyer can confirm payment",
+        })
+    }
+
+    verified, err := chapaClient.VerifyPayment(txRef)
+    if !verified || err != nil {
+        return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+            "error": "Payment verification failed",
+        })
+    }
+
+    payment.Status = model.Completed
+    db.Save(&payment)
+    escrowClient.UpdateEscrowStatus(uint32(payment.EscrowID), "Funded")
+
+    return c.JSON(fiber.Map{
+        "message":         "Payment verified",
+        "escrow_status":   "Funded",
+        "escrow_id":       payment.EscrowID,
+        "buyer_id_remote": escrowResp.BuyerId,
+    })
+}

@@ -19,6 +19,6 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
     {
         api.Post("/initiate", handlers.InitiateEscrowPayment)
-       
+        api.Post("/confirm",handlers.ConfirmPayment)
     }
 }
