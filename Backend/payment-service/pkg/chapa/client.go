@@ -2,6 +2,8 @@ package chapa
 
 import (
 	"bytes"
+	"context"
+
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +11,7 @@ import (
 )
 
 const CHAPA_API_URL = "https://api.chapa.co/v1/transaction/initialize"
+const BaseURL = "https://api.chapa.co/v1 "
 
 type ChapaClient struct {
     secretKey string
@@ -39,6 +42,13 @@ type ChapaResponse struct {
     } `json:"data"`
     Message string `json:"message"`
 }
+type VerifyResponse struct {
+    Status   string `json:"status"`
+    Data     struct {
+        Amount float64 `json:"amount"`
+        Status string  `json:"status"` 
+    } `json:"data"`
+}
 
 func (c *ChapaClient) InitiatePayment(req ChapaRequest) (string, string, error) {
     body, _ := json.Marshal(req)
@@ -62,7 +72,7 @@ func (c *ChapaClient) InitiatePayment(req ChapaRequest) (string, string, error) 
         return "", "", fmt.Errorf("failed to read response body: %v", err)
     }
 
-   var result map[string]interface{}
+   var result map[string]any
     if err := json.Unmarshal(bodyBytes, &result); err != nil {
         return "", "", fmt.Errorf("failed to decode response: %v", err)
     }
@@ -104,4 +114,30 @@ func (c *ChapaClient) InitiatePayment(req ChapaRequest) (string, string, error) 
     }
 
     return paymentURL, txRef, nil
+}
+
+func (c *ChapaClient) VerifyPayment(txRef string) (bool, error) {
+    url := fmt.Sprintf("https://api.chapa.co/v1/transaction/verify/%s ", txRef)
+
+    req, _ := http.NewRequestWithContext(context.Background(), "GET", url, nil)
+    req.Header.Set("Authorization", "Bearer "+c.secretKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return false, err
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    var result VerifyResponse
+    if err := json.Unmarshal(body, &result); err != nil {
+        return false, err
+    }
+    if result.Status == "success" && result.Data.Status == "success" {
+        return true, nil
+    }
+
+    return false, fmt.Errorf("payment not successful")
 }
