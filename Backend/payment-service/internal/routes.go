@@ -14,7 +14,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     })
 
     // Public route for Chapa webhook
-    app.Post("/api/webhooks/chapa", handlers.HandleChapaWebhook)
+    app.Post("/webhooks/chapa", handlers.HandleChapaWebhook)
 
     // Protected group
     api := app.Group("/api/payments")

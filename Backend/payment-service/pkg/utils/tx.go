@@ -1,8 +1,11 @@
 package utils
 
 import (
-    "crypto/rand"
-    "encoding/hex"
+
+	"crypto/rand"
+
+	"encoding/hex"
+	
 )
 
 func GenerateTxRef() string {

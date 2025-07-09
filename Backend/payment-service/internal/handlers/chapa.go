@@ -72,12 +72,13 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
         PaymentURL:     paymentURL,
     })
 
-    escrowClient.UpdateEscrowStatus(uint32(req.EscrowID), "Funded")
     return c.JSON(fiber.Map{"payment_url": paymentURL, "tx_ref": txRef})
 }
 
 // receives Chapa's webhook after payment completion
 func HandleChapaWebhook(c fiber.Ctx) error {
+    
+    // log.Println("Received webhook:", string(c.Request().Body()))
     type ChapaWebhookPayload struct {
         TxRef  string `json:"tx_ref"`
         Status string `json:"status"` 
@@ -111,7 +112,12 @@ func HandleChapaWebhook(c fiber.Ctx) error {
         })
     }
     if newStatus == model.Completed {
-        escrowClient.UpdateEscrowStatus(uint32(payment.EscrowID), "Funded")
+        err:=escrowClient.UpdateEscrowStatus(uint32(payment.EscrowID), "Funded")
+        if err != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error": "Failed to update escrow status",
+            })
+        }
     }
 
     return c.SendStatus(fiber.StatusOK)
