@@ -12,13 +12,14 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
         c.Locals("db", db)
         return c.Next()
     })
-
+    
+   app.Post("/webhook/chapa",handlers.HandleChapaWebhook)
     // Protected group
     api := app.Group("/api/payments")
     api.Use(middleware.AuthMiddleware())
 
     {
         api.Post("/initiate", handlers.InitiateEscrowPayment)
-        api.Post("/confirm",handlers.ConfirmPayment)
+        
     }
 }
