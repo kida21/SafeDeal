@@ -10,6 +10,8 @@ type User struct {
     LastName  string `json:"last_name" gorm:"column:last_name;not null"`
     Email     string `json:"email" gorm:"uniqueIndex;not null"`
     Password  string `json:"-" gorm:"not null"`
+    Activated bool   `json:"activated" gorm:"default:false"`
+    Version   int    `json:"version" gorm:"default:1"`
 	
     
 }

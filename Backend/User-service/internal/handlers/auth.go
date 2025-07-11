@@ -186,6 +186,8 @@ func Register(c fiber.Ctx) error {
 		FirstName: input.FirstName,
 		LastName: input.LastName,
         Password: string(hashedPassword),
+        Activated: false,
+        Version: 1,
         
 		
     }
