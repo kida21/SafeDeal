@@ -9,6 +9,7 @@ import (
 	"user_service/internal/model"
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
+	"user_service/pkg/validator"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
@@ -150,30 +151,31 @@ func Logout(c fiber.Ctx) error {
     return c.SendStatus(fiber.StatusOK)
 }
 func Register(c fiber.Ctx) error {
-    type RegisterInput struct {
-        Email    string `json:"email"`
-		FirstName string `json:"firstname"`
-		LastName  string  `json:"lastname"`
-        Password string `json:"password"`
+    type RegisterRequest struct {
+        FirstName string `json:"first_name" validate:"required,chars_only,min=2,max=50"`
+        LastName  string `json:"last_name" validate:"required,chars_only,min=2,max=50"`
+        Email     string `json:"email" validate:"required,email"`
+        Password  string `json:"password" validate:"required,min=8"`
     }
 
-    var input RegisterInput
-    if err := c.Bind().Body(&input); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid input",
-        })
+    var req RegisterRequest
+    if err := c.Bind().Body(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
     }
 
+    if err := validator.ValidateStruct(req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+    }
     
     var existingUser model.User
     db := c.Locals("db").(*gorm.DB)
-    if err := db.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+    if err := db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
         return c.Status(fiber.StatusConflict).JSON(fiber.Map{
             "error": "Email already in use",
         })
     }
 
-   hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+   hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
     if err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Could not hash password",
@@ -182,9 +184,9 @@ func Register(c fiber.Ctx) error {
 
     
     user := model.User{
-        Email:    input.Email,
-		FirstName: input.FirstName,
-		LastName: input.LastName,
+        Email:    req.Email,
+		FirstName: req.FirstName,
+		LastName: req.LastName,
         Password: string(hashedPassword),
         Activated: false,
         Version: 1,
@@ -196,8 +198,11 @@ func Register(c fiber.Ctx) error {
     return c.Status(fiber.StatusCreated).JSON(fiber.Map{
         "message": "User registered successfully",
         "user": fiber.Map{
-            "id":    user.ID,
-            "email": user.Email,
+            "id":         user.ID,
+            "first_name": user.FirstName,
+            "last_name":  user.LastName,
+            "email":      user.Email,
+            "activated":  user.Activated,
         },
     })
 }
