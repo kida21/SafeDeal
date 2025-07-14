@@ -11,6 +11,7 @@ import (
 	"user_service/pkg/redis"
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
+    Token"user_service/pkg/token"
 
 	proto "github.com/SafeDeal/proto/auth/v0"
 	"github.com/gofiber/fiber/v3"
@@ -41,6 +42,7 @@ func main() {
     handlers.SetRedisClient(redisclient.Client)
     session.InitSession(redisclient.Client)
     refresh.InitRefresh(redisclient.Client)
+    Token.SetRedisClient(redisclient.Client)
     app := fiber.New()
     internal.SetupRoutes(app, db.DB)
 

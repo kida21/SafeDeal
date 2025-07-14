@@ -1,22 +1,42 @@
 package token
 
 import (
-    "crypto/rand"
-    "encoding/hex"
-    "user_service/internal/model"
-    "gorm.io/gorm"
+    "context"
+    "time"
+
+    "github.com/google/uuid"
+    "github.com/redis/go-redis/v9"
 )
 
-func GenerateActivationToken() string {
-    b := make([]byte, 16)
-    rand.Read(b)
-    return hex.EncodeToString(b)
+var redisClient *redis.Client
+
+func SetRedisClient(client *redis.Client) {
+    redisClient = client
 }
 
-func ValidateActivationToken(db *gorm.DB, token string) (uint, error) {
-    var user model.User
-    if err := db.Where("activation_token = ?", token).First(&user).Error; err != nil {
-        return 0, err
+
+func GenerateActivationToken(email string) string {
+    token := uuid.New().String()
+
+    err := redisClient.Set(context.Background(), "activation:"+token, email, 15*time.Minute).Err()
+    if err != nil {
+        panic("Failed to store token in Redis")
     }
-    return user.ID, nil
+
+    return token
+}
+
+// ValidateActivationToken checks if token exists and returns associated email
+func ValidateActivationToken(token string) (string, bool) {
+    email, err := redisClient.Get(context.Background(), "activation:"+token).Result()
+    if err != nil {
+        return "", false
+    }
+
+    return email, true
+}
+
+// DeleteActivationToken removes token after activation
+func DeleteActivationToken(token string) error {
+    return redisClient.Del(context.Background(), "activation:"+token).Err()
 }

@@ -236,8 +236,8 @@ func ActivateAccount(c fiber.Ctx) error {
 
     db := c.Locals("db").(*gorm.DB)
 
-    userID, err := Token.ValidateActivationToken(db,token)
-    if err != nil {
+    userID, ok := Token.ValidateActivationToken(token)
+    if !ok {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
             "error": "Invalid or expired token",
         })
