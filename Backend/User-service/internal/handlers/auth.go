@@ -10,7 +10,7 @@ import (
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
 	"user_service/pkg/validator"
-
+    Token"user_service/pkg/token"
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
@@ -226,3 +226,41 @@ func Profile(c fiber.Ctx) error {
     }})
 }
 
+func ActivateAccount(c fiber.Ctx) error {
+    token := c.Query("token")
+    if token == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Missing activation token",
+        })
+    }
+
+    db := c.Locals("db").(*gorm.DB)
+
+    userID, err := Token.ValidateActivationToken(db,token)
+    if err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "Invalid or expired token",
+        })
+    }
+
+    var user model.User
+    if err := db.First(&user, userID).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "User not found",
+        })
+    }
+
+    if user.Activated {
+        return c.JSON(fiber.Map{
+            "message": "Account already activated",
+        })
+    }
+    db.Model(&user).Updates(map[string]any{
+        "activated": true,
+        "version":   gorm.Expr("version + 1"),
+    })
+
+    return c.JSON(fiber.Map{
+        "message": "Account activated successfully!",
+    })
+}
