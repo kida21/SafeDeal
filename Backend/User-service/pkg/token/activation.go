@@ -26,7 +26,6 @@ func GenerateActivationToken(email string) string {
     return token
 }
 
-// ValidateActivationToken checks if token exists and returns associated email
 func ValidateActivationToken(token string) (string, bool) {
     email, err := redisClient.Get(context.Background(), "activation:"+token).Result()
     if err != nil {
@@ -36,7 +35,6 @@ func ValidateActivationToken(token string) (string, bool) {
     return email, true
 }
 
-// DeleteActivationToken removes token after activation
 func DeleteActivationToken(token string) error {
     return redisClient.Del(context.Background(), "activation:"+token).Err()
 }

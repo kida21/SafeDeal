@@ -16,6 +16,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     
     // Public routes
     app.Post("/register", handlers.Register)
+    app.Get("/activate", handlers.ActivateAccount)
     app.Post("/login", handlers.Login)
     app.Post("/refresh-token",handlers.RefreshToken)
 

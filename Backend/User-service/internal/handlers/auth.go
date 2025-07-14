@@ -2,15 +2,18 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 	"user_service/internal/model"
+	"user_service/pkg/mailer"
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
+	Token "user_service/pkg/token"
 	"user_service/pkg/validator"
-    Token"user_service/pkg/token"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
@@ -195,10 +198,18 @@ func Register(c fiber.Ctx) error {
     }
 
     db.Create(&user)
+    token:=Token.GenerateActivationToken(req.Email)
+    mailer := mailer.NewMailer()
+    go func() {
+        err := mailer.SendActivationEmail(user.Email, token)
+        if err != nil {
+            fmt.Println("Failed to send activation email:", err)
+        }
+    }()
+
     return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-        "message": "User registered successfully",
+        "message": "Registration successful. Please check your email to activate your account.",
         "user": fiber.Map{
-            "id":         user.ID,
             "first_name": user.FirstName,
             "last_name":  user.LastName,
             "email":      user.Email,
@@ -236,7 +247,7 @@ func ActivateAccount(c fiber.Ctx) error {
 
     db := c.Locals("db").(*gorm.DB)
 
-    userID, ok := Token.ValidateActivationToken(token)
+    email, ok := Token.ValidateActivationToken(token)
     if !ok {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
             "error": "Invalid or expired token",
@@ -244,10 +255,8 @@ func ActivateAccount(c fiber.Ctx) error {
     }
 
     var user model.User
-    if err := db.First(&user, userID).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-            "error": "User not found",
-        })
+    if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
     }
 
     if user.Activated {
@@ -259,7 +268,7 @@ func ActivateAccount(c fiber.Ctx) error {
         "activated": true,
         "version":   gorm.Expr("version + 1"),
     })
-
+    Token.DeleteActivationToken(token)
     return c.JSON(fiber.Map{
         "message": "Account activated successfully!",
     })
