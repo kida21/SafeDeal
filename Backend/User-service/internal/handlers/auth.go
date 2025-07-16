@@ -45,6 +45,12 @@ func Login(c fiber.Ctx) error {
     if err := db.Where("email = ?", req.Email).First(&user).Error; err != nil {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
     }
+    
+    if !user.Activated {
+        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+            "error": "Account not activated. Please check your email.",
+        })
+      }
 
     if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
