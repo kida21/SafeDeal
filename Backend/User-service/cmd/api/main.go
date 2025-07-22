@@ -5,13 +5,14 @@ import (
 	"net"
 	"user_service/internal"
 	"user_service/internal/auth"
+	"user_service/internal/consul"
 	"user_service/internal/db"
 	"user_service/internal/handlers"
 	"user_service/internal/model"
 	"user_service/pkg/redis"
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
-    Token"user_service/pkg/token"
+	Token "user_service/pkg/token"
 
 	proto "github.com/SafeDeal/proto/auth/v0"
 	"github.com/gofiber/fiber/v3"
@@ -38,12 +39,19 @@ func main() {
     // db.DB.Exec("DROP TABLE IF EXISTS users")(for development purpose)
     db.DB.AutoMigrate(&model.User{})
     go startGRPCServer()
-    
+
+    consul.RegisterService("user-service", "user-service", 8081)
+
     handlers.SetRedisClient(redisclient.Client)
     session.InitSession(redisclient.Client)
     refresh.InitRefresh(redisclient.Client)
     Token.SetRedisClient(redisclient.Client)
+    
     app := fiber.New()
+    app.Get("/health", func(c fiber.Ctx) error {
+        return c.SendString("OK")
+    })
+
     internal.SetupRoutes(app, db.DB)
 
     app.Listen(":8081")

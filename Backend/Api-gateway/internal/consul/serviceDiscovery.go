@@ -19,8 +19,6 @@ func InitConsul() {
         log.Fatalf("Failed to connect to Consul: %v", err)
     }
 }
-
-// GetServiceEndpoint returns host:port for a service
 func GetServiceEndpoint(serviceName string) (string, error) {
     services, meta, err := client.Catalog().Service(serviceName, "", nil)
     if err != nil || meta.LastIndex == 0 || len(services) == 0 {
