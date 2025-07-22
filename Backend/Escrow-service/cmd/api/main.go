@@ -1,16 +1,18 @@
 package main
 
 import (
-    "net"
-    "log"
-    "escrow_service/internal"
-    "escrow_service/internal/db"
-    "github.com/gofiber/fiber/v3"
+	"escrow_service/internal"
+	"escrow_service/internal/consul"
+	"escrow_service/internal/db"
 	"escrow_service/internal/model"
-    "gorm.io/gorm"
-    "google.golang.org/grpc"
-    escrow"github.com/SafeDeal/proto/escrow/v1"
-    "escrow_service/internal/server"
+	"escrow_service/internal/server"
+	"log"
+	"net"
+
+	escrow "github.com/SafeDeal/proto/escrow/v1"
+	"github.com/gofiber/fiber/v3"
+	"google.golang.org/grpc"
+	"gorm.io/gorm"
 )
 func startGRPCServer(db *gorm.DB) {
     lis, err := net.Listen("tcp", ":50052")
@@ -31,7 +33,13 @@ func main() {
     db.ConnectDB()
     db.DB.AutoMigrate(&model.Escrow{})
     go startGRPCServer(db.DB)
+    consul.RegisterService("escrow-service", "escrow-service", 8082)
+
     app := fiber.New()
+
+    app.Get("/health", func(c fiber.Ctx) error {
+        return c.SendString("OK")
+    })
     internal.SetupRoutes(app, db.DB)
 
     app.Listen(":8082")

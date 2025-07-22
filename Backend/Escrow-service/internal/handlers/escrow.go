@@ -65,43 +65,28 @@ func GetEscrow(c fiber.Ctx) error {
 
     db := c.Locals("db").(*gorm.DB)
     var escrow model.Escrow
-
     if err := db.First(&escrow, uint(escrowID)).Error; err != nil {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
             "error": "Escrow not found",
         })
     }
 
-    //extract user data from middleware
-    userData := c.Locals("user")
-    if userData == nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "User data missing from context",
+    userIDStr := c.Get("X-User-ID")
+    if userIDStr == "" {
+        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+            "error": "Missing X-User-ID header – request must come through API Gateway",
         })
     }
 
-    userMap, ok := userData.(map[string]interface{})
-    if !ok {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Invalid user data format",
+   userID, err := strconv.ParseUint(userIDStr, 10, 32)
+    if err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid user ID format",
         })
     }
 
-    userIDInterface := userMap["user_id"]
-    if userIDInterface == nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Missing user_id in token",
-        })
-    }
-
-    userID, ok := userIDInterface.(uint32)
-    if !ok {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Invalid user_id type",
-        })
-    }
-
-    if userID != uint32(escrow.BuyerID) && userID != uint32(escrow.SellerID) {
+    
+    if uint32(escrow.BuyerID) != uint32(userID) && uint32(escrow.SellerID) != uint32(userID) {
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
             "error": "Access denied to this escrow",
         })
