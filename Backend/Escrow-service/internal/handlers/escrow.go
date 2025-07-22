@@ -14,29 +14,23 @@ func CreateEscrow(c fiber.Ctx) error {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
     }
 
-    user := c.Locals("user")
-    if user == nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "User data not found in context",
+    userIDStr := c.Get("X-User-ID")
+    if userIDStr == "" {
+        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+            "error": "Missing X-User-ID header – request must come through API Gateway",
         })
     }
 
-    userMap, ok := user.(map[string]interface{})
-    if !ok {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Invalid user data format",
+     buyerID, err := strconv.ParseUint(userIDStr, 10, 32)
+    if err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid user ID format",
         })
     }
 
-    userIDInterface := userMap["user_id"]
-    userID, ok := userIDInterface.(uint32)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid or missing user ID",
-        })
-    }
+   
 
-    escrow.BuyerID = uint(userID)
+    escrow.BuyerID = uint(buyerID)
     escrow.Status = model.Pending
 
     db := c.Locals("db").(*gorm.DB)
