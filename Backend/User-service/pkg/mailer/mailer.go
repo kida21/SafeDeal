@@ -1,9 +1,11 @@
 package mailer
 
 import (
+	"crypto/tls"
 	"fmt"
 	"os"
-    "gopkg.in/gomail.v2"
+
+	"gopkg.in/gomail.v2"
 )
 
 type Mailer struct {
@@ -41,11 +43,15 @@ func (m *Mailer) SendActivationEmail(email, token string) error {
 
     dialer := gomail.NewDialer(
         m.SMTPHost,
-        2525,
+        587,
         m.SMTPUsername,
         m.SMTPPassword,
     )
-
+    
+    dialer.TLSConfig = &tls.Config{
+    ServerName: m.SMTPHost,
+    InsecureSkipVerify: false,
+      }
     if err := dialer.DialAndSend(msg); err != nil {
         return err
     }

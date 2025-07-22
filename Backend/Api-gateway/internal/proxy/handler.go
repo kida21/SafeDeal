@@ -46,11 +46,13 @@ func ProxyHandler(serviceName string) fiber.Handler {
         defer fasthttp.ReleaseRequest(req)
         defer fasthttp.ReleaseResponse(resp)
 
-        // Set method and URL
-        req.Header.SetMethodBytes(c.Request().Header.Method())
-        req.SetRequestURI("http://" + addr + rewritePath(c.Path(), serviceName))
+       
+        pathWithQuery := rewritePathAndQuery(c.Path(), c.Request().URI().QueryString(), serviceName)
 
-        // Copy headers
+        req.Header.SetMethodBytes(c.Request().Header.Method())
+        req.SetRequestURI("http://" + addr + pathWithQuery)
+
+        
         c.Request().Header.VisitAll(func(key, value []byte) {
             switch string(key) {
             case "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailers", "Transfer-Encoding", "Upgrade":
@@ -59,17 +61,17 @@ func ProxyHandler(serviceName string) fiber.Handler {
             req.Header.SetBytesKV(key, value)
         })
 
-        // Copy body
+       
         req.SetBody(c.Request().Body())
 
-        // Perform request
+        
         if err := getClient(addr).Do(req, resp); err != nil {
             return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
                 "error": "Failed to forward request: " + err.Error(),
             })
         }
 
-        // Copy response back
+       
         c.Response().SetStatusCode(resp.StatusCode())
         resp.Header.VisitAll(func(key, value []byte) {
             switch string(key) {
@@ -84,13 +86,19 @@ func ProxyHandler(serviceName string) fiber.Handler {
     }
 }
 
-func rewritePath(path, serviceName string) string {
+func rewritePathAndQuery(path string, query []byte, serviceName string) string {
     prefix := fmt.Sprintf("/api/%s", serviceName)
+
     if strings.HasPrefix(path, prefix) {
         path = strings.TrimPrefix(path, prefix)
         if path == "" {
-            return "/"
+            path = "/"
         }
     }
+
+   if len(query) > 0 {
+        path += "?" + string(query)
+    }
+
     return path
 }
