@@ -34,7 +34,7 @@ func (m *Mailer) SendActivationEmail(email, token string) error {
     msg.SetHeader("To", email)
     msg.SetHeader("Subject", "Activate Your SafeDeal Account")
 
-    link := fmt.Sprintf("http://localhost:8081/activate?token=%s", token)
+    link := fmt.Sprintf("http://localhost:8080/activate?token=%s", token)
     msg.SetBody("text/html", fmt.Sprintf(`
         <h1>Welcome to SafeDeal</h1>
         <p>Click the link below to activate your account:</p>
