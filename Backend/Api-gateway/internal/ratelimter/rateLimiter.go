@@ -4,7 +4,7 @@ import (
     "context"
     "fmt"
     "time"
-     "github.com/redis/go-redis/v9"
+    "github.com/redis/go-redis/v9"
     
 )
 
@@ -23,7 +23,7 @@ func NewRateLimiter(redisClient *redis.Client, limit int, window time.Duration) 
 }
 
 
-func (rl *RateLimiter) Allow(key string) bool {
+func (rl *RateLimiter) Allow(key string) (bool,error) {
     ctx := context.Background()
     now := time.Now().Unix()
     windowStart := now - int64(rl.Window.Seconds())
@@ -41,9 +41,9 @@ func (rl *RateLimiter) Allow(key string) bool {
     
     cmders, err := pipeline.Exec(ctx)
     if err != nil {
-        return false
+        return false,err
     }
 
     count := cmders[len(cmders)-1].(*redis.IntCmd).Val()
-    return count <= int64(rl.Limit)
+    return count <= int64(rl.Limit),nil
 }
