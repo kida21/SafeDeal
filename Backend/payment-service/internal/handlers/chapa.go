@@ -80,6 +80,7 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
 }
 
 func HandleChapaWebhook(c fiber.Ctx) error {
+    log.Println("✅ Webhook called by Chapa")
     type Payload struct {
         TxRef  string `json:"tx_ref"`
         Status string `json:"status"`
@@ -101,15 +102,21 @@ func HandleChapaWebhook(c fiber.Ctx) error {
         // Update payment status
         payment.Status = model.Completed
         db.Save(&payment)
+        log.Printf("✅ Payment status updated: %s", payment.TransactionRef)
 
         // ✅ Publish event to RabbitMQ
         producer := rabbitmq.NewProducer()
-        producer.PublishPaymentSuccess(
+        err:= producer.PublishPaymentSuccess(
             payload.TxRef,
             uint32(payment.EscrowID),
             uint32(payment.BuyerID),
             payment.Amount,
         )
+        if err != nil {
+            log.Printf("❌ Failed to publish event: %v", err)
+        } else {
+            log.Println("✅ Published payment.success event to RabbitMQ")
+        }
     }
 
     return c.SendStatus(fiber.StatusOK)

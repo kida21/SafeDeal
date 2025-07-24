@@ -17,8 +17,10 @@
 
     COPY proto/escrow ./Proto/escrow
 
+    COPY message-broker ./message-broker
+
     COPY Backend/Escrow-service ./Backend/Escrow-service
-    
+
     WORKDIR /app/Backend/Escrow-service
     
     RUN direnv allow .

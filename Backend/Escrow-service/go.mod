@@ -7,7 +7,9 @@ toolchain go1.23.11
 require (
 	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/api v1.32.1
 	gorm.io/gorm v1.30.0
+	message_broker v0.0.0-00010101000000-000000000000
 
 )
 
@@ -15,10 +17,11 @@ replace github.com/SafeDeal/proto/auth => ../../Proto/auth
 
 replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
+replace message_broker => ../../message-broker
+
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
-	github.com/hashicorp/consul/api v1.32.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
@@ -53,6 +56,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/streadway/amqp v1.1.0
 	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.62.0 // indirect

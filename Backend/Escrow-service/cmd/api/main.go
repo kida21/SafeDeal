@@ -5,6 +5,7 @@ import (
 	"escrow_service/internal/consul"
 	"escrow_service/internal/db"
 	"escrow_service/internal/model"
+	"escrow_service/internal/rabbitmq"
 	"escrow_service/internal/server"
 	"log"
 	"net"
@@ -34,6 +35,9 @@ func main() {
     db.DB.AutoMigrate(&model.Escrow{})
     go startGRPCServer(db.DB)
     consul.RegisterService("escrow-service", "escrow-service", 8082)
+
+    consumer := rabbitmq.NewConsumer(db.DB)
+    consumer.Listen()
 
     app := fiber.New()
 
