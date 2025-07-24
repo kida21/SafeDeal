@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	
+	"context"
 	"fmt"
 
 	"api_gateway/internal/ratelimter"
@@ -18,7 +18,7 @@ func RateLimitByUser(limiter *ratelimit.RateLimiter) fiber.Handler {
         }
 
         key := fmt.Sprintf("rate_limit:user:%s", userID)
-        allowed, err := limiter.Allow(key)
+        allowed, err := limiter.Allow(context.Background(),key)
         if err != nil {
             
             fmt.Printf("Redis error in rate limit for user %s: %v\n", userID, err)
@@ -41,7 +41,7 @@ func RateLimitByIP(limiter *ratelimit.RateLimiter) fiber.Handler {
         ip := c.IP()
         key := fmt.Sprintf("rate_limit:ip:%s", ip)
 
-        allowed, err := limiter.Allow(key)
+        allowed, err := limiter.Allow(context.Background(),key)
         if err != nil {
             fmt.Printf("Redis error in rate limit for IP %s: %v\n", ip, err)
             return c.Next()
