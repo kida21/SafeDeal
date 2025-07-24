@@ -6,6 +6,7 @@ import (
 	"os"
 	"payment_service/internal/escrow"
 	"payment_service/internal/model"
+	"payment_service/internal/rabbitmq"
 	"payment_service/pkg/chapa"
 	"payment_service/pkg/utils"
 
@@ -26,6 +27,7 @@ func init() {
 func InitiateEscrowPayment(c fiber.Ctx) error {
     type Request struct {
         EscrowID   uint   `json:"escrow_id"`
+        BuyerID    uint    `json:"buyer_id"`
         Amount     float64 `json:"amount"`  
         Currency   string `json:"currency"`
         Email      string `json:"email"`      
@@ -65,6 +67,7 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
     db := c.Locals("db").(*gorm.DB)
     db.Create(&model.EscrowPayment{
         EscrowID:       req.EscrowID,
+        BuyerID:         req.BuyerID,
         TransactionRef: txRef,
         Amount:         req.Amount,
         Currency:       req.Currency,
@@ -77,50 +80,36 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
 }
 
 func HandleChapaWebhook(c fiber.Ctx) error {
-    log.Println("Received webhook:", string(c.Request().Body()))
-
-    type ChapaWebhookPayload struct {
+    type Payload struct {
         TxRef  string `json:"tx_ref"`
         Status string `json:"status"`
     }
 
-    var payload ChapaWebhookPayload
+    var payload Payload
     if err := c.Bind().Body(&payload); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid webhook payload",
-        })
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid payload"})
     }
 
     db := c.Locals("db").(*gorm.DB)
-
     var payment model.EscrowPayment
+
     if err := db.Where("transaction_ref = ?", payload.TxRef).First(&payment).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-            "error": "Transaction not found",
-        })
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
     }
-    var newStatus model.TransactionStatus
+
     if payload.Status == "success" {
-        newStatus = model.Completed
-    } else {
-        newStatus = model.Failed
-    }
+        // Update payment status
+        payment.Status = model.Completed
+        db.Save(&payment)
 
-    if err := db.Model(&payment).Update("status", newStatus).Error; err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to update transaction status",
-        })
-    }
-
-    if newStatus == model.Completed {
-        err := escrowClient.UpdateEscrowStatus(uint32(payment.EscrowID), "Funded")
-        if err != nil {
-            log.Printf("🚨 Failed to notify escrow service: %v", err)
-            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-                "error": "Failed to update escrow status",
-            })
-        }
-        log.Printf("✅ Escrow ID %d marked as Funded", payment.EscrowID)
+        // ✅ Publish event to RabbitMQ
+        producer := rabbitmq.NewProducer()
+        producer.PublishPaymentSuccess(
+            payload.TxRef,
+            uint32(payment.EscrowID),
+            uint32(payment.BuyerID),
+            payment.Amount,
+        )
     }
 
     return c.SendStatus(fiber.StatusOK)

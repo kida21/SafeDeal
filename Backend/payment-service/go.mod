@@ -5,14 +5,17 @@ go 1.23.8
 toolchain go1.23.11
 
 require (
-	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/api v1.32.1
 	gorm.io/gorm v1.30.0
+	message_broker v0.0.0-00010101000000-000000000000
 )
 
 replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
 replace github.com/SafeDeal/proto/auth => ../../Proto/auth
+
+replace message_broker => ../../message-broker
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
@@ -22,7 +25,6 @@ require (
 	github.com/gofiber/schema v1.2.0 // indirect
 	github.com/gofiber/utils/v2 v2.0.0-beta.7 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/consul/api v1.32.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
@@ -59,6 +61,7 @@ require (
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/streadway/amqp v1.1.0
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/grpc v1.73.0
 	gorm.io/driver/postgres v1.6.0

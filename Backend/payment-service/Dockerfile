@@ -17,6 +17,8 @@ COPY proto/auth ./Proto/auth
 
 COPY proto/escrow ./Proto/escrow
 
+COPY message-broker ./message-broker
+
 COPY Backend/Payment-service ./Backend/Payment-service
 
 WORKDIR /app/Backend/Payment-service

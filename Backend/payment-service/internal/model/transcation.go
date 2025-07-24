@@ -14,6 +14,7 @@ const (
 type EscrowPayment struct {
     gorm.Model
     EscrowID       uint      `gorm:"not null" json:"escrow_id"`
+    BuyerID         uint      `gorm:"not null" json:"buyer_id"`
     TransactionRef string    `gorm:"unique;not null" json:"transaction_ref"`
     Amount         float64   `gorm:"type:decimal(16,2);not null" json:"amount"`
     Currency       string    `gorm:"size:3;not null" json:"currency"`
