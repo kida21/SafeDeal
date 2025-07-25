@@ -1,4 +1,3 @@
-// internal/escrow/client.go
 package escrow
 
 import (
