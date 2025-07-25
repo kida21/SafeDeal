@@ -5,8 +5,6 @@ import (
 	"escrow_service/internal/model"
 	"log"
 	"message_broker/rabbitmq/events"
-	"time"
-
 	"github.com/streadway/amqp"
 	"gorm.io/gorm"
 )
@@ -20,16 +18,11 @@ func NewConsumer(db *gorm.DB) *Consumer {
     var conn *amqp.Connection
     var err error
 
-    for {
-        conn, err = amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
-        if err == nil {
-            break
+    conn, err = amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
+        if err != nil {
+            log.Printf("❌ RabbitMQ connection failed: %v.", err)
         }
-        log.Printf("❌ RabbitMQ connection failed: %v. Retrying in 3s...", err)
-        time.Sleep(3 * time.Second)
-    }
-
-    ch, err := conn.Channel()
+        ch, err := conn.Channel()
     if err != nil {
         log.Fatalf("❌ Failed to open channel: %v", err)
     }
@@ -38,7 +31,7 @@ func NewConsumer(db *gorm.DB) *Consumer {
     if err != nil {
         log.Fatalf("❌ Failed to declare exchange: %v", err)
     }
-
+    log.Println("✅ Connected to RabbitMQ")
     return &Consumer{Channel: ch, DB: db}
 }
 
