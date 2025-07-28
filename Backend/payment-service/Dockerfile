@@ -1,5 +1,4 @@
-
-FROM golang:latest AS builder
+FROM dockerproxy.com/library/golang:latest AS builder
 
 WORKDIR /app
 
@@ -7,11 +6,11 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y direnv && \
     rm -rf /var/lib/apt/lists/*
 
-COPY Backend/Payment-service/go.mod ./Backend/Payment-service/go.mod
+COPY Backend/payment-service/go.mod ./Backend/Payment-service/go.mod
 
-COPY Backend/Payment-service/go.sum ./Backend/Payment-service/go.sum
+COPY Backend/payment-service/go.sum ./Backend/Payment-service/go.sum
 
-COPY Backend/Payment-service/.envrc ./Backend/Payment-service/.envrc
+COPY Backend/payment-service/.envrc ./Backend/Payment-service/.envrc
 
 COPY proto/auth ./Proto/auth
 
@@ -19,7 +18,7 @@ COPY proto/escrow ./Proto/escrow
 
 COPY message-broker ./message-broker
 
-COPY Backend/Payment-service ./Backend/Payment-service
+COPY Backend/payment-service ./Backend/Payment-service
 
 WORKDIR /app/Backend/Payment-service
 

@@ -1,4 +1,4 @@
-FROM golang:latest AS builder
+FROM dockerproxy.com/library/golang:latest AS builder
 
 WORKDIR /app
 
