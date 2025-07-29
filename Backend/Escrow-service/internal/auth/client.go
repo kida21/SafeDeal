@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"time"
 
 	"github.com/SafeDeal/proto/auth/v0"
 	"google.golang.org/grpc"
@@ -21,7 +22,20 @@ func NewUserServiceClient(addr string) (*UserServiceClient, error) {
     return &UserServiceClient{conn: conn}, nil
 }
 
-func (c *UserServiceClient) VerifyToken(token string) (*v0.VerifyTokenResponse, error) {
-    client := v0.NewAuthServiceClient(c.conn)
-    return client.VerifyToken(context.Background(), &v0.VerifyTokenRequest{Token: token})
+func (c *UserServiceClient) Close() error {
+    return c.conn.Close()
+}
+
+func (c *UserServiceClient) GetUser(userID uint32) (*v0.User, error) {
+     client := v0.NewAuthServiceClient(c.conn)
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    resp, err := client.GetUser(ctx, &v0.GetUserRequest{UserId: userID})
+    if err != nil {
+        return nil, err
+    }
+    if !resp.Success {
+        return nil, context.DeadlineExceeded
+    }
+    return resp.User, nil
 }
