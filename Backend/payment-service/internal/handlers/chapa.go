@@ -128,7 +128,6 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
         PaymentURL:     paymentURL,
     })
 
-    log.Printf("Generated tx_ref: %s", txRef)
     return c.JSON(fiber.Map{"payment_url": paymentURL, "tx_ref": txRef})
 }
 
