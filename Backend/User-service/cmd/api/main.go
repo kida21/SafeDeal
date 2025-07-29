@@ -17,16 +17,17 @@ import (
 	proto "github.com/SafeDeal/proto/auth/v0"
 	"github.com/gofiber/fiber/v3"
 	"google.golang.org/grpc"
+	"gorm.io/gorm"
 )
 
-func startGRPCServer() {
+func startGRPCServer(db *gorm.DB) {
     lis, err := net.Listen("tcp", ":50051")
     if err != nil {
         log.Fatalf("failed to listen: %v", err)
     }
 
     s := grpc.NewServer()
-    proto.RegisterAuthServiceServer(s, &auth.AuthServer{RedisClient: redisclient.Client})
+    proto.RegisterAuthServiceServer(s, &auth.AuthServer{RedisClient: redisclient.Client,DB: db})
     log.Println("gRPC server running on port :50051")
 
     if err := s.Serve(lis); err != nil {
@@ -38,7 +39,7 @@ func main() {
     db.ConnectDB()
     // db.DB.Exec("DROP TABLE IF EXISTS users")(for development purpose)
     db.DB.AutoMigrate(&model.User{})
-    go startGRPCServer()
+    go startGRPCServer(db.DB)
 
     consul.RegisterService("user-service", "user-service", 8081)
 
