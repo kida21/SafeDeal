@@ -24,7 +24,8 @@ func SetupRoutes(app *fiber.App) {
     authenticated.Use(middleware.AuthMiddleware())
     authenticated.Use(middleware.RateLimitByUser(protectedLimiter))
 
-    {
+    {   
+        authenticated.Use("/profile", proxy.ProxyHandler("user-service"))
         authenticated.Use("/users", proxy.ProxyHandler("user-service"))
         authenticated.Use("/escrows", proxy.ProxyHandler("escrow-service"))
         authenticated.Use("/payments", proxy.ProxyHandler("payment-service"))

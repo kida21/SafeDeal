@@ -2,8 +2,6 @@ package internal
 
 import (
 	"user_service/internal/handlers"
-	"user_service/internal/middleware"
-
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
@@ -20,10 +18,13 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     app.Post("/login", handlers.Login)
     app.Post("/refresh-token",handlers.RefreshToken)
 
-    api := app.Group("/api")
-    api.Use(middleware.NewJwtMiddleware())
-     {  
+     api := app.Group("/api")
+    {
         api.Get("/profile", handlers.Profile)
-        api.Get("/logout",handlers.Logout)
-     }
+        
+    }
+    
+      
+        
+     
 }
