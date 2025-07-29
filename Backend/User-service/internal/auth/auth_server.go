@@ -6,15 +6,18 @@ import (
 	"log"
 	"os"
 	"user_service/internal/handlers"
+	"user_service/internal/model"
 
 	"github.com/SafeDeal/proto/auth/v0"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 type AuthServer struct {
     v0.UnimplementedAuthServiceServer
     RedisClient *redis.Client
+    DB *gorm.DB
 }
 
 func (s *AuthServer) VerifyToken(ctx context.Context, req *v0.VerifyTokenRequest) (*v0.VerifyTokenResponse, error) {
@@ -66,5 +69,27 @@ func (s *AuthServer) VerifyToken(ctx context.Context, req *v0.VerifyTokenRequest
         UserId:    userID,
         SessionId: sessionID,
         ExpiresAt:  claims.ExpiresAt.Unix(),
+    }, nil
+}
+
+func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.GetUserResponse, error) {
+    var user model.User
+    if err := s.DB.First(&user, req.UserId).Error; err != nil {
+        return &v0.GetUserResponse{
+            Success: false,
+            Error:   "User not found",
+        }, nil
+    }
+
+    return &v0.GetUserResponse{
+        Success: true,
+        User: &v0.User{
+            Id:         uint32(user.ID),
+            FirstName:  user.FirstName,
+            LastName:   user.LastName,
+            Email:      user.Email,
+            Activated:  user.Activated,
+            Version:    int32(user.Version),
+        },
     }, nil
 }

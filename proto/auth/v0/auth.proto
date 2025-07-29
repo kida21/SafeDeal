@@ -6,6 +6,7 @@ option go_package = "./proto/auth/v0";
 
 service AuthService {
   rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
 }
 
 message VerifyTokenRequest {
@@ -17,4 +18,22 @@ message VerifyTokenResponse {
   uint32 user_id = 2;
   string session_id = 3;
   int64 expires_at = 4;
+}
+message User {
+  uint32 id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string email = 4;
+  bool activated = 5;
+  int32 version = 6;
+}
+
+message GetUserRequest {
+  uint32 user_id = 1;
+}
+
+message GetUserResponse {
+  bool success = 1;
+  User user = 2;
+  string error = 3;
 }

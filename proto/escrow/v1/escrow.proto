@@ -5,10 +5,8 @@ package escrow.v1;
 option go_package = "./proto/escrow/v1";
 
 service EscrowService {
-  // Update escrow status via external services (e.g., Payment)
+  
   rpc UpdateStatus(UpdateEscrowStatusRequest) returns (UpdateEscrowStatusResponse);
-
-  // Get escrow details
   rpc GetEscrow(GetEscrowRequest) returns (EscrowResponse);
 }
 
