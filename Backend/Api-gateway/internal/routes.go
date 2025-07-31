@@ -18,6 +18,7 @@ func SetupRoutes(app *fiber.App) {
     app.Post("/login", middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
     app.Post("/register",middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
     app.Get("/activate", middleware.RateLimitByIP(publicLimiter),proxy.ProxyHandler("user-service"))
+    app.Post("/refresh-token",middleware.RateLimitByIP(publicLimiter),proxy.ProxyHandler("user-service"))
   
     
     authenticated := app.Group("/api")

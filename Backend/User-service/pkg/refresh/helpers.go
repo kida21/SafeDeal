@@ -52,3 +52,4 @@ func RevokeAllRefreshTokensForUser(userID uint) error {
     }
     return nil
 }
+
