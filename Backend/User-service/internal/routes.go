@@ -19,7 +19,8 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     app.Post("/refresh-token",handlers.RefreshToken)
 
      api := app.Group("/api")
-    {
+    {   
+        api.Post("/logout",handlers.Logout)
         api.Get("/profile", handlers.Profile)
         
     }

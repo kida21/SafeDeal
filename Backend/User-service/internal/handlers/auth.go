@@ -124,41 +124,57 @@ func RefreshToken(c fiber.Ctx) error {
         "access_token": signedToken,
     })
 }
+
 func Logout(c fiber.Ctx) error {
+    
     authHeader := c.Get("Authorization")
     if authHeader == "" {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing token"})
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Missing authorization header",
+        })
     }
 
-    parts := strings.Split(authHeader, " ")
-    if len(parts) != 2 || parts[0] != "Bearer" {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token format"})
+    tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+    if tokenString == authHeader {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid token format",
+        })
     }
 
-    tokenStr := parts[1]
-
-    token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
+    
+    token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+        }
         return []byte(os.Getenv("JWT_SECRET_KEY")), nil
     })
 
     if err != nil || !token.Valid {
-        // Even if expired or invalid, we still want to revoke session
-        claims := token.Claims.(jwt.MapClaims)
-        sessionID := claims["jti"].(string)
-       if sessionID != "" {
-            session.RevokeSession(sessionID)
-        }
-
-        return c.JSON(fiber.Map{"message": "Already logged out or token invalid"})
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid or expired token",
+        })
     }
 
-    claims := token.Claims.(jwt.MapClaims)
-    sessionID := claims["jti"].(string)
+    claims, ok := token.Claims.(*CustomClaims)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
 
-    session.RevokeSession(sessionID)
+    
+    err = session.RevokeSession(claims.ID) 
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to revoke session",
+        })
+    }
 
-    return c.SendStatus(fiber.StatusOK)
+    return c.JSON(fiber.Map{
+        "message": "Logged out successfully",
+    })
 }
+
 func Register(c fiber.Ctx) error {
     type RegisterRequest struct {
         FirstName string `json:"first_name" validate:"required,chars_only,min=2,max=50"`
