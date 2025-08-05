@@ -89,6 +89,7 @@ func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.G
             Email:      user.Email,
             Activated:  user.Activated,
             Version:    int32(user.Version),
+            WalletAddress: user.WalletAddress,
         },
     }, nil
 }

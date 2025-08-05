@@ -19,6 +19,10 @@ replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
 replace message_broker => ../../message-broker
 
+//replace shared => ../../shared
+
+//replace blockchain_adapter => ../blockchain_adapter
+
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect

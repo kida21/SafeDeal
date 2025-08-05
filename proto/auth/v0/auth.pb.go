@@ -141,6 +141,7 @@ type User struct {
 	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
 	Activated     bool                   `protobuf:"varint,5,opt,name=activated,proto3" json:"activated,omitempty"`
 	Version       int32                  `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
+	WalletAddress string                 `protobuf:"bytes,7,opt,name=wallet_address,json=walletAddress,proto3" json:"wallet_address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -215,6 +216,13 @@ func (x *User) GetVersion() int32 {
 		return x.Version
 	}
 	return 0
+}
+
+func (x *User) GetWalletAddress() string {
+	if x != nil {
+		return x.WalletAddress
+	}
+	return ""
 }
 
 type GetUserRequest struct {
@@ -334,7 +342,7 @@ const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\x03R\texpiresAt\"\xa0\x01\n" +
+	"expires_at\x18\x04 \x01(\x03R\texpiresAt\"\xc7\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x1d\n" +
 	"\n" +
@@ -342,7 +350,8 @@ const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\tlast_name\x18\x03 \x01(\tR\blastName\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\x12\x1c\n" +
 	"\tactivated\x18\x05 \x01(\bR\tactivated\x12\x18\n" +
-	"\aversion\x18\x06 \x01(\x05R\aversion\")\n" +
+	"\aversion\x18\x06 \x01(\x05R\aversion\x12%\n" +
+	"\x0ewallet_address\x18\a \x01(\tR\rwalletAddress\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\"d\n" +
 	"\x0fGetUserResponse\x12\x18\n" +
