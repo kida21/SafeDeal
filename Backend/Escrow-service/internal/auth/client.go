@@ -39,3 +39,5 @@ func (c *UserServiceClient) GetUser(userID uint32) (*v0.User, error) {
     }
     return resp.User, nil
 }
+
+

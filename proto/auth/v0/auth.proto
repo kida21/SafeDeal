@@ -7,6 +7,7 @@ option go_package = "./proto/auth/v0";
 service AuthService {
   rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
   rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  rpc CheckWalletAddress(CheckWalletAddressRequest) returns (CheckWalletAddressResponse);
 }
 
 message VerifyTokenRequest {
@@ -37,4 +38,13 @@ message GetUserResponse {
   bool success = 1;
   User user = 2;
   string error = 3;
+}
+
+message CheckWalletAddressRequest {
+  string wallet_address = 1;
+}
+
+message CheckWalletAddressResponse {
+  bool exists = 1;
+  uint32 user_id = 2; 
 }

@@ -13,15 +13,11 @@ require (
 
 )
 
-replace github.com/SafeDeal/proto/auth => ../../Proto/auth
-
 replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
+replace github.com/SafeDeal/proto/auth => ../../Proto/auth
+
 replace message_broker => ../../message-broker
-
-//replace shared => ../../shared
-
-//replace blockchain_adapter => ../blockchain_adapter
 
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect

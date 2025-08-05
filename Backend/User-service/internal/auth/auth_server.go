@@ -2,15 +2,20 @@ package auth
 
 import (
 	"context"
+	"errors"
+
 	"fmt"
 	"log"
 	"os"
 	"user_service/internal/handlers"
 	"user_service/internal/model"
 
-	"github.com/SafeDeal/proto/auth/v0"
+	v0 "github.com/SafeDeal/proto/auth/v0"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"gorm.io/gorm"
 )
 
@@ -92,4 +97,16 @@ func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.G
             WalletAddress: user.WalletAddress,
         },
     }, nil
+}
+
+func (s *AuthServer) CheckWalletAddress(ctx context.Context, req *v0.CheckWalletAddressRequest) (*v0.CheckWalletAddressResponse, error) {
+	var user model.User
+	err := s.DB.Where("wallet_address = ?", req.WalletAddress).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &v0.CheckWalletAddressResponse{Exists: false}, nil
+		}
+		return nil, status.Errorf(codes.Internal, "Database error")
+	}
+	return &v0.CheckWalletAddressResponse{Exists: true}, nil
 }

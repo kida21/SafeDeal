@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_VerifyToken_FullMethodName = "/auth.v0.AuthService/VerifyToken"
-	AuthService_GetUser_FullMethodName     = "/auth.v0.AuthService/GetUser"
+	AuthService_VerifyToken_FullMethodName        = "/auth.v0.AuthService/VerifyToken"
+	AuthService_GetUser_FullMethodName            = "/auth.v0.AuthService/GetUser"
+	AuthService_CheckWalletAddress_FullMethodName = "/auth.v0.AuthService/CheckWalletAddress"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -29,6 +30,7 @@ const (
 type AuthServiceClient interface {
 	VerifyToken(ctx context.Context, in *VerifyTokenRequest, opts ...grpc.CallOption) (*VerifyTokenResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	CheckWalletAddress(ctx context.Context, in *CheckWalletAddressRequest, opts ...grpc.CallOption) (*CheckWalletAddressResponse, error)
 }
 
 type authServiceClient struct {
@@ -59,12 +61,23 @@ func (c *authServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opt
 	return out, nil
 }
 
+func (c *authServiceClient) CheckWalletAddress(ctx context.Context, in *CheckWalletAddressRequest, opts ...grpc.CallOption) (*CheckWalletAddressResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckWalletAddressResponse)
+	err := c.cc.Invoke(ctx, AuthService_CheckWalletAddress_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
 type AuthServiceServer interface {
 	VerifyToken(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	CheckWalletAddress(context.Context, *CheckWalletAddressRequest) (*CheckWalletAddressResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedAuthServiceServer) VerifyToken(context.Context, *VerifyTokenR
 }
 func (UnimplementedAuthServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedAuthServiceServer) CheckWalletAddress(context.Context, *CheckWalletAddressRequest) (*CheckWalletAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckWalletAddress not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -138,6 +154,24 @@ func _AuthService_GetUser_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_CheckWalletAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckWalletAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CheckWalletAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CheckWalletAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CheckWalletAddress(ctx, req.(*CheckWalletAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUser",
 			Handler:    _AuthService_GetUser_Handler,
+		},
+		{
+			MethodName: "CheckWalletAddress",
+			Handler:    _AuthService_CheckWalletAddress_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

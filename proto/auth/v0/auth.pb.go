@@ -329,6 +329,102 @@ func (x *GetUserResponse) GetError() string {
 	return ""
 }
 
+type CheckWalletAddressRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WalletAddress string                 `protobuf:"bytes,1,opt,name=wallet_address,json=walletAddress,proto3" json:"wallet_address,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckWalletAddressRequest) Reset() {
+	*x = CheckWalletAddressRequest{}
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckWalletAddressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckWalletAddressRequest) ProtoMessage() {}
+
+func (x *CheckWalletAddressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckWalletAddressRequest.ProtoReflect.Descriptor instead.
+func (*CheckWalletAddressRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_v0_auth_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CheckWalletAddressRequest) GetWalletAddress() string {
+	if x != nil {
+		return x.WalletAddress
+	}
+	return ""
+}
+
+type CheckWalletAddressResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Exists        bool                   `protobuf:"varint,1,opt,name=exists,proto3" json:"exists,omitempty"`
+	UserId        uint32                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckWalletAddressResponse) Reset() {
+	*x = CheckWalletAddressResponse{}
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckWalletAddressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckWalletAddressResponse) ProtoMessage() {}
+
+func (x *CheckWalletAddressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckWalletAddressResponse.ProtoReflect.Descriptor instead.
+func (*CheckWalletAddressResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_v0_auth_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CheckWalletAddressResponse) GetExists() bool {
+	if x != nil {
+		return x.Exists
+	}
+	return false
+}
+
+func (x *CheckWalletAddressResponse) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
 var File_proto_auth_v0_auth_proto protoreflect.FileDescriptor
 
 const file_proto_auth_v0_auth_proto_rawDesc = "" +
@@ -357,10 +453,16 @@ const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\x0fGetUserResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12!\n" +
 	"\x04user\x18\x02 \x01(\v2\r.auth.v0.UserR\x04user\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error2\x95\x01\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"B\n" +
+	"\x19CheckWalletAddressRequest\x12%\n" +
+	"\x0ewallet_address\x18\x01 \x01(\tR\rwalletAddress\"M\n" +
+	"\x1aCheckWalletAddressResponse\x12\x16\n" +
+	"\x06exists\x18\x01 \x01(\bR\x06exists\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\rR\x06userId2\xf4\x01\n" +
 	"\vAuthService\x12H\n" +
 	"\vVerifyToken\x12\x1b.auth.v0.VerifyTokenRequest\x1a\x1c.auth.v0.VerifyTokenResponse\x12<\n" +
-	"\aGetUser\x12\x17.auth.v0.GetUserRequest\x1a\x18.auth.v0.GetUserResponseB\x11Z\x0f./proto/auth/v0b\x06proto3"
+	"\aGetUser\x12\x17.auth.v0.GetUserRequest\x1a\x18.auth.v0.GetUserResponse\x12]\n" +
+	"\x12CheckWalletAddress\x12\".auth.v0.CheckWalletAddressRequest\x1a#.auth.v0.CheckWalletAddressResponseB\x11Z\x0f./proto/auth/v0b\x06proto3"
 
 var (
 	file_proto_auth_v0_auth_proto_rawDescOnce sync.Once
@@ -374,22 +476,26 @@ func file_proto_auth_v0_auth_proto_rawDescGZIP() []byte {
 	return file_proto_auth_v0_auth_proto_rawDescData
 }
 
-var file_proto_auth_v0_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_proto_auth_v0_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_proto_auth_v0_auth_proto_goTypes = []any{
-	(*VerifyTokenRequest)(nil),  // 0: auth.v0.VerifyTokenRequest
-	(*VerifyTokenResponse)(nil), // 1: auth.v0.VerifyTokenResponse
-	(*User)(nil),                // 2: auth.v0.User
-	(*GetUserRequest)(nil),      // 3: auth.v0.GetUserRequest
-	(*GetUserResponse)(nil),     // 4: auth.v0.GetUserResponse
+	(*VerifyTokenRequest)(nil),         // 0: auth.v0.VerifyTokenRequest
+	(*VerifyTokenResponse)(nil),        // 1: auth.v0.VerifyTokenResponse
+	(*User)(nil),                       // 2: auth.v0.User
+	(*GetUserRequest)(nil),             // 3: auth.v0.GetUserRequest
+	(*GetUserResponse)(nil),            // 4: auth.v0.GetUserResponse
+	(*CheckWalletAddressRequest)(nil),  // 5: auth.v0.CheckWalletAddressRequest
+	(*CheckWalletAddressResponse)(nil), // 6: auth.v0.CheckWalletAddressResponse
 }
 var file_proto_auth_v0_auth_proto_depIdxs = []int32{
 	2, // 0: auth.v0.GetUserResponse.user:type_name -> auth.v0.User
 	0, // 1: auth.v0.AuthService.VerifyToken:input_type -> auth.v0.VerifyTokenRequest
 	3, // 2: auth.v0.AuthService.GetUser:input_type -> auth.v0.GetUserRequest
-	1, // 3: auth.v0.AuthService.VerifyToken:output_type -> auth.v0.VerifyTokenResponse
-	4, // 4: auth.v0.AuthService.GetUser:output_type -> auth.v0.GetUserResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	5, // 3: auth.v0.AuthService.CheckWalletAddress:input_type -> auth.v0.CheckWalletAddressRequest
+	1, // 4: auth.v0.AuthService.VerifyToken:output_type -> auth.v0.VerifyTokenResponse
+	4, // 5: auth.v0.AuthService.GetUser:output_type -> auth.v0.GetUserResponse
+	6, // 6: auth.v0.AuthService.CheckWalletAddress:output_type -> auth.v0.CheckWalletAddressResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -406,7 +512,7 @@ func file_proto_auth_v0_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_auth_v0_auth_proto_rawDesc), len(file_proto_auth_v0_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
