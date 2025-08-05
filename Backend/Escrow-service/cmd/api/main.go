@@ -1,6 +1,7 @@
 package main
 
 import (
+	
 	"escrow_service/internal"
 	"escrow_service/internal/consul"
 	"escrow_service/internal/db"
@@ -30,8 +31,10 @@ func startGRPCServer(db *gorm.DB) {
         log.Fatalf("failed to serve gRPC: %v", err)
     }
 }
+
 func main() {
     db.ConnectDB()
+   
     db.DB.AutoMigrate(&model.Escrow{})
     go startGRPCServer(db.DB)
     consul.RegisterService("escrow-service", "escrow-service", 8082)

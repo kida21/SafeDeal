@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"contracts"
+	"SafeDeal/contracts"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"

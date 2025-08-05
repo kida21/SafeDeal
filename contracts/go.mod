@@ -1,4 +1,4 @@
-module contracts
+module SafeDeal/contracts
 
 go 1.24.5
 

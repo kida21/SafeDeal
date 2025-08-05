@@ -2,7 +2,7 @@ module blockchain_adapter
 
 go 1.24.5
 
-require contracts v0.0.0-00010101000000-000000000000
+require SafeDeal/contracts v0.0.0-00010101000000-000000000000
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -26,7 +26,7 @@ require (
 	golang.org/x/sync v0.16.0 // indirect
 )
 
-replace contracts => ../../contracts
+replace SafeDeal/contracts => ../../contracts
 
 require (
 	github.com/ethereum/go-ethereum v1.16.1

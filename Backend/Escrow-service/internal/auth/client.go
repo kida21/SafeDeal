@@ -40,4 +40,16 @@ func (c *UserServiceClient) GetUser(userID uint32) (*v0.User, error) {
     return resp.User, nil
 }
 
+func (c *UserServiceClient) CheckWalletAddress(walletAddress string) (bool, error) {
+	client := v0.NewAuthServiceClient(c.conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
+	resp, err := client.CheckWalletAddress(ctx, &v0.CheckWalletAddressRequest{
+		WalletAddress: walletAddress,
+	})
+	if err != nil {
+		return false, err
+	}
+	return resp.Exists, nil
+}
