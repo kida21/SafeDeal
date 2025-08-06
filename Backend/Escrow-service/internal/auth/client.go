@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/SafeDeal/proto/auth/v0"
@@ -52,4 +53,23 @@ func (c *UserServiceClient) CheckWalletAddress(walletAddress string) (bool, erro
 		return false, err
 	}
 	return resp.Exists, nil
+}
+
+func (c *UserServiceClient) UpdateUser(userID uint32, walletAddress, encryptedKey string) error {
+	client := v0.NewAuthServiceClient(c.conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resp, err := client.UpdateUser(ctx, &v0.UpdateUserRequest{
+		UserId:                userID,
+		WalletAddress:         walletAddress,
+		EncryptedPrivateKey:   encryptedKey,
+	})
+	if err != nil {
+		return err
+	}
+	if !resp.Success {
+		return fmt.Errorf("update failed: %s", resp.Error)
+	}
+	return nil
 }

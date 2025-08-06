@@ -425,6 +425,118 @@ func (x *CheckWalletAddressResponse) GetUserId() uint32 {
 	return 0
 }
 
+type UpdateUserRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	UserId              uint32                 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	WalletAddress       string                 `protobuf:"bytes,2,opt,name=wallet_address,json=walletAddress,proto3" json:"wallet_address,omitempty"`
+	EncryptedPrivateKey string                 `protobuf:"bytes,3,opt,name=encrypted_private_key,json=encryptedPrivateKey,proto3" json:"encrypted_private_key,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UpdateUserRequest) Reset() {
+	*x = UpdateUserRequest{}
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserRequest) ProtoMessage() {}
+
+func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_v0_auth_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateUserRequest) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *UpdateUserRequest) GetWalletAddress() string {
+	if x != nil {
+		return x.WalletAddress
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetEncryptedPrivateKey() string {
+	if x != nil {
+		return x.EncryptedPrivateKey
+	}
+	return ""
+}
+
+type UpdateUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserResponse) Reset() {
+	*x = UpdateUserResponse{}
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserResponse) ProtoMessage() {}
+
+func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_v0_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_v0_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateUserResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *UpdateUserResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 var File_proto_auth_v0_auth_proto protoreflect.FileDescriptor
 
 const file_proto_auth_v0_auth_proto_rawDesc = "" +
@@ -458,11 +570,20 @@ const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\x0ewallet_address\x18\x01 \x01(\tR\rwalletAddress\"M\n" +
 	"\x1aCheckWalletAddressResponse\x12\x16\n" +
 	"\x06exists\x18\x01 \x01(\bR\x06exists\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\rR\x06userId2\xf4\x01\n" +
+	"\auser_id\x18\x02 \x01(\rR\x06userId\"\x87\x01\n" +
+	"\x11UpdateUserRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\rR\x06userId\x12%\n" +
+	"\x0ewallet_address\x18\x02 \x01(\tR\rwalletAddress\x122\n" +
+	"\x15encrypted_private_key\x18\x03 \x01(\tR\x13encryptedPrivateKey\"D\n" +
+	"\x12UpdateUserResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error2\xbb\x02\n" +
 	"\vAuthService\x12H\n" +
 	"\vVerifyToken\x12\x1b.auth.v0.VerifyTokenRequest\x1a\x1c.auth.v0.VerifyTokenResponse\x12<\n" +
 	"\aGetUser\x12\x17.auth.v0.GetUserRequest\x1a\x18.auth.v0.GetUserResponse\x12]\n" +
-	"\x12CheckWalletAddress\x12\".auth.v0.CheckWalletAddressRequest\x1a#.auth.v0.CheckWalletAddressResponseB\x11Z\x0f./proto/auth/v0b\x06proto3"
+	"\x12CheckWalletAddress\x12\".auth.v0.CheckWalletAddressRequest\x1a#.auth.v0.CheckWalletAddressResponse\x12E\n" +
+	"\n" +
+	"UpdateUser\x12\x1a.auth.v0.UpdateUserRequest\x1a\x1b.auth.v0.UpdateUserResponseB\x11Z\x0f./proto/auth/v0b\x06proto3"
 
 var (
 	file_proto_auth_v0_auth_proto_rawDescOnce sync.Once
@@ -476,7 +597,7 @@ func file_proto_auth_v0_auth_proto_rawDescGZIP() []byte {
 	return file_proto_auth_v0_auth_proto_rawDescData
 }
 
-var file_proto_auth_v0_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_auth_v0_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_auth_v0_auth_proto_goTypes = []any{
 	(*VerifyTokenRequest)(nil),         // 0: auth.v0.VerifyTokenRequest
 	(*VerifyTokenResponse)(nil),        // 1: auth.v0.VerifyTokenResponse
@@ -485,17 +606,21 @@ var file_proto_auth_v0_auth_proto_goTypes = []any{
 	(*GetUserResponse)(nil),            // 4: auth.v0.GetUserResponse
 	(*CheckWalletAddressRequest)(nil),  // 5: auth.v0.CheckWalletAddressRequest
 	(*CheckWalletAddressResponse)(nil), // 6: auth.v0.CheckWalletAddressResponse
+	(*UpdateUserRequest)(nil),          // 7: auth.v0.UpdateUserRequest
+	(*UpdateUserResponse)(nil),         // 8: auth.v0.UpdateUserResponse
 }
 var file_proto_auth_v0_auth_proto_depIdxs = []int32{
 	2, // 0: auth.v0.GetUserResponse.user:type_name -> auth.v0.User
 	0, // 1: auth.v0.AuthService.VerifyToken:input_type -> auth.v0.VerifyTokenRequest
 	3, // 2: auth.v0.AuthService.GetUser:input_type -> auth.v0.GetUserRequest
 	5, // 3: auth.v0.AuthService.CheckWalletAddress:input_type -> auth.v0.CheckWalletAddressRequest
-	1, // 4: auth.v0.AuthService.VerifyToken:output_type -> auth.v0.VerifyTokenResponse
-	4, // 5: auth.v0.AuthService.GetUser:output_type -> auth.v0.GetUserResponse
-	6, // 6: auth.v0.AuthService.CheckWalletAddress:output_type -> auth.v0.CheckWalletAddressResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	7, // 4: auth.v0.AuthService.UpdateUser:input_type -> auth.v0.UpdateUserRequest
+	1, // 5: auth.v0.AuthService.VerifyToken:output_type -> auth.v0.VerifyTokenResponse
+	4, // 6: auth.v0.AuthService.GetUser:output_type -> auth.v0.GetUserResponse
+	6, // 7: auth.v0.AuthService.CheckWalletAddress:output_type -> auth.v0.CheckWalletAddressResponse
+	8, // 8: auth.v0.AuthService.UpdateUser:output_type -> auth.v0.UpdateUserResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -512,7 +637,7 @@ func file_proto_auth_v0_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_auth_v0_auth_proto_rawDesc), len(file_proto_auth_v0_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

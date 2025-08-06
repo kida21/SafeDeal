@@ -8,6 +8,7 @@ service AuthService {
   rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
   rpc GetUser (GetUserRequest) returns (GetUserResponse);
   rpc CheckWalletAddress(CheckWalletAddressRequest) returns (CheckWalletAddressResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
 }
 
 message VerifyTokenRequest {
@@ -47,4 +48,15 @@ message CheckWalletAddressRequest {
 message CheckWalletAddressResponse {
   bool exists = 1;
   uint32 user_id = 2; 
+}
+
+message UpdateUserRequest {
+  uint32 user_id = 1;
+  string wallet_address = 2;
+  string encrypted_private_key = 3;
+}
+
+message UpdateUserResponse {
+  bool success = 1;
+  string error = 2;
 }

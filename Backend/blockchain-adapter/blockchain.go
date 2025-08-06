@@ -5,10 +5,8 @@ import (
 	"math/big"
 	"os"
 	"strconv"
-
-	"SafeDeal/contracts"
-
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+    "SafeDeal/contracts"
+    "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"

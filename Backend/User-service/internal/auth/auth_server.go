@@ -110,3 +110,36 @@ func (s *AuthServer) CheckWalletAddress(ctx context.Context, req *v0.CheckWallet
 	}
 	return &v0.CheckWalletAddressResponse{Exists: true}, nil
 }
+
+func (s *AuthServer) UpdateUser(ctx context.Context, req *v0.UpdateUserRequest) (*v0.UpdateUserResponse, error) {
+	var user model.User
+	if err := s.DB.First(&user, req.UserId).Error; err != nil {
+		return &v0.UpdateUserResponse{
+			Success: false,
+			Error:   "User not found",
+		}, nil
+	}
+
+	
+	if user.WalletAddress != "" {
+		return &v0.UpdateUserResponse{
+			Success: false,
+			Error:   "Wallet already exists",
+		}, nil
+	}
+
+	
+	user.WalletAddress = req.WalletAddress
+	user.EncryptedPrivateKey = req.EncryptedPrivateKey
+
+	if err := s.DB.Save(&user).Error; err != nil {
+		return &v0.UpdateUserResponse{
+			Success: false,
+			Error:   "Failed to save wallet",
+		}, nil
+	}
+
+	return &v0.UpdateUserResponse{
+		Success: true,
+	}, nil
+}

@@ -13,7 +13,7 @@ type User struct {
     Activated bool   `json:"activated" gorm:"default:false"`
     Version   int    `json:"version" gorm:"default:1"`
     WalletAddress  string `gorm:"unique;type:varchar(42)"` 
-    EncryptedPrivateKey *string `gorm:"type:text"`  
+    EncryptedPrivateKey string `gorm:"type:text"`  
 	
     
 }
