@@ -11,12 +11,22 @@ COPY Backend/Escrow-service/go.mod ./Backend/Escrow-service/go.mod
 COPY Backend/Escrow-service/go.sum ./Backend/Escrow-service/go.sum
 
 COPY Backend/Escrow-service/.envrc ./Backend/Escrow-service/.envrc
-    
+
+COPY Backend/blockchain-adapter/go.mod Backend/blockchain-adapter/go.mod
+
+COPY Backend/blockchain-adapter/go.sum Backend/blockchain-adapter/go.sum
+
 COPY proto/auth ./Proto/auth
 
 COPY proto/escrow ./Proto/escrow
 
 COPY message-broker ./message-broker
+
+COPY Backend/blockchain-adapter Backend/blockchain-adapter
+
+COPY shared  ./shared
+
+COPY contracts contracts
 
 COPY Backend/Escrow-service ./Backend/Escrow-service
 
