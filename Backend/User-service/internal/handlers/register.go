@@ -50,9 +50,15 @@ func Register(c fiber.Ctx) error {
 		Password:  string(hashedPassword),
 		Activated: false,
 		Version:   1,
+		WalletAddress: nil,
+		EncryptedPrivateKey: nil,
 	}
 
-	db.Create(&user)
+	if err := db.Create(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create user in database: " + err.Error(),
+		})
+	}
 	token := Token.GenerateActivationToken(req.Email)
 	mailer := mailer.NewMailer()
 	go func() {

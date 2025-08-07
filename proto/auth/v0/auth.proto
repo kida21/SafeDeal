@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package auth.v0;
 
+import "google/protobuf/wrappers.proto";
+
 option go_package = "./proto/auth/v0";
 
 service AuthService {
@@ -28,7 +30,7 @@ message User {
   string email = 4;
   bool activated = 5;
   int32 version = 6;
-  string wallet_address = 7;
+ google.protobuf.StringValue wallet_address = 7;
 }
 
 message GetUserRequest {

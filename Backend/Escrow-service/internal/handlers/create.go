@@ -55,7 +55,7 @@ func CreateEscrow(c fiber.Ctx) error {
 	userServiceClient, err := auth.NewUserServiceClient("user-service:50051")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to connect to user service",
+			"error": "Failed to connect to user service"+ err.Error(),
 		})
 	}
 	defer userServiceClient.Close()
@@ -82,18 +82,18 @@ func CreateEscrow(c fiber.Ctx) error {
 	db := c.Locals("db").(*gorm.DB)
 	if err := db.Create(&escrow).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create escrow",
+			"error": "Failed to create escrow"+ err.Error(),
 		})
 	}
 
 	
 	var buyerAddr, sellerAddr common.Address
 
-	if buyerRes.WalletAddress == "" {
+	if buyerRes.WalletAddress == nil || buyerRes.WalletAddress.Value == "" {
 		wallet, err := wallet.GenerateWallet()
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to generate buyer wallet",
+				"error": "Failed to generate buyer wallet"+ err.Error(),
 			})
 		}
 		buyerAddr = common.HexToAddress(wallet.Address)
@@ -102,7 +102,7 @@ func CreateEscrow(c fiber.Ctx) error {
 		exists, err := userServiceClient.CheckWalletAddress(wallet.Address)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to check wallet address",
+				"error": "Failed to check wallet address"+ err.Error(),
 			})
 		}
 		if exists {
@@ -114,7 +114,7 @@ func CreateEscrow(c fiber.Ctx) error {
 		encryptedKey, err := crypto.Encrypt(wallet.PrivateKey, os.Getenv("ENCRYPTION_KEY"))
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to encrypt buyer private key",
+				"error": "Failed to encrypt buyer private key"+ err.Error(),
 			})
 		}
 		 err = userServiceClient.UpdateUser(uint32(buyerID), wallet.Address, encryptedKey)
@@ -126,14 +126,14 @@ func CreateEscrow(c fiber.Ctx) error {
 		
 	} else 
 	   {
-		buyerAddr = common.HexToAddress(buyerRes.WalletAddress)
+		buyerAddr = common.HexToAddress(buyerRes.WalletAddress.GetValue())
 	  }
 
-	if sellerRes.WalletAddress == "" {
+	if sellerRes.WalletAddress == nil || sellerRes.WalletAddress.Value ==""{
 		wallet, err := wallet.GenerateWallet()
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to generate seller wallet",
+				"error": "Failed to generate seller wallet"+ err.Error(),
 			})
 		}
 		sellerAddr = common.HexToAddress(wallet.Address)
@@ -141,7 +141,7 @@ func CreateEscrow(c fiber.Ctx) error {
 		exists, err := userServiceClient.CheckWalletAddress(wallet.Address)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to check wallet address",
+				"error": "Failed to check wallet address"+ err.Error(),
 			})
 		}
 		if exists {
@@ -153,7 +153,7 @@ func CreateEscrow(c fiber.Ctx) error {
 		encryptedKey, err := crypto.Encrypt(wallet.PrivateKey, os.Getenv("ENCRYPTION_KEY"))
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to encrypt seller private key",
+				"error": "Failed to encrypt seller private key"+ err.Error(),
 			})
 		 }
 		  err = userServiceClient.UpdateUser(uint32(escrow.SellerID), wallet.Address, encryptedKey)
@@ -163,7 +163,7 @@ func CreateEscrow(c fiber.Ctx) error {
            })
           }
 	} else {
-		sellerAddr = common.HexToAddress(sellerRes.WalletAddress)
+		sellerAddr = common.HexToAddress(sellerRes.WalletAddress.GetValue())
 	}
 
 	
@@ -201,12 +201,12 @@ func CreateEscrow(c fiber.Ctx) error {
 		 txHash := tx.Hash().Hex()
          id := escrowID.Uint64()
          
-		 escrow.BlockchainTxHash = txHash
-	     escrow.BlockchainEscrowID = id
+		 escrow.BlockchainTxHash = &txHash
+	     escrow.BlockchainEscrowID = &id
 
 		 if err := db.Save(&escrow).Error; err != nil {
 	         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-		         "error": "Failed to update escrow with blockchain data",
+		         "error": "Failed to update escrow with blockchain data"+ err.Error(),
 	            })
               }
 

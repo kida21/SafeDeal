@@ -9,6 +9,7 @@ package v0
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -134,14 +135,14 @@ func (x *VerifyTokenResponse) GetExpiresAt() int64 {
 }
 
 type User struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	FirstName     string                 `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
-	LastName      string                 `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
-	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
-	Activated     bool                   `protobuf:"varint,5,opt,name=activated,proto3" json:"activated,omitempty"`
-	Version       int32                  `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
-	WalletAddress string                 `protobuf:"bytes,7,opt,name=wallet_address,json=walletAddress,proto3" json:"wallet_address,omitempty"`
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Id            uint32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	FirstName     string                  `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	LastName      string                  `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
+	Email         string                  `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	Activated     bool                    `protobuf:"varint,5,opt,name=activated,proto3" json:"activated,omitempty"`
+	Version       int32                   `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
+	WalletAddress *wrapperspb.StringValue `protobuf:"bytes,7,opt,name=wallet_address,json=walletAddress,proto3" json:"wallet_address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -218,11 +219,11 @@ func (x *User) GetVersion() int32 {
 	return 0
 }
 
-func (x *User) GetWalletAddress() string {
+func (x *User) GetWalletAddress() *wrapperspb.StringValue {
 	if x != nil {
 		return x.WalletAddress
 	}
-	return ""
+	return nil
 }
 
 type GetUserRequest struct {
@@ -541,7 +542,7 @@ var File_proto_auth_v0_auth_proto protoreflect.FileDescriptor
 
 const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/auth/v0/auth.proto\x12\aauth.v0\"*\n" +
+	"\x18proto/auth/v0/auth.proto\x12\aauth.v0\x1a\x1egoogle/protobuf/wrappers.proto\"*\n" +
 	"\x12VerifyTokenRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"\x82\x01\n" +
 	"\x13VerifyTokenResponse\x12\x14\n" +
@@ -550,7 +551,7 @@ const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\x03R\texpiresAt\"\xc7\x01\n" +
+	"expires_at\x18\x04 \x01(\x03R\texpiresAt\"\xe5\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x1d\n" +
 	"\n" +
@@ -558,8 +559,8 @@ const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\tlast_name\x18\x03 \x01(\tR\blastName\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\x12\x1c\n" +
 	"\tactivated\x18\x05 \x01(\bR\tactivated\x12\x18\n" +
-	"\aversion\x18\x06 \x01(\x05R\aversion\x12%\n" +
-	"\x0ewallet_address\x18\a \x01(\tR\rwalletAddress\")\n" +
+	"\aversion\x18\x06 \x01(\x05R\aversion\x12C\n" +
+	"\x0ewallet_address\x18\a \x01(\v2\x1c.google.protobuf.StringValueR\rwalletAddress\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\"d\n" +
 	"\x0fGetUserResponse\x12\x18\n" +
@@ -608,22 +609,24 @@ var file_proto_auth_v0_auth_proto_goTypes = []any{
 	(*CheckWalletAddressResponse)(nil), // 6: auth.v0.CheckWalletAddressResponse
 	(*UpdateUserRequest)(nil),          // 7: auth.v0.UpdateUserRequest
 	(*UpdateUserResponse)(nil),         // 8: auth.v0.UpdateUserResponse
+	(*wrapperspb.StringValue)(nil),     // 9: google.protobuf.StringValue
 }
 var file_proto_auth_v0_auth_proto_depIdxs = []int32{
-	2, // 0: auth.v0.GetUserResponse.user:type_name -> auth.v0.User
-	0, // 1: auth.v0.AuthService.VerifyToken:input_type -> auth.v0.VerifyTokenRequest
-	3, // 2: auth.v0.AuthService.GetUser:input_type -> auth.v0.GetUserRequest
-	5, // 3: auth.v0.AuthService.CheckWalletAddress:input_type -> auth.v0.CheckWalletAddressRequest
-	7, // 4: auth.v0.AuthService.UpdateUser:input_type -> auth.v0.UpdateUserRequest
-	1, // 5: auth.v0.AuthService.VerifyToken:output_type -> auth.v0.VerifyTokenResponse
-	4, // 6: auth.v0.AuthService.GetUser:output_type -> auth.v0.GetUserResponse
-	6, // 7: auth.v0.AuthService.CheckWalletAddress:output_type -> auth.v0.CheckWalletAddressResponse
-	8, // 8: auth.v0.AuthService.UpdateUser:output_type -> auth.v0.UpdateUserResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	9, // 0: auth.v0.User.wallet_address:type_name -> google.protobuf.StringValue
+	2, // 1: auth.v0.GetUserResponse.user:type_name -> auth.v0.User
+	0, // 2: auth.v0.AuthService.VerifyToken:input_type -> auth.v0.VerifyTokenRequest
+	3, // 3: auth.v0.AuthService.GetUser:input_type -> auth.v0.GetUserRequest
+	5, // 4: auth.v0.AuthService.CheckWalletAddress:input_type -> auth.v0.CheckWalletAddressRequest
+	7, // 5: auth.v0.AuthService.UpdateUser:input_type -> auth.v0.UpdateUserRequest
+	1, // 6: auth.v0.AuthService.VerifyToken:output_type -> auth.v0.VerifyTokenResponse
+	4, // 7: auth.v0.AuthService.GetUser:output_type -> auth.v0.GetUserResponse
+	6, // 8: auth.v0.AuthService.CheckWalletAddress:output_type -> auth.v0.CheckWalletAddressResponse
+	8, // 9: auth.v0.AuthService.UpdateUser:output_type -> auth.v0.UpdateUserResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_auth_v0_auth_proto_init() }

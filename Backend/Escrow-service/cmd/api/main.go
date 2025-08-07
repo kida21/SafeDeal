@@ -1,7 +1,7 @@
 package main
 
 import (
-	
+	blockchain "blockchain_adapter"
 	"escrow_service/internal"
 	"escrow_service/internal/consul"
 	"escrow_service/internal/db"
@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 )
+var blockchainClient *blockchain.Client
 func startGRPCServer(db *gorm.DB) {
     lis, err := net.Listen("tcp", ":50052")
     if err != nil {
@@ -41,7 +42,12 @@ func main() {
 
     consumer := rabbitmq.NewConsumer(db.DB)
     consumer.Listen()
-
+    
+    var err error
+	blockchainClient, err = blockchain.NewClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize blockchain client: %v", err)
+	}
     app := fiber.New()
 
     app.Get("/health", func(c fiber.Ctx) error {

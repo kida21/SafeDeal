@@ -15,6 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"gorm.io/gorm"
 )
@@ -84,7 +85,11 @@ func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.G
             Error:   "User not found",
         }, nil
     }
+    var walletPb *wrapperspb.StringValue
 
+    if user.WalletAddress != nil {
+	      walletPb = wrapperspb.String(*user.WalletAddress)
+        }
     return &v0.GetUserResponse{
         Success: true,
         User: &v0.User{
@@ -94,14 +99,14 @@ func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.G
             Email:      user.Email,
             Activated:  user.Activated,
             Version:    int32(user.Version),
-            WalletAddress: user.WalletAddress,
+            WalletAddress: walletPb,
         },
     }, nil
 }
 
 func (s *AuthServer) CheckWalletAddress(ctx context.Context, req *v0.CheckWalletAddressRequest) (*v0.CheckWalletAddressResponse, error) {
 	var user model.User
-	err := s.DB.Where("wallet_address = ?", req.WalletAddress).First(&user).Error
+	err := s.DB.Where("wallet_address = ?", &req.WalletAddress).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &v0.CheckWalletAddressResponse{Exists: false}, nil
@@ -121,7 +126,7 @@ func (s *AuthServer) UpdateUser(ctx context.Context, req *v0.UpdateUserRequest) 
 	}
 
 	
-	if user.WalletAddress != "" {
+	if user.WalletAddress != nil {
 		return &v0.UpdateUserResponse{
 			Success: false,
 			Error:   "Wallet already exists",
@@ -129,8 +134,8 @@ func (s *AuthServer) UpdateUser(ctx context.Context, req *v0.UpdateUserRequest) 
 	}
 
 	
-	user.WalletAddress = req.WalletAddress
-	user.EncryptedPrivateKey = req.EncryptedPrivateKey
+	user.WalletAddress = &req.WalletAddress
+	user.EncryptedPrivateKey = &req.EncryptedPrivateKey
 
 	if err := s.DB.Save(&user).Error; err != nil {
 		return &v0.UpdateUserResponse{

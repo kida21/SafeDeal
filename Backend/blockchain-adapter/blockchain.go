@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/joho/godotenv"
+	
 )
 
 type Client struct {
@@ -20,12 +20,8 @@ type Client struct {
     Auth     *bind.TransactOpts
 }
 
-func NewClient() *Client {
-     if err := godotenv.Load(); err != nil {
-        log.Printf("Warning: error loading .env file: %v", err)
-    }
-
-    url := os.Getenv("ETHEREUM_NODE_URL")
+func NewClient() (*Client,error) {
+     url := os.Getenv("ETHEREUM_NODE_URL")
     privateKeyStr := os.Getenv("PRIVATE_KEY")
     chainID, _ := strconv.ParseInt(os.Getenv("CHAIN_ID"), 10, 64)
 
@@ -54,7 +50,7 @@ func NewClient() *Client {
         Contract: contract,
         Client:   client,
         Auth:     auth,
-    }
+    },nil
 }
 
 func (c *Client) CreateEscrow(buyer, seller common.Address, amount *big.Int) (*types.Transaction, error) {
