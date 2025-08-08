@@ -10,13 +10,13 @@ require (
 	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/gofiber/fiber/v3 v3.0.0-beta.5
 	github.com/hashicorp/consul/api v1.32.1
+	github.com/redis/go-redis/v9 v9.11.0
 	github.com/valyala/fasthttp v1.64.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/redis/go-redis/v9 v9.11.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
