@@ -20,6 +20,10 @@ import (
 )
 var blockchainClient *blockchain.Client
 
+func SetBlockchainClient(client *blockchain.Client) {
+	blockchainClient = client
+}
+
 func CreateEscrow(c fiber.Ctx) error {
 	escrow := new(model.Escrow)
 	if err := c.Bind().Body(escrow); err != nil {
@@ -167,6 +171,17 @@ func CreateEscrow(c fiber.Ctx) error {
 	}
 
 	
+   if blockchainClient == nil {
+	   return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		  "error": "Blockchain client not initialized",
+	   })
+   }
+
+     if blockchainClient.Contract == nil {
+	    return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		  "error": "Blockchain contract not loaded",
+	      })
+        }
 	amount := new(big.Int).SetUint64(uint64(escrow.Amount * 100))
 	tx, err := blockchainClient.Contract.CreateEscrow(
 		blockchainClient.Auth,

@@ -5,6 +5,7 @@ import (
 	"escrow_service/internal"
 	"escrow_service/internal/consul"
 	"escrow_service/internal/db"
+	"escrow_service/internal/handlers"
 	"escrow_service/internal/model"
 	"escrow_service/internal/rabbitmq"
 	"escrow_service/internal/server"
@@ -12,6 +13,7 @@ import (
 	"net"
 
 	escrow "github.com/SafeDeal/proto/escrow/v1"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/gofiber/fiber/v3"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
@@ -48,6 +50,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize blockchain client: %v", err)
 	}
+    nextID, err := blockchainClient.Contract.NextId(&bind.CallOpts{})
+	if err != nil {
+		log.Fatalf("Contract call failed: %v", err)
+	}
+	log.Printf("Connected to contract. Next ID: %d", nextID)
+    
+   handlers.SetBlockchainClient(blockchainClient)
+
     app := fiber.New()
 
     app.Get("/health", func(c fiber.Ctx) error {

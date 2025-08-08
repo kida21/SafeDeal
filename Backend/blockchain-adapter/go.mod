@@ -31,7 +31,6 @@ replace SafeDeal/contracts => ../../contracts
 require (
 	github.com/ethereum/go-ethereum v1.16.1
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
