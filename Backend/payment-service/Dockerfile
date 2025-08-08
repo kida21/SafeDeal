@@ -18,6 +18,10 @@ COPY proto/escrow ./Proto/escrow
 
 COPY message-broker ./message-broker
 
+COPY Backend/blockchain-adapter Backend/blockchain-adapter
+
+COPY contracts contracts
+
 COPY Backend/payment-service ./Backend/Payment-service
 
 WORKDIR /app/Backend/Payment-service

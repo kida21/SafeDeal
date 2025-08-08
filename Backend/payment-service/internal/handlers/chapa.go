@@ -1,14 +1,22 @@
 package handlers
 
 import (
+	"blockchain_adapter"
+	"context"
 	"log"
+	"math/big"
 	"payment_service/internal/model"
 	"payment_service/internal/rabbitmq"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind/v2"
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
+var blockchainClient *blockchain.Client
 
+func SetBlockchainClient(client *blockchain.Client) {
+	blockchainClient = client
+}
 func HandleChapaWebhook(c fiber.Ctx) error {
 	log.Println("✅ Webhook called by Chapa")
 	type Payload struct {
@@ -29,12 +37,12 @@ func HandleChapaWebhook(c fiber.Ctx) error {
 	}
 
 	if payload.Status == "success" {
-		// Update payment status
+		
 		payment.Status = model.Completed
 		db.Save(&payment)
 		log.Printf("✅ Payment status updated: %s", payment.TransactionRef)
 
-		// ✅ Publish event to RabbitMQ
+		
 		producer := rabbitmq.NewProducer()
 		err := producer.PublishPaymentSuccess(
 			payload.TxRef,
@@ -43,9 +51,46 @@ func HandleChapaWebhook(c fiber.Ctx) error {
 			payment.Amount,
 		)
 		if err != nil {
-			log.Printf("❌ Failed to publish event: %v", err)
+			log.Printf("Failed to publish event: %v", err)
 		} else {
-			log.Println("✅ Published payment.success event to RabbitMQ")
+			log.Println("Published payment.success event to RabbitMQ")
+		}
+
+		
+		 if blockchainClient == nil {
+	         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		       "error": "Blockchain client not initialized",
+	         })
+       }
+
+		if blockchainClient.Contract == nil {
+			log.Println("Blockchain contract not loaded")
+			return c.SendStatus(fiber.StatusOK)
+		}
+
+		escrowID := new(big.Int).SetUint64(uint64(payment.EscrowID))
+
+		
+		tx, err := blockchainClient.Contract.ConfirmPayment(blockchainClient.Auth, escrowID)
+		if err != nil {
+			log.Printf("Failed to call confirmPayment on-chain: %v", err)
+			return c.SendStatus(fiber.StatusOK) 
+		}
+
+		
+		receipt, err := bind.WaitMined(context.Background(), blockchainClient.Client, tx.Hash())
+		if err != nil {
+			log.Printf("Transaction mining failed: %v", err)
+			return c.SendStatus(fiber.StatusOK)
+		}
+
+		// Parse event
+		for _, vlog := range receipt.Logs {
+			event, err := blockchainClient.Contract.ParsePaymentConfirmed(*vlog)
+			if err == nil && event != nil {
+				log.Printf("✅ On-chain status updated: Escrow ID %d → ACTIVE", event.Id.Uint64())
+				break
+			}
 		}
 	}
 
