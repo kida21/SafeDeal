@@ -28,6 +28,7 @@ func SetupRoutes(app *fiber.App) {
     {  
         authenticated.Use("/logout",proxy.ProxyHandler("user-service"))
         authenticated.Use("/profile", proxy.ProxyHandler("user-service"))
+        authenticated.Use("/wallet",proxy.ProxyHandler("user-service"))
         authenticated.Use("/users", proxy.ProxyHandler("user-service"))
         authenticated.Use("/escrows", proxy.ProxyHandler("escrow-service"))
         authenticated.Use("/payments", proxy.ProxyHandler("payment-service"))
