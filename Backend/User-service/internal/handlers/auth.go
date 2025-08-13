@@ -24,7 +24,7 @@ func SetRedisClient(client *redis.Client) {
 
 func RefreshToken(c fiber.Ctx) error {
     type Request struct {
-        RefreshToken string `json:"refresh_token"`
+        RefreshToken string `json:"refresh_token"`  
     }
 
     var req Request
