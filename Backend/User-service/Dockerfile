@@ -14,6 +14,8 @@ COPY Backend/User-service/.envrc ./Backend/User-service/.envrc
 
 COPY proto/auth ./Proto/auth
 
+COPY shared  ./shared
+
 COPY Backend/User-service ./Backend/User-service
 
 WORKDIR /app/Backend/User-service
