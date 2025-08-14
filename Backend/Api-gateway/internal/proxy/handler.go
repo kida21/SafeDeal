@@ -22,8 +22,8 @@ func getClient(addr string) *fasthttp.Client {
         MaxIdleConnDuration:   5 * time.Second,
         MaxConnWaitTimeout:    3 * time.Second,
         DisableHeaderNamesNormalizing: true,
-        ReadTimeout:           30 * time.Second,
-        WriteTimeout:          30 * time.Second,
+        ReadTimeout:           50 * time.Second,
+        WriteTimeout:          50 * time.Second,
         
         
     }

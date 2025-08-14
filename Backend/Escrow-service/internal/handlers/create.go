@@ -134,39 +134,10 @@ func CreateEscrow(c fiber.Ctx) error {
 	  }
 
 	if sellerRes.WalletAddress == nil || sellerRes.WalletAddress.Value ==""{
-		wallet, err := wallet.GenerateWallet()
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to generate seller wallet"+ err.Error(),
-			})
-		}
-		sellerAddr = common.HexToAddress(wallet.Address)
-
-		exists, err := userServiceClient.CheckWalletAddress(wallet.Address)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to check wallet address"+ err.Error(),
-			})
-		}
-		if exists {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Generated wallet address already exists",
-			})
-		}
-
-		encryptedKey, err := crypto.Encrypt(wallet.PrivateKey, os.Getenv("ENCRYPTION_KEY"))
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to encrypt seller private key"+ err.Error(),
-			})
-		 }
-		  err = userServiceClient.UpdateUser(uint32(escrow.SellerID), wallet.Address, encryptedKey)
-          if err != nil {
-             return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-                   "error": "Failed to save wallet for seller: " + err.Error(),
-           })
-          }
-	} else {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Seller has not created a wallet. Escrow creation requires seller opt-in.",
+		})
+		} else {
 		sellerAddr = common.HexToAddress(sellerRes.WalletAddress.GetValue())
 	}
 
