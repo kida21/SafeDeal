@@ -1,6 +1,15 @@
 # SafeDeal - Blockchain-Powered Escrow System
 
-![Tech Stack](https://img.shields.io/badge/Tech%20Stack-Golang%20%7C%20Ethereum%20%7C%20Chapa%20%7C%20Fiber%20%7C%20RabbitMQ%20%7C%20PostgreSQL%20%7C%20Docker-blue)
+![Golang](https://img.shields.io/badge/Golang-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white)
+![Chapa](https://img.shields.io/badge/Chapa-4CAF50?style=for-the-badge&logo=stripe&logoColor=white)
+![Fiber](https://img.shields.io/badge/Fiber-007ACC?style=for-the-badge&logo=fastify&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Consul](https://img.shields.io/badge/Consul-00A9E0?style=for-the-badge&logo=consul&logoColor=white)
+![Ngrok](https://img.shields.io/badge/Ngrok-8A4FFF?style=for-the-badge&logo=ngrok&logoColor=white)
 
 ## Table of Contents
 - [Description](#description)
