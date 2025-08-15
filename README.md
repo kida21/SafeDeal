@@ -20,7 +20,7 @@
 
 
 ## Description
-SafeDeal is a hybrid escrow platform that combines the regulatory compliance of traditional payment systems with the transparency of blockchain technology. The system uses Chapa for Ethiopian Birr (ETB) transactions while leveraging Ethereum to maintain an immutable, auditable record of transaction states. This approach provides users with the familiarity of local payment methods and the security benefits of decentralized verification.
+SafeDeal is a hybrid escrow platform that combines the regulatory compliance of online payment systems with the transparency of blockchain technology. The system uses Chapa for Ethiopian Birr (ETB) transactions while leveraging Ethereum to maintain an immutable, auditable record of transaction states. This approach provides users with the familiarity of local payment methods and the security benefits of decentralized verification.
 
 ## Features
 - **Hybrid Payment Model**: ETB transactions through Chapa with blockchain state logging
