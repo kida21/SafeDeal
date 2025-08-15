@@ -31,6 +31,9 @@ message User {
   bool activated = 5;
   int32 version = 6;
  google.protobuf.StringValue wallet_address = 7;
+ google.protobuf.StringValue account_name = 8;
+  google.protobuf.StringValue account_number = 9;
+  google.protobuf.Int32Value bank_code = 10;
 }
 
 message GetUserRequest {

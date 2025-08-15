@@ -37,16 +37,19 @@ type TransferRequest struct {
 }
 
 type TransferResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
-	Data    struct {
-		TransferID string `json:"transfer_id"`
-		Status     string `json:"status"`
-	} `json:"data"`
+    Status  string `json:"status"`
+    Message struct {
+        GatewayResponse  string `json:"gateway_response"`
+        PaymentReference string `json:"payment_reference"`
+    } `json:"message"`
+    Data struct {
+        TransferID string `json:"transfer_id"`
+        Status     string `json:"status"`
+    } `json:"data"`
 }
 
 func (c *Client) TransferToSeller(sellerID uint, amount float64, reference, email string) (*TransferResponse, error) {
-	url := c.BaseURL + "/transfer"
+	url := c.BaseURL + "/transfers"
 
 	payload := TransferRequest{
 		Amount:      amount,

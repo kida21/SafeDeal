@@ -39,7 +39,7 @@ func ConfirmReceipt(c fiber.Ctx) error {
 	db := c.Locals("db").(*gorm.DB)
 	var escrow model.Escrow
 
-	if err := db.First(&escrow, "blockchain_escrow_id = ?", escrowID).Error; err != nil {
+	if err := db.First(&escrow, escrowID).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Escrow not found",
 		})

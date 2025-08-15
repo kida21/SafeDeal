@@ -22,6 +22,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     {   
         api.Post("/logout",handlers.Logout)
         api.Get("/profile", handlers.Profile)
+        api.Put("/profile/bank-details",handlers.UpdateBankDetails)
         api.Post("/wallet",handlers.CreateWallet)
         
     }
