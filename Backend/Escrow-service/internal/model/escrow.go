@@ -1,4 +1,3 @@
-// internal/models/escrow.go
 package model
 
 import "gorm.io/gorm"
