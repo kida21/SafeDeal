@@ -13,6 +13,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     })
     
    app.Post("/webhook/chapa",handlers.HandleChapaWebhook)
+   app.Post("/webhook/transfer",handlers.HandleTransferWebhook)
     // Protected group
     api := app.Group("/api/payments")
     {

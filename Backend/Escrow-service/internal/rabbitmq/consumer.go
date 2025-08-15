@@ -1,10 +1,15 @@
 package rabbitmq
 
 import (
+	blockchain "blockchain_adapter"
+	"context"
 	"encoding/json"
 	"escrow_service/internal/model"
 	"log"
+	"math/big"
 	"message_broker/rabbitmq/events"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/streadway/amqp"
 	"gorm.io/gorm"
 )
@@ -12,6 +17,11 @@ import (
 type Consumer struct {
     Channel *amqp.Channel
     DB      *gorm.DB
+}
+var blockchainClient *blockchain.Client
+
+func SetBlockchainClient(client *blockchain.Client) {
+	blockchainClient = client
 }
 
 func NewConsumer(db *gorm.DB) *Consumer {
@@ -94,4 +104,94 @@ func (c *Consumer) Listen() {
             }
         }
     }()
+}
+
+func (c *Consumer) ListenForTransferEvents() {
+	queue, err := c.Channel.QueueDeclare(
+		"escrow_transfer_queue",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to declare transfer queue: %v", err)
+	}
+
+	err = c.Channel.QueueBind(
+		queue.Name,
+		"transfer.success",
+		"safe_deal_exchange",
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to bind transfer queue: %v", err)
+	}
+
+	msgs, err := c.Channel.Consume(
+		queue.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	go func() {
+		for msg := range msgs {
+			var baseEvent events.BaseEvent
+			json.Unmarshal(msg.Body, &baseEvent)
+
+			if baseEvent.Type == "transfer.success" {
+				var event events.TransferSuccessEvent
+				json.Unmarshal(msg.Body, &event)
+
+				
+				var escrow model.Escrow
+				if err := c.DB.Where("blockchain_escrow_id = ?", event.EscrowID).First(&escrow).Error; err != nil {
+					log.Printf("Escrow not found: %d", event.EscrowID)
+					continue
+				}
+
+				
+				escrow.Status = model.Released
+				c.DB.Save(&escrow)
+				log.Printf("✅ Escrow %d updated to Released in DB", escrow.ID)
+
+				
+				if blockchainClient == nil {
+					log.Println("❌ blockchainClient not initialized")
+					continue
+				}
+
+				tx, err := blockchainClient.Contract.FinalizeEscrow(
+					blockchainClient.Auth,
+					new(big.Int).SetUint64(event.EscrowID),
+				)
+				if err != nil {
+					log.Printf("❌ Failed to finalize escrow on-chain: %v", err)
+					continue
+				}
+
+				
+				receipt, err := bind.WaitMined(context.Background(), blockchainClient.Client, tx)
+				if err != nil {
+					log.Printf("❌ Transaction mining failed: %v", err)
+					continue
+				}
+
+				
+				for _, vLog := range receipt.Logs {
+					e, err := blockchainClient.Contract.ParseEscrowFinalized(*vLog)
+					if err == nil && e != nil {
+						log.Printf("✅ On-chain status updated: Escrow ID %d → CLOSED", e.Id.Uint64())
+						break
+					}
+				}
+			}
+		}
+	}()
 }

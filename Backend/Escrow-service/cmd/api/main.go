@@ -43,7 +43,8 @@ func main() {
     consul.RegisterService("escrow-service", "escrow-service", 8082)
 
     consumer := rabbitmq.NewConsumer(db.DB)
-    consumer.Listen()
+    go consumer.Listen()                    
+	go consumer.ListenForTransferEvents() 
     
     var err error
 	blockchainClient, err = blockchain.NewClient()
