@@ -87,7 +87,7 @@ The architecture ensures that sensitive financial operations remain within the r
 ## Getting Started
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/safedeal.git
+git clone https://github.com/kida21/safedeal.git
 cd safedeal
 
 # Set up environment variables
