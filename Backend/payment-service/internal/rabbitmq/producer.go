@@ -1,8 +1,10 @@
 package rabbitmq
 
 import (
-    "github.com/streadway/amqp"
-    "message_broker/rabbitmq/events"
+	"message_broker/rabbitmq/events"
+	"time"
+
+	"github.com/streadway/amqp"
 )
 
 type Producer struct {
@@ -54,4 +56,30 @@ func (p *Producer) PublishPaymentSuccess(txRef string, escrowID, userID uint32, 
             Body:        body,
         },
     )
+}
+func (p *Producer) PublishTransferSuccess(transferID string, escrowID uint64) error {
+	event := events.TransferSuccessEvent{
+		BaseEvent: events.BaseEvent{
+			Type:      "transfer.success",
+			Timestamp: time.Now().Unix(),
+		},
+		TransferID: transferID,
+		EscrowID:   escrowID,
+	}
+
+	body, err := event.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	return p.Channel.Publish(
+		"safe_deal_exchange",
+		"transfer.success",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
 }
