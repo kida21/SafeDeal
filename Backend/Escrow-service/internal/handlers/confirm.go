@@ -4,12 +4,9 @@ import (
 	"escrow_service/internal/auth"
 	"escrow_service/internal/model"
 	"fmt"
-
-	//"fmt"
-	"shared/chapa"
+    "shared/chapa"
 	"strconv"
-
-	"github.com/gofiber/fiber/v3"
+    "github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
 
@@ -71,12 +68,28 @@ func ConfirmReceipt(c fiber.Ctx) error {
 			"error": "Failed to get seller info",
 		})
 	}
-   chapaClient := chapa.NewClient()
+	if !sellerRes.Activated{
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+		   "error": "Seller account is not activated",
+	     })
+	}
+	if sellerRes.AccountName == nil || sellerRes.AccountName.Value == "" ||
+	    sellerRes.AccountNumber == nil || sellerRes.AccountNumber.Value == "" ||
+	      sellerRes.BankCode == nil || sellerRes.BankCode.Value == 0 {
+	           return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		          "error": "Seller has not added bank account details",
+	           })
+            }
+
+    chapaClient := chapa.NewClient()
 	resp, err := chapaClient.TransferToSeller(
 		escrow.SellerID,
-		escrow.Amount,
-		fmt.Sprintf("escrow-%d", escrow.ID),
-		sellerRes.Email,
+	     escrow.Amount,
+	    fmt.Sprintf("escrow-%d", escrow.ID),
+		sellerRes.AccountName.Value,
+		sellerRes.AccountNumber.Value,
+		int(sellerRes.BankCode.Value),
+	
 	)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

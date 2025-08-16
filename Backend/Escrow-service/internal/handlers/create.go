@@ -83,14 +83,21 @@ func CreateEscrow(c fiber.Ctx) error {
 	escrow.BuyerID = uint(buyerID)
 	escrow.Status = model.Pending
 
-	db := c.Locals("db").(*gorm.DB)
-	if err := db.Create(&escrow).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create escrow"+ err.Error(),
-		})
-	}
+	 if buyerRes.AccountName == nil || buyerRes.AccountName.Value == "" ||
+	       buyerRes.AccountNumber == nil || buyerRes.AccountNumber.Value == "" ||
+	          buyerRes.BankCode == nil || buyerRes.BankCode.Value == 0 {
+	              return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		             "error": "Buyer has not added bank account details",
+	                   })
+    }
+	if sellerRes.AccountName == nil || sellerRes.AccountName.Value == "" ||
+	       sellerRes.AccountNumber == nil || sellerRes.AccountNumber.Value == "" ||
+	        sellerRes.BankCode == nil || sellerRes.BankCode.Value == 0 {
+	           return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		            "error": "Seller has not added bank account details",
+	              })
+    }
 
-	
 	var buyerAddr, sellerAddr common.Address
 
 	if buyerRes.WalletAddress == nil || buyerRes.WalletAddress.Value == "" {
@@ -101,7 +108,8 @@ func CreateEscrow(c fiber.Ctx) error {
 			})
 		}
 		buyerAddr = common.HexToAddress(wallet.Address)
-
+ 
+		
 		
 		exists, err := userServiceClient.CheckWalletAddress(wallet.Address)
 		if err != nil {
@@ -132,17 +140,18 @@ func CreateEscrow(c fiber.Ctx) error {
 	   {
 		buyerAddr = common.HexToAddress(buyerRes.WalletAddress.GetValue())
 	  }
+	  
 
 	if sellerRes.WalletAddress == nil || sellerRes.WalletAddress.Value ==""{
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Seller has not created a wallet. Escrow creation requires seller opt-in.",
 		})
 		} else {
-		sellerAddr = common.HexToAddress(sellerRes.WalletAddress.GetValue())
-	}
+		    sellerAddr = common.HexToAddress(sellerRes.WalletAddress.GetValue())
+	     }
+	   
 
-	
-   if blockchainClient == nil {
+	if blockchainClient == nil {
 	   return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 		  "error": "Blockchain client not initialized",
 	   })
@@ -190,11 +199,12 @@ func CreateEscrow(c fiber.Ctx) error {
 		 escrow.BlockchainTxHash = &txHash
 	     escrow.BlockchainEscrowID = &id
 
-		 if err := db.Save(&escrow).Error; err != nil {
-	         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-		         "error": "Failed to update escrow with blockchain data"+ err.Error(),
-	            })
-              }
+		db := c.Locals("db").(*gorm.DB)
+	      if err := db.Create(&escrow).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create escrow"+ err.Error(),
+		})
+	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"id":                 escrow.ID,

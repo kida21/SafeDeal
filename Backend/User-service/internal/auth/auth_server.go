@@ -85,11 +85,21 @@ func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.G
             Error:   "User not found",
         }, nil
     }
-    var walletPb *wrapperspb.StringValue
+    var walletPb, accountNamePb, accountNumberPb *wrapperspb.StringValue
+    var bankCodePb *wrapperspb.Int32Value
 
     if user.WalletAddress != nil {
 	      walletPb = wrapperspb.String(*user.WalletAddress)
         }
+    if user.AccountName != nil && *user.AccountName != "" {
+		accountNamePb = wrapperspb.String(*user.AccountName)
+	}
+	if user.AccountNumber != nil && *user.AccountNumber != "" {
+		accountNumberPb = wrapperspb.String(*user.AccountNumber)
+	}
+	if user.BankCode != nil && *user.BankCode != 0 {
+		bankCodePb = wrapperspb.Int32(int32(*user.BankCode))
+	}
     return &v0.GetUserResponse{
         Success: true,
         User: &v0.User{
@@ -100,6 +110,10 @@ func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.G
             Activated:  user.Activated,
             Version:    int32(user.Version),
             WalletAddress: walletPb,
+            AccountName: accountNamePb,
+            AccountNumber: accountNumberPb,
+            BankCode: bankCodePb,
+            
         },
     }, nil
 }
