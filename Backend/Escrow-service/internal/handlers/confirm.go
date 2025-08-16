@@ -81,6 +81,13 @@ func ConfirmReceipt(c fiber.Ctx) error {
 	           })
             }
 
+	err = chapa.ValidateAccount(int(sellerRes.BankCode.GetValue()), sellerRes.AccountNumber.GetValue())
+      if err != nil {
+	   return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		     "error": "Invalid bank details: " + err.Error(),
+	      })
+        }
+
     chapaClient := chapa.NewClient()
 	resp, err := chapaClient.TransferToSeller(
 		escrow.SellerID,
@@ -102,6 +109,6 @@ func ConfirmReceipt(c fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"message": "Receipt confirmed. Funds will be released after transfer confirmation.",
-		"transfer_id": resp.Data.TransferID,
+		"data": resp.Data,
 	})
 }

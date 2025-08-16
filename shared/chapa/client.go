@@ -36,13 +36,11 @@ type TransferRequest struct {
 	ReturnURL       string `json:"return_url,omitempty"`
 }
 
+
 type TransferResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
-	Data    struct {
-		TransferID string `json:"transfer_id"`
-		Status     string `json:"status"`
-	} `json:"data"`
+	Data    string `json:"data"` 
 }
 
 func (c *Client) TransferToSeller(
