@@ -19,7 +19,6 @@ type Client struct {
 
 func NewClient() *Client {
 	return &Client{
-		BaseURL:    "https://api.chapa.co/v1",
 		APIKey:     os.Getenv("CHAPA_PUBLIC_KEY"),
         SecretKey:  os.Getenv("CHAPA_SECRET_KEY"),
 		HttpClient: &http.Client{},
@@ -56,7 +55,7 @@ func (c *Client) TransferToSeller(
 	url := "https://api.chapa.co/v1/transfers"
 	method := "POST"
 
-	// ✅ Format amount as string
+	
 	amountStr := fmt.Sprintf("%.2f", amount)
 
 	payload := TransferRequest{
@@ -67,7 +66,7 @@ func (c *Client) TransferToSeller(
 		Reference:     reference,
 		BankCode:      bankCode,
 		CallbackURL:   "https://evolved-bonefish-hardly.ngrok-free.app/webhook/transfer",
-		ReturnURL:     "https://frontend.com/transfer/success",
+		ReturnURL:     "",
 	}
 
 	reqBody, err := json.Marshal(payload)
@@ -76,6 +75,7 @@ func (c *Client) TransferToSeller(
 	}
 
 	log.Printf("📤 Sending transfer request: %s", reqBody)
+	
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {

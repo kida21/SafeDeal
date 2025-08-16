@@ -46,7 +46,7 @@ func Profile(c fiber.Ctx) error {
 func UpdateBankDetails(c fiber.Ctx) error {
 	type Request struct {
 		AccountName   string `json:"account_name" validate:"required,chars_only,min=2"`
-		AccountNumber string `json:"account_number" validate:"required,len=10"` // Example: 10-digit account
+		AccountNumber string `json:"account_number"` 
 		BankCode      int    `json:"bank_code" validate:"required,min=100,max=999"`
 	}
 
