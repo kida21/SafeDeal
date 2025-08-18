@@ -67,11 +67,14 @@ func HandleChapaWebhook(c fiber.Ctx) error {
 			log.Println("Blockchain contract not loaded")
 			return c.SendStatus(fiber.StatusOK)
 		}
-
-		escrowID := new(big.Int).SetUint64(uint64(payment.EscrowID))
-
+        resp,err:= escrowClient.GetEscrow(uint32(payment.EscrowID))
+		if err!=nil{
+			log.Printf("error on fetching escrow: %v",err)
+		}
+		id:=uint64(resp.BlockchainEscrowId)
+		onChainId:=new(big.Int).SetUint64(id)
 		
-		tx, err := blockchainClient.Contract.ConfirmPayment(blockchainClient.Auth, escrowID)
+      tx, err := blockchainClient.Contract.ConfirmPayment(blockchainClient.Auth,onChainId )
 		if err != nil {
 			log.Printf("Failed to call confirmPayment on-chain: %v", err)
 			return c.SendStatus(fiber.StatusOK) 

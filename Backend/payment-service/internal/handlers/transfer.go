@@ -10,6 +10,7 @@ import (
 )
 
 func HandleTransferWebhook(c fiber.Ctx) error {
+	c.Set("ngrok-skip-browser-warning", "1")
 	type Payload struct {
 		TransferID string `json:"transfer_id"`
 		Status     string `json:"status"`
