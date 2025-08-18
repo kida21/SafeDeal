@@ -5,15 +5,9 @@ import (
 	"escrow_service/internal/auth"
 	"escrow_service/internal/model"
 	"math/big"
-
-	"blockchain_adapter"
-
-	"os"
-	"shared/crypto"
-	"shared/wallet"
-	"strconv"
-
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+    "blockchain_adapter"
+     "strconv"
+    "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
@@ -101,40 +95,9 @@ func CreateEscrow(c fiber.Ctx) error {
 	var buyerAddr, sellerAddr common.Address
 
 	if buyerRes.WalletAddress == nil || buyerRes.WalletAddress.Value == "" {
-		wallet, err := wallet.GenerateWallet()
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to generate buyer wallet"+ err.Error(),
-			})
-		}
-		buyerAddr = common.HexToAddress(wallet.Address)
- 
-		
-		
-		exists, err := userServiceClient.CheckWalletAddress(wallet.Address)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to check wallet address"+ err.Error(),
-			})
-		}
-		if exists {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Generated wallet address already exists",
-			})
-		}
-
-		encryptedKey, err := crypto.Encrypt(wallet.PrivateKey, os.Getenv("ENCRYPTION_KEY"))
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to encrypt buyer private key"+ err.Error(),
-			})
-		}
-		 err = userServiceClient.UpdateUser(uint32(buyerID), wallet.Address, encryptedKey)
-        if err != nil {
-          return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-              "error": "Failed to save wallet for buyer: " + err.Error(),
-          })
-        }
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Buyer has not created a wallet. Escrow creation requires seller opt-in.",
+		})
 		
 	} else 
 	   {
