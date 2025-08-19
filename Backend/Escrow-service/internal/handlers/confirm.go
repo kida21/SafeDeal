@@ -108,7 +108,9 @@ func ConfirmReceipt(c fiber.Ctx) error {
 	db.Save(&escrow)
 
 	return c.JSON(fiber.Map{
-		"message": "Receipt confirmed. Funds will be released after transfer confirmation.",
+		"message":resp.Message,
+		"status":resp.Status,
 		"data": resp.Data,
+
 	})
 }

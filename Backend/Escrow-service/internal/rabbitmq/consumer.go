@@ -8,7 +8,7 @@ import (
 	"log"
 	"math/big"
 	"message_broker/rabbitmq/events"
-
+     
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/streadway/amqp"
 	"gorm.io/gorm"
@@ -17,14 +17,13 @@ import (
 type Consumer struct {
     Channel *amqp.Channel
     DB      *gorm.DB
-}
-var blockchainClient *blockchain.Client
-
-func SetBlockchainClient(client *blockchain.Client) {
-	blockchainClient = client
+	blockchainClient *blockchain.Client
 }
 
-func NewConsumer(db *gorm.DB) *Consumer {
+
+
+
+func NewConsumer(db *gorm.DB,client *blockchain.Client) *Consumer {
     var conn *amqp.Connection
     var err error
 
@@ -42,7 +41,7 @@ func NewConsumer(db *gorm.DB) *Consumer {
         log.Fatalf("❌ Failed to declare exchange: %v", err)
     }
     log.Println("✅ Connected to RabbitMQ")
-    return &Consumer{Channel: ch, DB: db}
+    return &Consumer{Channel: ch, DB: db,blockchainClient: client}
 }
 
 
@@ -151,7 +150,7 @@ func (c *Consumer) ListenForTransferEvents() {
 
 				
 				var escrow model.Escrow
-				if err := c.DB.Where("blockchain_escrow_id = ?", event.EscrowID).First(&escrow).Error; err != nil {
+				if err := c.DB.Where("id = ?", event.EscrowID).First(&escrow).Error; err != nil {
 					log.Printf("Escrow not found: %d", event.EscrowID)
 					continue
 				}
@@ -162,13 +161,13 @@ func (c *Consumer) ListenForTransferEvents() {
 				log.Printf("✅ Escrow %d updated to Released in DB", escrow.ID)
 
 				
-				if blockchainClient == nil {
+				if c.blockchainClient == nil {
 					log.Println("❌ blockchainClient not initialized")
 					continue
 				}
 
-				tx, err := blockchainClient.Contract.FinalizeEscrow(
-					blockchainClient.Auth,
+				tx, err := c.blockchainClient.Contract.FinalizeEscrow(
+					c.blockchainClient.Auth,
 					new(big.Int).SetUint64(event.EscrowID),
 				)
 				if err != nil {
@@ -177,7 +176,7 @@ func (c *Consumer) ListenForTransferEvents() {
 				}
 
 				
-				receipt, err := bind.WaitMined(context.Background(), blockchainClient.Client, tx)
+				receipt, err := bind.WaitMined(context.Background(), c.blockchainClient.Client, tx)
 				if err != nil {
 					log.Printf("❌ Transaction mining failed: %v", err)
 					continue
@@ -185,7 +184,7 @@ func (c *Consumer) ListenForTransferEvents() {
 
 				
 				for _, vLog := range receipt.Logs {
-					e, err := blockchainClient.Contract.ParseEscrowFinalized(*vLog)
+					e, err := c.blockchainClient.Contract.ParseEscrowFinalized(*vLog)
 					if err == nil && e != nil {
 						log.Printf("✅ On-chain status updated: Escrow ID %d → CLOSED", e.Id.Uint64())
 						break

@@ -41,10 +41,8 @@ func main() {
     db.DB.AutoMigrate(&model.Escrow{})
     go startGRPCServer(db.DB)
     consul.RegisterService("escrow-service", "escrow-service", 8082)
-
-    consumer := rabbitmq.NewConsumer(db.DB)
-    go consumer.Listen()                    
-	go consumer.ListenForTransferEvents() 
+    
+     
     
     var err error
 	blockchainClient, err = blockchain.NewClient()
@@ -55,9 +53,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Contract call failed: %v", err)
 	}
+    handlers.SetBlockchainClient(blockchainClient)
 	log.Printf("Connected to contract. Next ID: %d", nextID)
     
-   handlers.SetBlockchainClient(blockchainClient)
+    consumer := rabbitmq.NewConsumer(db.DB,blockchainClient)
+    go consumer.Listen()                    
+	go consumer.ListenForTransferEvents()
 
     app := fiber.New()
 
