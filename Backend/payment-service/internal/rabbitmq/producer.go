@@ -57,7 +57,7 @@ func (p *Producer) PublishPaymentSuccess(txRef string, escrowID, userID uint32, 
         },
     )
 }
-func (p *Producer) PublishTransferSuccess(transferID string, escrowID uint64) error {
+func (p *Producer) PublishTransferSuccess(transferID string, escrowID uint64,blockchainEscrowID *uint64) error {
 	event := events.TransferSuccessEvent{
 		BaseEvent: events.BaseEvent{
 			Type:      "transfer.success",
@@ -65,6 +65,7 @@ func (p *Producer) PublishTransferSuccess(transferID string, escrowID uint64) er
 		},
 		TransferID: transferID,
 		EscrowID:   escrowID,
+        BlockchainEscrowID: *blockchainEscrowID,
 	}
 
 	body, err := event.ToJSON()

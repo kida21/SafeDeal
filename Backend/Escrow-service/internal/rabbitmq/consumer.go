@@ -168,7 +168,7 @@ func (c *Consumer) ListenForTransferEvents() {
 
 				tx, err := c.blockchainClient.Contract.FinalizeEscrow(
 					c.blockchainClient.Auth,
-					new(big.Int).SetUint64(event.EscrowID),
+					new(big.Int).SetUint64(event.BlockchainEscrowID),
 				)
 				if err != nil {
 					log.Printf("❌ Failed to finalize escrow on-chain: %v", err)

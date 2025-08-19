@@ -39,10 +39,18 @@ func HandleTransferWebhook(c fiber.Ctx) error {
 			"error": "Invalid reference",
 		})
 	}
-
-	
+	resp,err:= escrowClient.GetEscrow(uint32(escrowID))
+		if err!=nil{
+			log.Printf("error on fetching escrow: %v",err)
+		}
+       if resp.BlockchainEscrowId == 0 {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Escrow not linked to blockchain",
+		})
+	    }
+	id:=uint64(resp.BlockchainEscrowId)
 	producer := rabbitmq.NewProducer()
-	err = producer.PublishTransferSuccess(payload.Data, escrowID)
+	err = producer.PublishTransferSuccess(payload.Data, escrowID,&id)
 	if err != nil {
 		log.Printf("Failed to publish transfer.success: %v", err)
 		
