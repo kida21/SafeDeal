@@ -20,15 +20,6 @@ func NewPaymentServer(db *gorm.DB) *PaymentServer {
     return &PaymentServer{DB: db}
 }
 
-var escrowClient *escrow.EscrowServiceClient
-func init() {
-    var err error
-    escrowClient, err = escrow.NewEscrowServiceClient("escrow-service:50052")
-    if err != nil {
-        panic("failed to initialize escrow gRPC client: " + err.Error())
-    }
-}
-
 func (s *PaymentServer) FinalizeEscrow(ctx context.Context, req *v1.FinalizeEscrowRequest) (*v1.FinalizeEscrowResponse, error) {
 	escrowIDStr := strings.TrimPrefix(req.Data, "escrow-")
 	escrowID, err := strconv.ParseUint(escrowIDStr, 10, 64)
@@ -39,7 +30,10 @@ func (s *PaymentServer) FinalizeEscrow(ctx context.Context, req *v1.FinalizeEscr
 		}, nil
 	}
 
-	
+	escrowClient,err:=escrow.NewEscrowServiceClient("escrow-service:50052")
+	if err!=nil{
+	   log.Printf("unable to call escrow-service: %v",err)
+	}
 	resp,err:= escrowClient.GetEscrow(uint32(escrowID))
 	if err!=nil{
 		 return &v1.FinalizeEscrowResponse{

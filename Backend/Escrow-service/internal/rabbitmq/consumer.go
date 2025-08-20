@@ -171,7 +171,7 @@ func (c *Consumer) ListenForTransferEvents() {
 					new(big.Int).SetUint64(event.BlockchainEscrowID),
 				)
 				if err != nil {
-					log.Printf("❌ Failed to finalize escrow on-chain: %v", err)
+					log.Printf("❌ Failed to finalize escrow on-chain for id :%d: %v",event.BlockchainEscrowID, err)
 					continue
 				}
 

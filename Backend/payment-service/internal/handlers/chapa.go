@@ -76,7 +76,7 @@ func HandleChapaWebhook(c fiber.Ctx) error {
 		
       tx, err := blockchainClient.Contract.ConfirmPayment(blockchainClient.Auth,onChainId )
 		if err != nil {
-			log.Printf("Failed to call confirmPayment on-chain: %v", err)
+			log.Printf("Failed to call confirmPayment for on-chain id:%d : %v", onChainId,err)
 			return c.SendStatus(fiber.StatusOK) 
 		}
 
