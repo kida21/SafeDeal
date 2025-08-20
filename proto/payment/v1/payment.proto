@@ -7,6 +7,7 @@ option go_package = "./proto/payment/v1";
 service PaymentService {
   rpc InitiateEscrowPayment(InitiateEscrowPaymentRequest) returns (InitiateEscrowPaymentResponse);
   rpc VerifyPayment(VerifyPaymentRequest) returns (VerifyPaymentResponse);
+  rpc FinalizeEscrow(FinalizeEscrowRequest) returns (FinalizeEscrowResponse);
 }
 
 message InitiateEscrowPaymentRequest {
@@ -27,4 +28,13 @@ message VerifyPaymentRequest {
 
 message VerifyPaymentResponse {
   bool success = 1;
+}
+
+message FinalizeEscrowRequest {
+  string data = 1; // e.g., "escrow-5"
+}
+
+message FinalizeEscrowResponse {
+  bool success = 1;
+  string error = 2;
 }
