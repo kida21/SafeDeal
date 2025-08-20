@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	
 	"escrow_service/internal/auth"
 	"escrow_service/internal/model"
+	"escrow_service/internal/payment"
 	"fmt"
-    "shared/chapa"
+	"log"
+	"shared/chapa"
 	"strconv"
-    "github.com/gofiber/fiber/v3"
+
+	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
 
@@ -107,10 +111,23 @@ func ConfirmReceipt(c fiber.Ctx) error {
     escrow.Status = "TransferPending"
 	db.Save(&escrow)
 
+	paymentClient, err := payment.NewPaymentServiceClient("payment-service:50053")
+    if err != nil {
+	      return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		        "error": "Failed to connect to payment service",
+	    })
+      }
+     response,err:=paymentClient.Finalize(resp.Data)
+	 if err!=nil{
+		log.Printf("grpc error: %v ",err)
+	 }
+     if !response.Success{
+		log.Printf("Finalize failed: %s", response.Error)
+      
+	 }
+
 	return c.JSON(fiber.Map{
-		"message":resp.Message,
-		"status":resp.Status,
-		"data": resp.Data,
+	  "message": "Receipt confirmed. Funds released.",
 
 	})
 }

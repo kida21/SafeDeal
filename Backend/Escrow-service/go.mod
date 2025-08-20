@@ -6,6 +6,7 @@ require (
 	blockchain_adapter v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
+	github.com/SafeDeal/proto/payment v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/consul/api v1.32.1
 	gorm.io/gorm v1.30.0
 	message_broker v0.0.0-00010101000000-000000000000
@@ -16,6 +17,8 @@ require (
 replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
 replace github.com/SafeDeal/proto/auth => ../../Proto/auth
+
+replace github.com/SafeDeal/proto/payment => ../../Proto/payment
 
 replace message_broker => ../../message-broker
 
