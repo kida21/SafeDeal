@@ -16,6 +16,8 @@ COPY proto/auth ./Proto/auth
 
 COPY proto/escrow ./Proto/escrow
 
+COPY proto/payment ./Proto/payment
+
 COPY message-broker ./message-broker
 
 COPY Backend/blockchain-adapter Backend/blockchain-adapter
