@@ -55,5 +55,6 @@ func (s *EscrowServer) GetEscrow(ctx context.Context, req *v1.GetEscrowRequest) 
         Status:     string(escrow.Status),
         Conditions: escrow.Conditions,
         BlockchainEscrowId: uint32(*escrow.BlockchainEscrowID),
+        Active: escrow.Active,
     }, nil
 }
