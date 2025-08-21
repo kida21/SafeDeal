@@ -35,7 +35,7 @@ func AcceptEscrow(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Only seller can accept"})
 	}
 
-	if escrow.Status != "Funded" && escrow.Status != "ACTIVE" {
+	if escrow.Status != "Funded" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Escrow not funded"})
 	}
 
