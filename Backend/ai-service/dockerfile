@@ -21,3 +21,8 @@ EXPOSE 50051
 
 # Run the gRPC server
 CMD ["python3", "main.py"]
+
+
+# to run the project build and run
+# docker build -t safedeal-ai-arbitrator .
+# docker run -p 50051:50051 --name ai-arbitrator-service -e GEMINI_API_KEY="YOUR_API_KEY" safedeal-ai-arbitrator
