@@ -1,0 +1,23 @@
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+# Install production dependencies
+# This is done separately to leverage Docker's layer caching
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application source code and the .proto file
+COPY . .
+
+# Generate Python code from the .proto file
+# This command needs to be run before the application starts
+RUN python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. arbitrator.proto
+
+# Expose the gRPC port
+EXPOSE 50051
+
+# Run the gRPC server
+CMD ["python3", "main.py"]
