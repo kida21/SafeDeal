@@ -1,4 +1,3 @@
-// chat_service/internal/handlers/websocket.go
 package handlers
 
 import (
