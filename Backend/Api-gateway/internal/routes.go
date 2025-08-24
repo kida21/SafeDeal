@@ -26,6 +26,7 @@ func SetupRoutes(app *fiber.App) {
     authenticated.Use(middleware.RateLimitByUser(protectedLimiter))
 
     {  
+        authenticated.Get("/chat/ws/:id", HTTPHandlerFuncToFiber(proxy.WebSocketProxy("chat-service")))
         authenticated.Use("/logout",proxy.ProxyHandler("user-service"))
         authenticated.Use("/profile", proxy.ProxyHandler("user-service"))
         authenticated.Use("/profile/bank-details",proxy.ProxyHandler("user-service"))
