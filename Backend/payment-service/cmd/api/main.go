@@ -10,6 +10,7 @@ import (
 	"payment_service/internal/handlers"
 	"payment_service/internal/model"
 	"payment_service/internal/server"
+	redisclient "payment_service/pkg/redis"
 
 	payment "github.com/SafeDeal/proto/payment/v1"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -34,6 +35,7 @@ func startGRPCServer(db *gorm.DB) {
     }
 }
 func main() {
+     redisclient.InitRedis()
     db.ConnectDB()
     db.DB.AutoMigrate(&model.EscrowPayment{})
 	go startGRPCServer(db.DB)
