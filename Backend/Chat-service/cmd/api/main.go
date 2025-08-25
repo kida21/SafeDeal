@@ -15,6 +15,11 @@ func main() {
     db.DB.AutoMigrate(&model.Message{})
     consul.RegisterService("chat-service", "chat-service", 8085)
 	http.HandleFunc("/api/chat/ws/:id", handlers.HandleWebSocket)
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
     log.Println("Chat service is running on :8085")
 	if err := http.ListenAndServe(":8085", nil); err != nil {
 		log.Fatalf("Failed to start chat service: %v", err)
