@@ -35,7 +35,7 @@ func startGRPCServer(db *gorm.DB) {
     }
 }
 func main() {
-     redisclient.InitRedis()
+     
     db.ConnectDB()
     db.DB.AutoMigrate(&model.EscrowPayment{})
 	go startGRPCServer(db.DB)
@@ -55,7 +55,7 @@ func main() {
    handlers.SetBlockchainClient(blockchainClient)
    
     app := fiber.New()
-
+    redisclient.InitRedis()
     app.Get("/health", func(c fiber.Ctx) error {
         return c.SendString("OK")
     })

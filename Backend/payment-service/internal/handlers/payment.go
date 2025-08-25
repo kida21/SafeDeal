@@ -79,7 +79,7 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
             "error": "Escrow not found",
         })
     }
-
+   
     if escrowResp.BuyerId != uint32(buyerID) {
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
             "error": "You are not authorized to fund this escrow",
