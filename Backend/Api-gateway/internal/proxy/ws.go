@@ -1,4 +1,3 @@
-// api_gateway/internal/proxy/ws.go
 package proxy
 
 import (
