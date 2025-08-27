@@ -50,7 +50,7 @@ func HandleChapaWebhook(c fiber.Ctx) error {
 		} else {
 			payment.Status = model.Completed
 			db.Save(&payment)
-			log.Printf("Payment status updated: %s", payment.TransactionRef)
+			
 
 			
 			producer := rabbitmq.NewProducer()
