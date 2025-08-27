@@ -1,59 +1,104 @@
+// api_gateway/internal/proxy/ws.go
 package proxy
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"github.com/gorilla/websocket"
+	"net/url"
+
+	gws "github.com/gorilla/websocket"
+	"github.com/gofiber/contrib/websocket"
 	"api_gateway/internal/consul"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+// WebSocketProxy returns a Fiber WebSocket handler that proxies connections to chat-service
+func WebSocketProxy(serviceName string) func(*websocket.Conn) {
+	return func(clientConn *websocket.Conn) {
+		defer clientConn.Close()
 
-func WebSocketProxy(serviceName string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("WebSocketProxy: handler started")
+
+		// Extract user_id and session_id from Fiber locals (set by AuthMiddleware)
+		userID, ok1 := clientConn.Locals("user_id").(string)
+		sessionID, ok2 := clientConn.Locals("session_id").(string)
+		if !ok1 || !ok2 || userID == "" || sessionID == "" {
+			log.Println("WebSocketProxy: missing user/session ID in locals")
+			return
+		}
+		log.Printf("WebSocketProxy: user_id=%s, session_id=%s\n", userID, sessionID)
+
+		// Resolve backend service endpoint via Consul
 		addr, err := consul.GetServiceEndpoint(serviceName)
 		if err != nil {
-			http.Error(w, "Service unreachable", http.StatusServiceUnavailable)
+			log.Printf("WebSocketProxy: service %s unreachable: %v\n", serviceName, err)
 			return
 		}
+		log.Printf("WebSocketProxy: resolved backend address: %s\n", addr)
 
-		u := fmt.Sprintf("ws://%s%s", addr, r.URL.Path)
-		if r.URL.RawQuery != "" {
-			u += "?" + r.URL.RawQuery
+		// Build target path from Fiber locals (set in route, e.g., /ws/:id)
+		targetPath := clientConn.Locals("target_path")
+		if targetPath == nil {
+			targetPath = "/"
+		}
+		log.Printf("WebSocketProxy: target path: %s\n", targetPath)
+
+		// Build the backend WebSocket URL
+		u := url.URL{
+			Scheme: "ws",
+			Host:   addr,
+			Path:   targetPath.(string),
 		}
 
-		log.Printf("Upgrading to WebSocket: %s", u)
+		headers := http.Header{}
+		headers.Set("X-User-ID", userID)
+		headers.Set("X-Session-ID", sessionID)
 
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Printf("Upgrade failed: %v", err)
-			return
-		}
-		defer conn.Close()
+		log.Printf("WebSocketProxy: dialing backend ws://%s%s\n", addr, targetPath)
 
-		backendConn, _, err := websocket.DefaultDialer.Dial(u, r.Header)
+		// Dial backend chat-service using Gorilla WebSocket
+		backendConn, _, err := gws.DefaultDialer.Dial(u.String(), headers)
 		if err != nil {
-			log.Printf("Failed to connect to backend: %v", err)
+			log.Printf("WebSocketProxy: failed to connect to backend: %v\n", err)
 			return
 		}
 		defer backendConn.Close()
+		log.Println("WebSocketProxy: backend connection established")
 
-		go copyWS(backendConn, conn)
-		copyWS(conn, backendConn)
-	}
-}
+		// Bidirectional proxy: client <-> backend
+		errCh := make(chan error, 2)
 
-func copyWS(src, dst *websocket.Conn) {
-	for {
-		msgType, msg, err := src.ReadMessage()
-		if err != nil {
-			break
-		}
-		if err := dst.WriteMessage(msgType, msg); err != nil {
-			break
-		}
+		// Client -> Backend
+		go func() {
+			for {
+				mt, msg, err := clientConn.ReadMessage()
+				if err != nil {
+					errCh <- err
+					return
+				}
+				if err := backendConn.WriteMessage(mt, msg); err != nil {
+					errCh <- err
+					return
+				}
+			}
+		}()
+
+		// Backend -> Client
+		go func() {
+			for {
+				mt, msg, err := backendConn.ReadMessage()
+				if err != nil {
+					errCh <- err
+					return
+				}
+				if err := clientConn.WriteMessage(mt, msg); err != nil {
+					errCh <- err
+					return
+				}
+			}
+		}()
+
+		// Wait for error from either direction
+		err = <-errCh
+		log.Printf("WebSocketProxy: connection closed for path %v, reason: %v\n", targetPath, err)
 	}
 }

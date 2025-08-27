@@ -1,3 +1,4 @@
+// chat-service/internal/ws/websocket.go
 package handlers
 
 import (
@@ -7,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -33,6 +35,16 @@ type Message struct {
 }
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	log.Printf("HandleWebSocket: incoming request for %s, X-User-ID=%s", r.URL.Path, r.Header.Get("X-User-ID"))
+	log.Printf("Headers received: %v", r.Header)
+	
+	// Check if this is a WebSocket upgrade request
+	if strings.ToLower(r.Header.Get("Upgrade")) != "websocket" {
+		log.Printf("Not a WebSocket upgrade request")
+		http.Error(w, "Expected WebSocket upgrade", http.StatusBadRequest)
+		return
+	}
+
 	// Extract X-User-ID from header (set by API Gateway)
 	userIDStr := r.Header.Get("X-User-ID")
 	if userIDStr == "" {

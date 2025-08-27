@@ -14,7 +14,7 @@ func main() {
 	db.ConnectDB()
     db.DB.AutoMigrate(&model.Message{})
     consul.RegisterService("chat-service", "chat-service", 8085)
-	http.HandleFunc("/api/chat/ws/:id", handlers.HandleWebSocket)
+	http.HandleFunc("/ws/", handlers.HandleWebSocket)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

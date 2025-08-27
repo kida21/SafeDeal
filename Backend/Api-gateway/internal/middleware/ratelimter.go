@@ -6,53 +6,50 @@ import (
 
 	"api_gateway/internal/ratelimter"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
+func RateLimitByUser(limiter *ratelimter.RateLimiter) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID := c.Get("X-User-ID")
+		if userID == "" {
+			return c.Next()
+		}
 
-func RateLimitByUser(limiter *ratelimit.RateLimiter) fiber.Handler {
-    return func(c fiber.Ctx) error {
-        userID := c.Get("X-User-ID")
-        if userID == "" {
-            return c.Next()
-        }
+		key := fmt.Sprintf("rate_limit:user:%s", userID)
+		allowed, err := limiter.Allow(context.Background(), key)
+		if err != nil {
+			fmt.Printf("Redis error in rate limit for user %s: %v\n", userID, err)
+			return c.Next()
+		}
 
-        key := fmt.Sprintf("rate_limit:user:%s", userID)
-        allowed, err := limiter.Allow(context.Background(),key)
-        if err != nil {
-            
-            fmt.Printf("Redis error in rate limit for user %s: %v\n", userID, err)
-            return c.Next()
-        }
+		if !allowed {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": fmt.Sprintf("Rate limit exceeded: %d requests per %s", limiter.Limit, limiter.Window),
+			})
+		}
 
-        if !allowed {
-            return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-                "error": fmt.Sprintf("Rate limit exceeded: %d requests per %s", limiter.Limit, limiter.Window),
-            })
-        }
-
-        return c.Next()
-    }
+		return c.Next()
+	}
 }
 
+func RateLimitByIP(limiter *ratelimter.RateLimiter) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ip := c.IP()
+		key := fmt.Sprintf("rate_limit:ip:%s", ip)
 
-func RateLimitByIP(limiter *ratelimit.RateLimiter) fiber.Handler {
-    return func(c fiber.Ctx) error {
-        ip := c.IP()
-        key := fmt.Sprintf("rate_limit:ip:%s", ip)
+		allowed, err := limiter.Allow(context.Background(), key)
+		if err != nil {
+			fmt.Printf("Redis error in rate limit for IP %s: %v\n", ip, err)
+			return c.Next()
+		}
 
-        allowed, err := limiter.Allow(context.Background(),key)
-        if err != nil {
-            fmt.Printf("Redis error in rate limit for IP %s: %v\n", ip, err)
-            return c.Next()
-        }
+		if !allowed {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": fmt.Sprintf("Rate limit exceeded: %d requests per %s", limiter.Limit, limiter.Window),
+			})
+		}
 
-        if !allowed {
-            return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-                "error": fmt.Sprintf("Rate limit exceeded: %d requests per %s", limiter.Limit, limiter.Window),
-            })
-        }
-
-        return c.Next()
-    }
+		return c.Next()
+	}
 }
