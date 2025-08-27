@@ -6,8 +6,6 @@ COPY Backend/payment-service/go.mod ./Backend/Payment-service/go.mod
 
 COPY Backend/payment-service/go.sum ./Backend/Payment-service/go.sum
 
-COPY Backend/payment-service/.envrc ./Backend/Payment-service/.envrc
-
 COPY proto/auth ./Proto/auth
 
 COPY proto/escrow ./Proto/escrow
