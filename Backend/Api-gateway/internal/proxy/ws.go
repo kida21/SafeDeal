@@ -24,7 +24,7 @@ func WebSocketProxy(serviceName string) func(*websocket.Conn) {
 			log.Println("WebSocketProxy: missing user/session ID in locals")
 			return
 		}
-		log.Printf("WebSocketProxy: user_id=%s, session_id=%s\n", userID, sessionID)
+		
 
 		// Resolve backend service endpoint via Consul
 		addr, err := consul.GetServiceEndpoint(serviceName)

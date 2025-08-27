@@ -34,8 +34,8 @@ type Message struct {
 }
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	log.Printf("HandleWebSocket: incoming request for %s, X-User-ID=%s", r.URL.Path, r.Header.Get("X-User-ID"))
-	log.Printf("Headers received: %v", r.Header)
+	log.Printf("HandleWebSocket: incoming request reached")
+	
 	
 	// Check if this is a WebSocket upgrade request
 	if strings.ToLower(r.Header.Get("Upgrade")) != "websocket" {
