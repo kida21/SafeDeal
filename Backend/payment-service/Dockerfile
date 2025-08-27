@@ -2,10 +2,6 @@ FROM golang:latest AS builder
 
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y direnv && \
-    rm -rf /var/lib/apt/lists/*
-
 COPY Backend/payment-service/go.mod ./Backend/Payment-service/go.mod
 
 COPY Backend/payment-service/go.sum ./Backend/Payment-service/go.sum
@@ -27,8 +23,6 @@ COPY contracts contracts
 COPY Backend/payment-service ./Backend/Payment-service
 
 WORKDIR /app/Backend/Payment-service
-
-RUN direnv allow .
 
 RUN go mod tidy && go mod download
 

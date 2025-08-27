@@ -14,8 +14,6 @@ COPY Backend/User-service ./Backend/User-service
 
 WORKDIR /app/Backend/User-service
 
-
-
 RUN go mod tidy && go mod download
 
 RUN CGO_ENABLED=0 go build -v -o /user-service ./cmd/api
