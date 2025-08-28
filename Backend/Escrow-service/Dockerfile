@@ -2,15 +2,9 @@ FROM golang:latest AS builder
 
 WORKDIR /app
     
-RUN apt-get update && \
-        apt-get install --no-install-recommends -y direnv && \
-        rm -rf /var/lib/apt/lists/*
-        
 COPY Backend/Escrow-service/go.mod ./Backend/Escrow-service/go.mod
 
 COPY Backend/Escrow-service/go.sum ./Backend/Escrow-service/go.sum
-
-COPY Backend/Escrow-service/.envrc ./Backend/Escrow-service/.envrc
 
 COPY Backend/blockchain-adapter/go.mod Backend/blockchain-adapter/go.mod
 
@@ -34,7 +28,7 @@ COPY Backend/Escrow-service ./Backend/Escrow-service
 
 WORKDIR /app/Backend/Escrow-service
     
-RUN direnv allow .
+
     
 RUN go mod tidy && go mod download
     

@@ -32,4 +32,5 @@ message EscrowResponse {
   string status = 5;
   string conditions = 6;
   uint32 blockchain_escrow_id = 7;
+  bool   active =  8;
 }

@@ -5,12 +5,12 @@ import (
 	"api_gateway/internal/consul"
 	"api_gateway/internal/middleware"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
-
 func main() {
-    internal.InitRedis()
+	
+	internal.InitRedis()
     consul.InitConsul()
     app := fiber.New()
     app.Use(middleware.CORSMiddleware())

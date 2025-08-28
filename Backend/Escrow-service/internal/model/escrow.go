@@ -19,5 +19,6 @@ type Escrow struct {
     Status     EscrowStatus   `gorm:"column:status;not null" json:"status"`
     Conditions string         `gorm:"column:conditions" json:"conditions,omitempty"`
     BlockchainTxHash      *string   `gorm:"type:varchar(66);uniqueIndex" json:"blockchain_tx_hash"` 
-	BlockchainEscrowID    *uint64   `gorm:"uniqueIndex" json:"blockchain_escrow_id"`                
+	BlockchainEscrowID    *uint64   `gorm:"uniqueIndex" json:"blockchain_escrow_id"`
+    Active                bool     `gorm:"default:false"`               
 }

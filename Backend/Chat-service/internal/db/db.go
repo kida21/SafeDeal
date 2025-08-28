@@ -42,6 +42,6 @@ func ConnectDB() {
         panic("failed to connect database")
     }
 
-    fmt.Println("Connected to Escrow DB")
+    fmt.Println("Connected to Chat DB")
 }
 

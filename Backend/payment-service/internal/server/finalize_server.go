@@ -62,7 +62,7 @@ func (s *PaymentServer) FinalizeEscrow(ctx context.Context, req *v1.FinalizeEscr
 		}, nil
 	}
 
-	log.Printf("✅ Published transfer.success for escrow ID: %d", escrowID)
+	log.Print("✅ Published transfer.success")
 
 	return &v1.FinalizeEscrowResponse{
 		Success: true,

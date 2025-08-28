@@ -178,6 +178,7 @@ type EscrowResponse struct {
 	Status             string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	Conditions         string                 `protobuf:"bytes,6,opt,name=conditions,proto3" json:"conditions,omitempty"`
 	BlockchainEscrowId uint32                 `protobuf:"varint,7,opt,name=blockchain_escrow_id,json=blockchainEscrowId,proto3" json:"blockchain_escrow_id,omitempty"`
+	Active             bool                   `protobuf:"varint,8,opt,name=active,proto3" json:"active,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -261,6 +262,13 @@ func (x *EscrowResponse) GetBlockchainEscrowId() uint32 {
 	return 0
 }
 
+func (x *EscrowResponse) GetActive() bool {
+	if x != nil {
+		return x.Active
+	}
+	return false
+}
+
 var File_proto_escrow_v1_escrow_proto protoreflect.FileDescriptor
 
 const file_proto_escrow_v1_escrow_proto_rawDesc = "" +
@@ -274,7 +282,7 @@ const file_proto_escrow_v1_escrow_proto_rawDesc = "" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"/\n" +
 	"\x10GetEscrowRequest\x12\x1b\n" +
-	"\tescrow_id\x18\x01 \x01(\rR\bescrowId\"\xda\x01\n" +
+	"\tescrow_id\x18\x01 \x01(\rR\bescrowId\"\xf2\x01\n" +
 	"\x0eEscrowResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x19\n" +
 	"\bbuyer_id\x18\x02 \x01(\rR\abuyerId\x12\x1b\n" +
@@ -284,7 +292,8 @@ const file_proto_escrow_v1_escrow_proto_rawDesc = "" +
 	"\n" +
 	"conditions\x18\x06 \x01(\tR\n" +
 	"conditions\x120\n" +
-	"\x14blockchain_escrow_id\x18\a \x01(\rR\x12blockchainEscrowId2\xb1\x01\n" +
+	"\x14blockchain_escrow_id\x18\a \x01(\rR\x12blockchainEscrowId\x12\x16\n" +
+	"\x06active\x18\b \x01(\bR\x06active2\xb1\x01\n" +
 	"\rEscrowService\x12[\n" +
 	"\fUpdateStatus\x12$.escrow.v1.UpdateEscrowStatusRequest\x1a%.escrow.v1.UpdateEscrowStatusResponse\x12C\n" +
 	"\tGetEscrow\x12\x1b.escrow.v1.GetEscrowRequest\x1a\x19.escrow.v1.EscrowResponseB\x13Z\x11./proto/escrow/v1b\x06proto3"
