@@ -115,8 +115,8 @@ def serve():
     """
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     arbitrator_pb2_grpc.add_AIArbitratorServicer_to_server(AIArbitratorServicer(), server)
-    server.add_insecure_port('[::]:50051')
-    logging.info("Starting gRPC server on port 50051...")
+    server.add_insecure_port('[::]:50055')
+    logging.info("Starting gRPC server on port 50055...")
     server.start()
     server.wait_for_termination()
 
