@@ -8,8 +8,9 @@ import (
 	"log"
 	"math/big"
 	"message_broker/rabbitmq/events"
-     
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/streadway/amqp"
 	"gorm.io/gorm"
 )
@@ -79,7 +80,9 @@ func (c *Consumer) Listen() {
         false,
         nil,
     )
-
+    if err != nil {
+    log.Fatalf("Failed to consume: %v", err)
+    }
     go func() {
         for msg := range msgs {
             var baseEvent events.BaseEvent
@@ -138,7 +141,9 @@ func (c *Consumer) ListenForTransferEvents() {
 		false,
 		nil,
 	)
-
+    if err != nil {
+    log.Fatalf("Failed to consume: %v", err)
+    }
 	go func() {
 		for msg := range msgs {
 			var baseEvent events.BaseEvent
@@ -158,11 +163,11 @@ func (c *Consumer) ListenForTransferEvents() {
 				
 				escrow.Status = model.Released
 				c.DB.Save(&escrow)
-				log.Printf("✅ Escrow %d updated to Released in DB", escrow.ID)
+				log.Printf("Escrow updated to Released in DB")
 
 				
 				if c.blockchainClient == nil {
-					log.Println("❌ blockchainClient not initialized")
+					log.Println("blockchainClient not initialized")
 					continue
 				}
 
@@ -171,14 +176,14 @@ func (c *Consumer) ListenForTransferEvents() {
 					new(big.Int).SetUint64(event.BlockchainEscrowID),
 				)
 				if err != nil {
-					log.Printf("❌ Failed to finalize escrow on-chain for id :%d: %v",event.BlockchainEscrowID, err)
+					log.Printf("Failed to finalize escrow on-chain")
 					continue
 				}
 
 				
 				receipt, err := bind.WaitMined(context.Background(), c.blockchainClient.Client, tx)
 				if err != nil {
-					log.Printf("❌ Transaction mining failed: %v", err)
+					log.Printf("Transaction mining failed: %v", err)
 					continue
 				}
 
@@ -186,11 +191,117 @@ func (c *Consumer) ListenForTransferEvents() {
 				for _, vLog := range receipt.Logs {
 					e, err := c.blockchainClient.Contract.ParseEscrowFinalized(*vLog)
 					if err == nil && e != nil {
-						log.Printf("✅ On-chain status updated: Escrow ID %d → CLOSED", e.Id.Uint64())
+						log.Printf("On-chain status updated")
 						break
 					}
 				}
 			}
+		}
+	}()
+}
+
+func (c *Consumer) StartEscrowWorker() {
+	queue, err := c.Channel.QueueDeclare(
+		"escrow_worker_queue",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to declare escrow_worker_queue: %v", err)
+	}
+
+	err = c.Channel.QueueBind(
+		queue.Name,
+		"escrow.create",
+		"safe_deal_exchange",
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to bind escrow.create: %v", err)
+	}
+
+	msgs, err := c.Channel.Consume(
+		queue.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	) 
+	if err != nil {
+    log.Fatalf("Failed to consume: %v", err)
+    }
+
+	go func() {
+		for msg := range msgs {
+			var event events.CreateEscrowEvent
+			if err := json.Unmarshal(msg.Body, &event); err != nil {
+				log.Printf("Failed to unmarshal CreateEscrowEvent: %v", err)
+				continue
+			}
+
+			if c. blockchainClient == nil {
+				log.Println("Blockchain client not initialized")
+				continue
+			}
+
+			buyerAddr := common.HexToAddress(event.BuyerAddr)
+			sellerAddr := common.HexToAddress(event.SellerAddr)
+			amount := new(big.Int).SetUint64(uint64(event.Amount * 100))
+
+			
+			tx, err := c.blockchainClient.Contract.CreateEscrow(
+				c.blockchainClient.Auth,
+				buyerAddr,
+				sellerAddr,
+				amount,
+			)
+			if err != nil {
+				log.Printf("Failed to create on-chain escrow: %v", err)
+				continue
+			}
+
+			
+			receipt, err := bind.WaitMined(context.Background(), c.blockchainClient.Client, tx)
+			if err != nil {
+				log.Printf("Mining failed: %v", err)
+				continue
+			}
+
+			
+			var escrowID *big.Int
+			for _, vLog := range receipt.Logs {
+				e, err := c.blockchainClient.Contract.ParseEscrowCreated(*vLog)
+				if err == nil && e != nil {
+					escrowID = e.Id
+					break
+				}
+			}
+
+			if escrowID == nil {
+				log.Printf("Failed to get escrow ID from logs")
+				continue
+			}
+
+			
+			var escrow model.Escrow
+			if err := c.DB.First(&escrow, "id = ?", event.ID).Error; err != nil {
+				log.Printf("Escrow not found: %d", event.ID)
+				continue
+			}
+            txHash := tx.Hash().Hex()
+			id := escrowID.Uint64()
+			escrow.BlockchainEscrowID = &id
+			escrow.BlockchainTxHash = &txHash
+			escrow.Status = model.Pending
+			c.DB.Save(&escrow)
+
+			log.Printf("✅ Escrow created on-chain")
 		}
 	}()
 }
