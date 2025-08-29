@@ -54,7 +54,11 @@ func DisputeEscrow(c fiber.Ctx) error {
 		})
 	}
 
-	
+	if escrow.Status == model.Released{
+		return  c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":"Escrow is Released,Can't issue a dispute",
+		})
+	}
 	if escrow.Status == "Disputed" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Escrow is already resolved or disputed",
