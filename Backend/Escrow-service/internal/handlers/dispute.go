@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"escrow_service/internal/model"
+	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
@@ -64,7 +65,12 @@ func DisputeEscrow(c fiber.Ctx) error {
 			"error": "Escrow is already resolved or disputed",
 		})
 	}
-
+	var raisedBy string
+    if userID == uint64(escrow.BuyerID){
+		raisedBy = fmt.Sprintf("Buyer-Id:%d",userID)
+	}else{
+		raisedBy = fmt.Sprintf("Seller-Id:%d",userID)
+	}
 	
 	escrow.Status = model.Disputed
 	db.Save(&escrow)
@@ -73,6 +79,7 @@ func DisputeEscrow(c fiber.Ctx) error {
 		"message":     "Dispute raised successfully",
 		"status":      "Disputed",
 		"escrow_id":   escrow.ID,
+		"RaisedBy":    raisedBy,
 		
 	})
 }
