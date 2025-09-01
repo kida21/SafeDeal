@@ -37,6 +37,7 @@ require (
 )
 
 replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
+replace github.com/SafeDeal/proto/ai-arbitrator => ../../proto/ai-arbitrator
 
 require (
 	github.com/gorilla/websocket v1.5.3

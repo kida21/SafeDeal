@@ -2,7 +2,7 @@ package ai_mediator
 
 import (
     "context"
-    "github.com/SafeDeal/proto/escrow/v1"
+    "github.com/SafeDeal/proto/ai-arbitrator/v0"
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
     "time"
