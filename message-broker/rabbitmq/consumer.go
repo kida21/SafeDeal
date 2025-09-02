@@ -102,6 +102,17 @@ func (c *Consumer) Listen(queueName, routingKey string, handler func(events.Even
                 var e events.EscrowFundedEvent
                 json.Unmarshal(msg.Body, &e)
                 event = &e
+            case "escrow.accepted":
+	            var e events.EscrowAcceptedEvent
+	            json.Unmarshal(msg.Body, &e)
+	            event = &e
+            case "escrow.disputed":
+	            var e events.EscrowDisputedEvent
+	            json.Unmarshal(msg.Body, &e)
+	            event = &e
+            case "transfer.sucess":
+                var e events.TransferSuccessEvent
+                json.Unmarshal(msg.Body,&e)
             default:
                 log.Printf("Unknown event type: %s", baseEvent.Type)
                 continue
