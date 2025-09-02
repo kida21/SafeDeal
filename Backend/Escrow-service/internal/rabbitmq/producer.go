@@ -69,3 +69,41 @@ func (p *Producer) PublishCreateEscrow(id uint64, buyerID, sellerID uint32, amou
 		},
 	)
 }
+
+func (p *Producer) PublishEscrowAccepted(escrowID uint64, userID uint32) error {
+	event := events.NewEscrowAcceptedEvent(escrowID, userID)
+	body, err := event.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	return p.Channel.Publish(
+		"safe_deal_exchange",
+		"escrow.accepted",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+}
+
+func (p *Producer) PublishEscrowDisputed(escrowID uint64, userID uint32) error {
+	event := events.NewEscrowDisputedEvent(escrowID, userID)
+	body, err := event.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	return p.Channel.Publish(
+		"safe_deal_exchange",
+		"escrow.disputed",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+}
