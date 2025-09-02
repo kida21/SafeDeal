@@ -98,8 +98,8 @@ func (c *Consumer) Listen(queueName, routingKey string, handler func(events.Even
                 var e events.PaymentSuccessEvent
                 json.Unmarshal(msg.Body, &e)
                 event = &e
-            case "escrow.funded":
-                var e events.EscrowFundedEvent
+            case "escrow.create":
+                var e events.CreateEscrowEvent
                 json.Unmarshal(msg.Body, &e)
                 event = &e
             case "escrow.accepted":
