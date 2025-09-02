@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"escrow_service/internal/model"
+	"escrow_service/internal/rabbitmq"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
@@ -74,6 +76,12 @@ func DisputeEscrow(c fiber.Ctx) error {
 	
 	escrow.Status = model.Disputed
 	db.Save(&escrow)
+
+	producer := rabbitmq.NewProducer()
+	err = producer.PublishEscrowDisputed(escrowID, uint32(userID))
+	if err != nil {
+		log.Printf("Failed to publish escrow.disputed: %v", err)
+	}
 
     return c.JSON(fiber.Map{
 		"message":     "Dispute raised successfully",
