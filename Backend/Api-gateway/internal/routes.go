@@ -35,7 +35,14 @@ func SetupRoutes(app *fiber.App) {
            return websocket.New(proxy.WebSocketProxy("chat-service"))(c)
           })
 
+        // Notification WebSocket
+	    authenticated.Get("/notifications/ws", func(c *fiber.Ctx) error {
 
+		     c.Locals("user_id", c.Get("X-User-ID"))
+		     c.Locals("session_id", c.Get("X-Session-ID"))
+		     return websocket.New(proxy.NotificationProxy())(c)
+	     })
+		 
 		// User routes
 		authenticated.Use("/logout", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/profile", proxy.ProxyHandler("user-service"))
