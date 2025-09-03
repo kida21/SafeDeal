@@ -6,7 +6,7 @@ import (
 
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
-    v1 "github.com/SafeDeal/proto/ai-arbitrator/v1"
+    v1 "github.com/SafeDeal/proto/ai_arbitrator/v1"
 )
 
 // AiArbitratorClient represents the gRPC client for the AI Arbitrator service.

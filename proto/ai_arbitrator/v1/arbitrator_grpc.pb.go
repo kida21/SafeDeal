@@ -163,5 +163,5 @@ var AIArbitrator_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "ai-arbitrator/v1/arbitrator.proto",
+	Metadata: "ai_arbitrator/v1/arbitrator.proto",
 }

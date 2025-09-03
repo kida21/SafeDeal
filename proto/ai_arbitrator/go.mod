@@ -1,4 +1,4 @@
-module github.com/SafeDeal/proto/ai-arbitrator
+module github.com/SafeDeal/proto/ai_arbitrator
 
 go 1.24.5
 

@@ -15,7 +15,7 @@ import (
     "time"
 
     "github.com/gorilla/websocket"
-    v1_ai "github.com/SafeDeal/proto/ai-arbitrator/v1"
+    v1_ai "github.com/SafeDeal/proto/ai_arbitrator/v1"
     v1_escrow "github.com/SafeDeal/proto/escrow/v1"
 )
 

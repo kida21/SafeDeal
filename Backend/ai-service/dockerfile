@@ -12,7 +12,7 @@ WORKDIR /app
 # COPY . .
 COPY Backend/ai-service/main.py ./Backend/ai-service/main.py 
 COPY Backend/ai-service/requirements.txt ./Backend/ai-service/requirements.txt
-COPY Backend/ai-service/arbitrator.proto ./Backend/ai-service/arbitrator.proto
+COPY proto/ai_arbitrator/v1/arbitrator.proto ./Backend/ai-service/arbitrator.proto
 WORKDIR /app/Backend/ai-service
 RUN pip install --no-cache-dir -r requirements.txt
 # Generate Python code from the .proto file

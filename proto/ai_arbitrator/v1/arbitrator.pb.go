@@ -347,7 +347,7 @@ var File_ai_arbitrator_v1_arbitrator_proto protoreflect.FileDescriptor
 
 const file_ai_arbitrator_v1_arbitrator_proto_rawDesc = "" +
 	"\n" +
-	"!ai-arbitrator/v1/arbitrator.proto\x12\x10ai_arbitrator.v1\">\n" +
+	"!ai_arbitrator/v1/arbitrator.proto\x12\x10ai_arbitrator.v1\">\n" +
 	"\vChatMessage\x12\x1b\n" +
 	"\tsender_id\x18\x01 \x01(\tR\bsenderId\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\"\x9c\x01\n" +
@@ -372,7 +372,7 @@ const file_ai_arbitrator_v1_arbitrator_proto_rawDesc = "" +
 	"\rjustification\x18\x02 \x01(\tR\rjustification2\xc5\x01\n" +
 	"\fAIArbitrator\x12[\n" +
 	"\x10RequestMediation\x12\".ai_arbitrator.v1.MediationRequest\x1a#.ai_arbitrator.v1.MediationResponse\x12X\n" +
-	"\x0fRequestDecision\x12!.ai_arbitrator.v1.DecisionRequest\x1a\".ai_arbitrator.v1.DecisionResponseB,Z*github.com/SafeDeal/proto/ai-arbitrator/v1b\x06proto3"
+	"\x0fRequestDecision\x12!.ai_arbitrator.v1.DecisionRequest\x1a\".ai_arbitrator.v1.DecisionResponseB,Z*github.com/SafeDeal/proto/ai_arbitrator/v1b\x06proto3"
 
 var (
 	file_ai_arbitrator_v1_arbitrator_proto_rawDescOnce sync.Once
