@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package ai_arbitrator.v1;
+option go_package = "github.com/SafeDeal/proto/ai-arbitrator/v1";
+
+// Defines the data structure for a single chat message
+message ChatMessage {
+    string sender_id = 1;
+    string text = 2;
+}
+
+// Defines the data structure for the AI mediation request
+message MediationRequest {
+    string escrow_id = 1;
+    string description = 2;
+    string status = 3;
+    repeated ChatMessage chat = 4;
+}
+
+// Defines the data structure for the AI decision request
+message DecisionRequest {
+    string escrow_id = 1;
+    string description = 2;
+    string status = 3;
+    float amount = 4;
+    string buyer_id = 5;
+    string seller_id = 6;
+    repeated ChatMessage chat = 7;
+    // disputeConditions are complex and best handled as a JSON string for flexibility
+    string dispute_conditions_json = 8;
+}
+
+// Defines the data structure for the AI mediation response
+message MediationResponse {
+    string message = 1;
+}
+
+// Defines the data structure for the AI decision response
+message DecisionResponse {
+    string decision = 1;
+    string justification = 2;
+}
+
+// Defines the AI Arbitrator service with two methods
+service AIArbitrator {
+    // A method to request AI-powered chat mediation
+    rpc RequestMediation (MediationRequest) returns (MediationResponse);
+
+    // A method to request a final, binding AI decision
+    rpc RequestDecision (DecisionRequest) returns (DecisionResponse);
+}

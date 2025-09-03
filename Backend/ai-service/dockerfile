@@ -1,0 +1,31 @@
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install production dependencies
+# This is done separately to leverage Docker's layer caching
+# COPY requirements.txt ./
+
+# Copy the rest of the application source code and the .proto file
+# COPY . .
+COPY Backend/ai-service/main.py ./Backend/ai-service/main.py 
+COPY Backend/ai-service/requirements.txt ./Backend/ai-service/requirements.txt
+COPY Backend/ai-service/arbitrator.proto ./Backend/ai-service/arbitrator.proto
+WORKDIR /app/Backend/ai-service
+RUN pip install --no-cache-dir -r requirements.txt
+# Generate Python code from the .proto file
+# This command needs to be run before the application starts
+RUN python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. arbitrator.proto
+
+# Expose the gRPC port
+EXPOSE 50055
+
+# Run the gRPC server
+CMD ["python3", "main.py"]
+
+
+# to run the project build and run
+# docker build -t safedeal-ai-arbitrator .
+# docker run -p 50052:50052 --name ai-arbitrator-service -e GEMINI_API_KEY="YOUR_API_KEY" safedeal-ai-arbitrator

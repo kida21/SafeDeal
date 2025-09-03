@@ -28,7 +28,6 @@ COPY Backend/Escrow-service ./Backend/Escrow-service
 
 WORKDIR /app/Backend/Escrow-service
     
-
     
 RUN go mod tidy && go mod download
     

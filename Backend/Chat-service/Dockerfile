@@ -6,7 +6,9 @@ COPY Backend/Chat-service/go.mod ./Backend/Chat-service/go.mod
 
 COPY Backend/Chat-service/go.sum ./Backend/Chat-service/go.sum
 
+
 COPY proto/escrow ./Proto/escrow
+COPY proto/ai-arbitrator ./Proto/ai-arbitrator
 
 COPY Backend/Chat-service ./Backend/Chat-service
 
