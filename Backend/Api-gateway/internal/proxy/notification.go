@@ -11,9 +11,9 @@ import (
 )
 
 
-func NotificationProxy() func(*websocket.Conn) {
+func NotificationProxy(serviceName string) func(*websocket.Conn) {
 	return func(c *websocket.Conn) {
-		defer c.Close()
+		
 		log.Println("NotificationProxy: handler started")
 
 		// Get user_id from Locals (set by route)
@@ -24,7 +24,7 @@ func NotificationProxy() func(*websocket.Conn) {
 		}
 
 		// Resolve backend via Consul
-		addr, err := consul.GetServiceEndpoint("notification-service")
+		addr, err := consul.GetServiceEndpoint(serviceName)
 		if err != nil {
 			log.Printf("NotificationProxy: service unreachable: %v", err)
 			return

@@ -13,6 +13,7 @@ import (
 func main() {
 	db.ConnectDB()
 	db.DB.AutoMigrate(&model.Notification{})
+	websockets.SetDB(db.DB)
     consul.RegisterService("notification-service", "notification-service", 8086)
     go websockets.HubInstance.Run()
     cons := consumer.NewConsumer(db.DB)
@@ -20,6 +21,7 @@ func main() {
 
 	
 	http.HandleFunc("/ws/notifications", websockets.HandleWebSocket)
+	
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})

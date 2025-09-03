@@ -45,7 +45,7 @@ func AcceptEscrow(c fiber.Ctx) error {
 	db.Save(&escrow)
 
 	producer := rabbitmq.NewProducer()
-	err = producer.PublishEscrowAccepted(uint64(*escrow.BlockchainEscrowID), uint32(userID))
+	err = producer.PublishEscrowAccepted(uint64(escrow.ID), uint32(userID))
 	if err != nil {
 		log.Printf("Failed to publish escrow.accepted: %v", err)
 	}

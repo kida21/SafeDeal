@@ -9,6 +9,14 @@ import (
 	"notification_service/internal/escrow"
 	"message_broker/rabbitmq/events"
 )
+var escrowClient *escrow.EscrowServiceClient
+func init() {
+    var err error
+    escrowClient, err = escrow.NewEscrowServiceClient("escrow-service:50052")
+    if err != nil {
+        panic("failed to initialize escrow gRPC client: " + err.Error())
+    }
+}
 
 func (c *Consumer) createNotification(userID uint, title, message, notifType string, metadata []byte) {
 	notif := model.Notification{
@@ -73,10 +81,23 @@ func (c *Consumer) handleEscrowFunded(body []byte) {
 		log.Printf("Failed to unmarshal EscrowFundedEvent: %v", err)
 		return
 	}
+     
+	escrow, err := escrowClient.GetEscrow(uint32(event.EscrowID))
+	if err != nil {
+		log.Printf("Failed to get escrow from escrow-service: %v", err)
+		return
+	 }
 
+	 c.createNotification(
+		uint(escrow.BuyerId),
+		"Escrow Funded",
+		fmt.Sprintf("You have funded an Escrow #%d with ETB %.2f", event.EscrowID, event.Amount),
+		"escrow.funded",
+		body,
+	)
 	// Notify seller
 	c.createNotification(
-		uint(event.UserID),
+		uint(escrow.SellerId),
 		"Escrow Funded",
 		fmt.Sprintf("Escrow #%d has been funded with ETB %.2f", event.EscrowID, event.Amount),
 		"escrow.funded",
@@ -90,13 +111,12 @@ func (c *Consumer) handleEscrowAccepted(body []byte) {
 		log.Printf("Failed to unmarshal EscrowAcceptedEvent: %v", err)
 		return
 	}
-     escrowClient, err := escrow.NewEscrowServiceClient("escrow-service:50052")
-	if err != nil {
-		log.Printf("Failed to connect to escrow-service: %v", err)
-	} 
+    
+	
 	escrow, err := escrowClient.GetEscrow(uint32(event.EscrowID))
 	if err != nil {
 		log.Printf("Failed to get escrow from escrow-service: %v", err)
+		return
 	 }
 	
        //notify buyer
@@ -116,30 +136,49 @@ func (c *Consumer) handleEscrowDisputed(body []byte) {
 		return
 	}
 
-	// Load escrow to get buyer/seller
-	escrowClient, err := escrow.NewEscrowServiceClient("escrow-service:50052")
-	if err != nil {
-		log.Printf("Failed to connect to escrow-service: %v", err)
-	} 
-	escrow, err := escrowClient.GetEscrow(uint32(event.EscrowID))
+	resp, err := escrowClient.GetEscrow(uint32(event.EscrowID))
 	if err != nil {
 		log.Printf("Failed to get escrow from escrow-service: %v", err)
-	 }
-	
-
-	// Notify the other party
-	otherID := escrow.BuyerId
-	if uint(event.UserID) == uint(escrow.BuyerId) {
-		otherID = escrow.SellerId
+		return
 	}
 
+	// Extract user IDs
+	buyerID := uint(resp.BuyerId)
+	sellerID := uint(resp.SellerId)
+	disputerID := uint(event.UserID)
+
+	// Message for the disputer
 	c.createNotification(
-		uint(otherID),
+		disputerID,
 		"Dispute Raised",
-		fmt.Sprintf("A dispute has been raised on escrow #%d", event.EscrowID),
+		fmt.Sprintf("You raised a dispute for escrow #%d", event.EscrowID),
 		"escrow.disputed",
 		body,
 	)
+
+	// Message for the other party
+	var recipientID uint
+	var disputerRole, recipientRole string
+
+	if disputerID == buyerID {
+		recipientID = sellerID
+		disputerRole = "Buyer"
+		recipientRole = "Seller"
+	} else {
+		recipientID = buyerID
+		disputerRole = "Seller"
+		recipientRole = "Buyer"
+	}
+
+	c.createNotification(
+		recipientID,
+		"Dispute Received",
+		fmt.Sprintf("A dispute has been raised by %s on escrow #%d", disputerRole, event.EscrowID),
+		"escrow.disputed",
+		body,
+	)
+
+	log.Printf("Dispute notifications sent: %d raised with role:%s, %d received with role:%s", disputerID, disputerRole,recipientID,recipientRole)
 }
 
 func (c *Consumer) handleTransferSuccess(body []byte) {
@@ -148,11 +187,7 @@ func (c *Consumer) handleTransferSuccess(body []byte) {
 		log.Printf("Failed to unmarshal TransferSuccessEvent: %v", err)
 		return
 	}
-    escrowClient, err := escrow.NewEscrowServiceClient("escrow-service:50052")
-	if err != nil {
-		log.Printf("Failed to connect to escrow-service: %v", err)
-	} 
-	escrow, err := escrowClient.GetEscrow(uint32(event.EscrowID))
+     escrow, err := escrowClient.GetEscrow(uint32(event.EscrowID))
 	if err != nil {
 		log.Printf("Failed to get escrow from escrow-service: %v", err)
 	 }

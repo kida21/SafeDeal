@@ -1,17 +1,15 @@
 package websockets
 
 import (
+	"log"
 	"sync"
-
-	"github.com/gorilla/websocket"
+    "github.com/gorilla/websocket"
 )
 
 type Hub struct {
-	clients    map[*websocket.Conn]uint
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
-	broadcast  chan Message
-	mu         sync.RWMutex
+	clients   map[*websocket.Conn]uint
+	broadcast chan Message
+	mu        sync.RWMutex
 }
 
 type Message struct {
@@ -20,36 +18,41 @@ type Message struct {
 }
 
 var HubInstance = &Hub{
-	clients:    make(map[*websocket.Conn]uint),
-	register:   make(chan *websocket.Conn),
-	unregister: make(chan *websocket.Conn),
-	broadcast:  make(chan Message),
+	clients:   make(map[*websocket.Conn]uint),
+	broadcast: make(chan Message),
 }
+
 func (h *Hub) Broadcast(message Message) {
 	h.broadcast <- message
 }
 
+func (h *Hub) AddClient(conn *websocket.Conn, userID uint) {
+	h.mu.Lock()
+	h.clients[conn] = userID
+	h.mu.Unlock()
+	log.Printf("Client added: %p for user %d", conn, userID)
+}
+
+func (h *Hub) RemoveClient(conn *websocket.Conn) {
+	h.mu.Lock()
+	delete(h.clients, conn)
+	h.mu.Unlock()
+	log.Printf("Client removed: %p", conn)
+}
+
 func (h *Hub) Run() {
-	for {
-		select {
-		case conn := <-h.register:
-			h.mu.Lock()
-			h.clients[conn] = 0
-			h.mu.Unlock()
-
-		case conn := <-h.unregister:
-			h.mu.Lock()
-			delete(h.clients, conn)
-			h.mu.Unlock()
-
-		case message := <-h.broadcast:
-			h.mu.RLock()
-			for conn, uid := range h.clients {
-				if uid == message.UserID {
-					conn.WriteMessage(websocket.TextMessage, message.Content)
+	// Use for range on broadcast channel
+	for message := range h.broadcast {
+		h.mu.RLock()
+		for conn, uid := range h.clients {
+			if uid == message.UserID {
+				if err := conn.WriteMessage(websocket.TextMessage, message.Content); err != nil {
+					log.Printf("Error sending to client: %v", err)
+					conn.Close()
+					h.RemoveClient(conn)
 				}
 			}
-			h.mu.RUnlock()
 		}
+		h.mu.RUnlock()
 	}
 }

@@ -40,9 +40,9 @@ func SetupRoutes(app *fiber.App) {
 
 		     c.Locals("user_id", c.Get("X-User-ID"))
 		     c.Locals("session_id", c.Get("X-Session-ID"))
-		     return websocket.New(proxy.NotificationProxy())(c)
+		     return websocket.New(proxy.NotificationProxy("notification-service"))(c)
 	     })
-		 
+
 		// User routes
 		authenticated.Use("/logout", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/profile", proxy.ProxyHandler("user-service"))

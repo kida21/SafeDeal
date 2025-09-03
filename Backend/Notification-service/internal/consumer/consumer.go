@@ -62,7 +62,7 @@ func (c *Consumer) Listen() {
 
 	routingKeys := []string{
 		"escrow.create",
-		"escrow.funded",
+		"payment.success",
 		"escrow.accepted",
 		"escrow.disputed",
 		"transfer.success",
