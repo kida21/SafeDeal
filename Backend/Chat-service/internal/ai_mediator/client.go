@@ -2,10 +2,11 @@ package ai_mediator
 
 import (
     "context"
-    "github.com/SafeDeal/proto/ai-arbitrator/v0"
+    "time"
+
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
-    "time"
+    v1 "github.com/SafeDeal/proto/ai-arbitrator/v1"
 )
 
 // AiArbitratorClient represents the gRPC client for the AI Arbitrator service.
