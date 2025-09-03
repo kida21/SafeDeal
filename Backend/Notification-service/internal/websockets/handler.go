@@ -22,7 +22,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// notification-service/internal/websockets/handler.go
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.Header.Get("X-User-ID")
 	if userIDStr == "" {
@@ -43,46 +42,55 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// ✅ Register connection
+	// Register connection
 	HubInstance.AddClient(conn, uint(userID))
 
-	// ✅ Send history on request
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
+	// Channel to signal closure
+	done := make(chan struct{})
 
-		var req map[string]string
-		if err := json.Unmarshal(msg, &req); err != nil {
-			continue
-		}
+	// Goroutine to read incoming messages (e.g., get_history)
+	go func() {
+		defer close(done)
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
 
-		if req["type"] == "get_history" {
-			var notifications []model.Notification
-			DB.Where("user_id = ?", uint(userID)).Order("created_at DESC").Limit(50).Find(&notifications)
+			var req map[string]string
+			if err := json.Unmarshal(msg, &req); err != nil {
+				continue
+			}
 
-			var res []map[string]interface{}
-			for _, n := range notifications {
-				res = append(res, map[string]interface{}{
-					"id":         n.ID,
-					"type":       n.Type,
-					"title":      n.Title,
-					"message":    n.Message,
-					"read":       n.Read,
-					"created_at": n.CreatedAt.Unix(),
-					"metadata":   n.Metadata,
+			if req["type"] == "get_history" {
+				var notifications []model.Notification
+				DB.Where("user_id = ?", uint(userID)).
+					Order("created_at DESC").
+					Limit(50).
+					Find(&notifications)
+
+				var res []map[string]interface{}
+				for _, n := range notifications {
+					res = append(res, map[string]interface{}{
+						"id":         n.ID,
+						"type":       n.Type,
+						"title":      n.Title,
+						"message":    n.Message,
+						"read":       n.Read,
+						"created_at": n.CreatedAt.Unix(),
+						"metadata":   n.Metadata,
+					})
+				}
+
+				conn.WriteJSON(map[string]interface{}{
+					"type": "history",
+					"data": res,
 				})
 			}
-
-			response := map[string]interface{}{
-				"type": "history",
-				"data": res,
-			}
-
-			conn.WriteJSON(response)
 		}
-	}
+	}()
 
+	// Keep connection open for real-time
+	<-done
 	HubInstance.RemoveClient(conn)
 }
