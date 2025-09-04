@@ -94,6 +94,7 @@ func (c *Consumer) Listen() {
 
                 
                 var escrow model.Escrow
+				//log.Printf("event escrowId:%d",event.EscrowID) //will be commented out
                 if err := c.DB.First(&escrow, event.EscrowID).Error; err != nil {
                     log.Printf("Escrow not found: %d", event.EscrowID)
                     continue
