@@ -1,9 +1,11 @@
 package websockets
 
 import (
+	"encoding/json"
 	"log"
 	"sync"
-    "github.com/gorilla/websocket"
+
+	"github.com/gorilla/websocket"
 )
 
 type Hub struct {
@@ -41,12 +43,22 @@ func (h *Hub) RemoveClient(conn *websocket.Conn) {
 }
 
 func (h *Hub) Run() {
-	// Use for range on broadcast channel
 	for message := range h.broadcast {
 		h.mu.RLock()
 		for conn, uid := range h.clients {
 			if uid == message.UserID {
-				if err := conn.WriteMessage(websocket.TextMessage, message.Content); err != nil {
+				// Wrap message inside a JSON envelope
+				payload := map[string]interface{}{
+					"type": "notification",
+					"data": json.RawMessage(message.Content),
+				}
+				encoded, err := json.Marshal(payload)
+				if err != nil {
+					log.Printf("Error marshalling payload: %v", err)
+					continue
+				}
+
+				if err := conn.WriteMessage(websocket.TextMessage, encoded); err != nil {
 					log.Printf("Error sending to client: %v", err)
 					conn.Close()
 					h.RemoveClient(conn)

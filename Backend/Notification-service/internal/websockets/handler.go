@@ -10,18 +10,20 @@ import (
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )
-var DB *gorm.DB 
 
+var DB *gorm.DB
 
 func SetDB(db *gorm.DB) {
 	DB = db
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins (restrict in production)
+		return true // Allow all origins (use stricter in production)
 	},
 }
 
+// notification-service/internal/websockets/handler.go
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.Header.Get("X-User-ID")
 	if userIDStr == "" {
@@ -42,13 +44,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// Register connection
 	HubInstance.AddClient(conn, uint(userID))
 
-	// Channel to signal closure
 	done := make(chan struct{})
-
-	// Goroutine to read incoming messages (e.g., get_history)
 	go func() {
 		defer close(done)
 		for {
@@ -56,12 +54,10 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-
 			var req map[string]string
 			if err := json.Unmarshal(msg, &req); err != nil {
 				continue
 			}
-
 			if req["type"] == "get_history" {
 				var notifications []model.Notification
 				DB.Where("user_id = ?", uint(userID)).
@@ -90,7 +86,6 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Keep connection open for real-time
 	<-done
 	HubInstance.RemoveClient(conn)
 }
