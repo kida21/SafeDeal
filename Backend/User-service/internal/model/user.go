@@ -15,7 +15,7 @@ type User struct {
     WalletAddress  *string `gorm:"unique;type:varchar(42)"` 
     EncryptedPrivateKey *string `gorm:"type:text"`  
 	AccountName     *string `gorm:"type:varchar(100)"`
-	AccountNumber   *string `gorm:"type:varchar(50)"`
+	AccountNumber   *string `gorm:"unique;type:varchar(50)"`
 	BankCode        *int    `gorm:"type:int"`
     
 }
