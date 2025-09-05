@@ -62,6 +62,8 @@ SafeDeal implements a **hybrid escrow architecture** that strategically separate
 - **User Service**: Manages user accounts, authentication, and wallet generation
 - **Escrow Service**: Handles escrow lifecycle and business logic
 - **Payment Service**: Integrates with Chapa and processes webhooks
+- **Chat Service**: Allow users to Chat once it is accepted by seller(service provider) of the escrow
+- **Notification Service**: Handle notification for both parties related to the escrow they are involved
 - **Blockchain Adapter**: Bridges between backend services and Ethereum smart contract
 - **RabbitMQ**: Event bus for asynchronous communication
 - **PostgreSQL**: Persistent storage for off-chain data
