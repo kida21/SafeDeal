@@ -34,6 +34,7 @@ message User {
  google.protobuf.StringValue account_name = 8;
   google.protobuf.StringValue account_number = 9;
   google.protobuf.Int32Value bank_code = 10;
+  string profession = 11;
 }
 
 message GetUserRequest {

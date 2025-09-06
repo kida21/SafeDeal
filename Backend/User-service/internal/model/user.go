@@ -17,5 +17,6 @@ type User struct {
 	AccountName     *string `gorm:"type:varchar(100)"`
 	AccountNumber   *string `gorm:"unique;type:varchar(50)"`
 	BankCode        *int    `gorm:"type:int"`
+    Profession         string `json:"profession" gorm:"type:varchar(100);not null"`
     
 }

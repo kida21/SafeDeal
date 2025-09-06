@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"os"
+	"user_service/internal/model"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -46,3 +47,27 @@ func ConnectDB() {
     fmt.Println("Connected to Database")
 }
 
+func RunMigration(db *gorm.DB) error {
+	// Auto migrate schema
+	if err := db.AutoMigrate(&model.User{}); err != nil {
+		return fmt.Errorf("failed to migrate: %v", err)
+	}
+
+	
+	query := `
+	CREATE INDEX IF NOT EXISTS idx_user_search 
+	ON users USING GIN (
+		to_tsvector('english', 
+			coalesce(first_name, '') || ' ' || 
+			coalesce(last_name, '') || ' ' || 
+			coalesce(profession, '')
+		)
+	);
+	`
+  if err := db.Exec(query).Error; err != nil {
+		return fmt.Errorf("failed to create full-text index: %v", err)
+	}
+
+	fmt.Println("✅ Full-text search index created or already exists")
+	return nil
+}

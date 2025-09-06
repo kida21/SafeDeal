@@ -8,7 +8,6 @@ import (
 	"user_service/internal/consul"
 	"user_service/internal/db"
 	"user_service/internal/handlers"
-	"user_service/internal/model"
 	"user_service/pkg/redis"
 	"user_service/pkg/refresh"
 	"user_service/pkg/session"
@@ -38,7 +37,9 @@ func main() {
     redisclient.InitRedis()
     db.ConnectDB()
     // db.DB.Exec("DROP TABLE IF EXISTS users")(for development purpose)
-    db.DB.AutoMigrate(&model.User{})
+    if err := db.RunMigration(db.DB); err != nil {
+		log.Fatalf("Migration failed: %v", err)
+	}
     go startGRPCServer(db.DB)
 
     consul.RegisterService("user-service", "user-service", 8081)
