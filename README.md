@@ -1,6 +1,7 @@
 # SafeDeal - Blockchain-Powered Escrow System
 
 ![Golang](https://img.shields.io/badge/Golang-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white)
 ![Chapa](https://img.shields.io/badge/Chapa-4CAF50?style=for-the-badge&logo=stripe&logoColor=white)
 ![Fiber](https://img.shields.io/badge/Fiber-007ACC?style=for-the-badge&logo=fastify&logoColor=white)
@@ -8,6 +9,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Gorilla WebSocket](https://img.shields.io/badge/Gorilla%20WebSocket-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Consul](https://img.shields.io/badge/Consul-00A9E0?style=for-the-badge&logo=consul&logoColor=white)
 ![Ngrok](https://img.shields.io/badge/Ngrok-8A4FFF?style=for-the-badge&logo=ngrok&logoColor=white)
 
