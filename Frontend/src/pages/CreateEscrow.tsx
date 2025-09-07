@@ -1,0 +1,340 @@
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { motion } from 'framer-motion';
+import { ArrowLeft, User, DollarSign, FileText, Shield } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import Layout from '../components/Layout';
+import { escrowApi } from '../lib/api';
+import { toast } from 'react-hot-toast';
+import { CreateEscrowRequest } from '../types';
+import { formatCurrency } from '../lib/utils';
+
+const CreateEscrow = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+  } = useForm<CreateEscrowRequest & { seller_email: string }>();
+
+  const watchedAmount = watch('amount');
+
+  const onSubmit = async (data: CreateEscrowRequest & { seller_email: string }) => {
+    setIsLoading(true);
+    try {
+      // In a real app, you would first look up the seller by email
+      // For now, we'll use a mock seller ID
+      const escrowData: CreateEscrowRequest = {
+        seller_id: 2, // This would be fetched from the email
+        amount: data.amount,
+        conditions: data.conditions,
+      };
+
+      const response = await escrowApi.create(escrowData);
+      toast.success('Escrow created successfully!');
+      navigate(`/escrow/${response.data.id}`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to create escrow');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const steps = [
+    { number: 1, title: 'Seller Details', icon: User },
+    { number: 2, title: 'Amount & Conditions', icon: DollarSign },
+    { number: 3, title: 'Review & Create', icon: Shield },
+  ];
+
+  return (
+    <Layout>
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Dashboard</span>
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Create New Escrow</h1>
+          <p className="text-gray-600 mt-2">
+            Set up a secure escrow transaction to protect your deal
+          </p>
+        </div>
+
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {steps.map((stepItem, index) => {
+              const Icon = stepItem.icon;
+              const isActive = step >= stepItem.number;
+              const isCompleted = step > stepItem.number;
+              
+              return (
+                <div key={stepItem.number} className="flex items-center">
+                  <div className="flex items-center">
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                        isCompleted
+                          ? 'bg-primary-600 border-primary-600 text-white'
+                          : isActive
+                          ? 'border-primary-600 text-primary-600'
+                          : 'border-gray-300 text-gray-400'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Shield className="h-5 w-5" />
+                      ) : (
+                        <Icon className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div className="ml-3">
+                      <p className={`text-sm font-medium ${
+                        isActive ? 'text-primary-600' : 'text-gray-500'
+                      }`}>
+                        {stepItem.title}
+                      </p>
+                    </div>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-4 ${
+                      step > stepItem.number ? 'bg-primary-600' : 'bg-gray-300'
+                    }`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-8"
+        >
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {/* Step 1: Seller Details */}
+            {step === 1 && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Seller Information
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Enter the email address of the person you're buying from
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seller Email Address
+                  </label>
+                  <input
+                    {...register('seller_email', {
+                      required: 'Seller email is required',
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: 'Invalid email address'
+                      }
+                    })}
+                    type="email"
+                    className="input w-full"
+                    placeholder="seller@example.com"
+                  />
+                  {errors.seller_email && (
+                    <p className="text-red-500 text-sm mt-1">{errors.seller_email.message}</p>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex">
+                    <Shield className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-900">
+                        Secure Transaction
+                      </h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        The seller will receive an email notification to accept the escrow. 
+                        Once accepted, you can proceed with payment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 2: Amount & Conditions */}
+            {step === 2 && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Transaction Details
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Specify the amount and conditions for your escrow
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Amount (ETB)
+                  </label>
+                  <div className="relative">
+                    <input
+                      {...register('amount', {
+                        required: 'Amount is required',
+                        min: { value: 100, message: 'Minimum amount is 100 ETB' },
+                        max: { value: 1000000, message: 'Maximum amount is 1,000,000 ETB' }
+                      })}
+                      type="number"
+                      className="input w-full pl-8"
+                      placeholder="0.00"
+                      min="100"
+                      max="1000000"
+                    />
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  </div>
+                  {errors.amount && (
+                    <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
+                  )}
+                  {watchedAmount && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      SafeDeal fee: {formatCurrency(watchedAmount * 0.025)} (2.5%)
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Conditions (Optional)
+                  </label>
+                  <textarea
+                    {...register('conditions')}
+                    rows={4}
+                    className="input w-full"
+                    placeholder="Describe the conditions for releasing the funds (e.g., delivery confirmation, quality check, etc.)"
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Be specific about what needs to happen for the funds to be released
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 3: Review & Create */}
+            {step === 3 && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Review Your Escrow
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Please review all details before creating the escrow
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Seller Email:</span>
+                    <span className="font-medium">{watch('seller_email')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className="font-medium">{formatCurrency(watch('amount') || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SafeDeal Fee (2.5%):</span>
+                    <span className="font-medium">
+                      {formatCurrency((watch('amount') || 0) * 0.025)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-4">
+                    <span className="text-gray-600">Total to Pay:</span>
+                    <span className="font-bold text-lg">
+                      {formatCurrency((watch('amount') || 0) * 1.025)}
+                    </span>
+                  </div>
+                  {watch('conditions') && (
+                    <div>
+                      <span className="text-gray-600 block mb-2">Conditions:</span>
+                      <p className="text-sm bg-white p-3 rounded border">
+                        {watch('conditions')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex">
+                    <Shield className="h-5 w-5 text-yellow-600 mt-0.5 mr-3" />
+                    <div>
+                      <h4 className="text-sm font-medium text-yellow-900">
+                        Important Notice
+                      </h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Once created, the escrow will be sent to the seller for acceptance. 
+                        You will be able to make payment only after the seller accepts the escrow.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between pt-6 border-t">
+              <button
+                type="button"
+                onClick={() => setStep(Math.max(1, step - 1))}
+                disabled={step === 1}
+                className="btn btn-outline btn-md"
+              >
+                Previous
+              </button>
+
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setStep(step + 1)}
+                  className="btn btn-primary btn-md"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="btn btn-primary btn-md"
+                >
+                  {isLoading ? 'Creating...' : 'Create Escrow'}
+                </button>
+              )}
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    </Layout>
+  );
+};
+
+export default CreateEscrow;
