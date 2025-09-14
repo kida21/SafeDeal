@@ -4,13 +4,15 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, User, DollarSign, FileText, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { escrowApi } from '../lib/api';
+import { escrowApi, userApi } from '../lib/api';
 import { toast } from 'react-hot-toast';
 import { CreateEscrowRequest } from '../types';
 import { formatCurrency } from '../lib/utils';
+import { useAuthStore } from '../store/authStore';
 
 const CreateEscrow = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -27,19 +29,65 @@ const CreateEscrow = () => {
   const onSubmit = async (data: CreateEscrowRequest & { seller_email: string }) => {
     setIsLoading(true);
     try {
+      // Check authentication status
+      console.log('User authenticated:', isAuthenticated);
+      console.log('User:', user);
+      
+      // Debug: Check if token exists
+      const token = localStorage.getItem('access_token');
+      console.log('Token exists:', !!token);
+      console.log('Token value:', token ? token.substring(0, 20) + '...' : 'No token');
+      
+      if (!isAuthenticated || !user) {
+        toast.error('You must be logged in to create an escrow');
+        navigate('/login');
+        return;
+      }
+      
+      // Test API call to verify token is working
+      try {
+        console.log('Testing API call with profile endpoint...');
+        const profileResponse = await userApi.getProfile();
+        console.log('Profile API call successful:', profileResponse.data);
+      } catch (profileError) {
+        console.error('Profile API call failed:', profileError);
+        toast.error('Authentication failed. Please log in again.');
+        navigate('/login');
+        return;
+      }
+      
       // In a real app, you would first look up the seller by email
       // For now, we'll use a mock seller ID
-      const escrowData: CreateEscrowRequest = {
+      // Validate amount
+      if (!data.amount || data.amount <= 0) {
+        toast.error('Please enter a valid amount');
+        return;
+      }
+
+      // The backend expects the full Escrow model structure
+      // Note: buyer_id is set by the backend from the authenticated user
+      const escrowData = {
         seller_id: 2, // This would be fetched from the email
-        amount: data.amount,
-        conditions: data.conditions,
+        amount: parseFloat(data.amount.toString()), // Ensure it's a number
+        conditions: data.conditions || "",
+        status: "Pending", // Required by backend - must be one of the EscrowStatus values
+        // Don't include active - it has a default value
+        // Don't include buyer_id - it's set by the backend
+        // Don't include blockchain fields - they're set later
       };
 
+      console.log('Creating escrow with data:', escrowData);
+      console.log('Data type:', typeof escrowData);
+      console.log('Data stringified:', JSON.stringify(escrowData));
+      
       const response = await escrowApi.create(escrowData);
+      console.log('Escrow created successfully:', response.data);
       toast.success('Escrow created successfully!');
       navigate(`/escrow/${response.data.id}`);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create escrow');
+      console.error('Error creating escrow:', error);
+      console.error('Error response:', error.response?.data);
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to create escrow');
     } finally {
       setIsLoading(false);
     }

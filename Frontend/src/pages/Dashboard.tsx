@@ -1,50 +1,80 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  TrendingUp, 
-  Shield, 
-  Clock, 
-  CheckCircle, 
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  Plus,
+  TrendingUp,
+  Shield,
+  Clock,
+  CheckCircle,
   AlertCircle,
   ArrowRight,
   Wallet,
-  CreditCard
-} from 'lucide-react';
-import Layout from '../components/Layout';
-import { useAuthStore } from '../store/authStore';
-import { useEscrowStore } from '../store/escrowStore';
-import { formatCurrency, formatRelativeTime, getStatusColor } from '../lib/utils';
-import { Escrow } from '../types';
-import { toast } from 'react-hot-toast';
+  CreditCard,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+import Layout from "../components/Layout";
+import { useAuthStore } from "../store/authStore";
+import { useEscrowStore } from "../store/escrowStore";
+import {
+  formatCurrency,
+  formatRelativeTime,
+  getStatusColor,
+} from "../lib/utils";
+import { Escrow } from "../types";
+import { toast } from "react-hot-toast";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const Dashboard = () => {
   const { user } = useAuthStore();
-  const { escrows } = useEscrowStore();
-  const [stats, setStats] = useState({
-    totalEscrows: 0,
-    activeEscrows: 0,
-    completedEscrows: 0,
-    totalAmount: 0,
-  });
+  const {
+    escrows,
+    stats,
+    isLoading,
+    statsLoading,
+    error,
+    fetchEscrows,
+    fetchStats,
+    refreshAll,
+  } = useEscrowStore();
 
   useEffect(() => {
-    // Escrow list endpoint is not available in the backend yet.
-    // We'll show the dashboard with available info only.
-  }, []);
+    // Fetch escrows and stats when component mounts
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchEscrows(5), // Get recent 5 escrows
+          fetchStats(),
+        ]);
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+        toast.error("Failed to load dashboard data");
+      }
+    };
 
-  // Note: When the backend exposes a list endpoint, we can fetch and compute stats here.
+    loadData();
+  }, [fetchEscrows, fetchStats]);
+
+  const handleRefresh = async () => {
+    try {
+      await refreshAll();
+      toast.success("Dashboard refreshed");
+    } catch (error) {
+      console.error("Failed to refresh dashboard data:", error);
+      toast.error("Failed to refresh dashboard data");
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Pending':
+      case "Pending":
         return <Clock className="h-4 w-4" />;
-      case 'Funded':
+      case "Funded":
         return <Shield className="h-4 w-4" />;
-      case 'Released':
+      case "Released":
         return <CheckCircle className="h-4 w-4" />;
-      case 'Disputed':
+      case "Disputed":
         return <AlertCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -69,18 +99,32 @@ const Dashboard = () => {
                 Manage your secure transactions and escrow deals
               </p>
             </div>
-            <Link
-              to="/create-escrow"
-              className="btn bg-white text-[#014d46] hover:bg-gray-100 btn-lg"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create Escrow
-            </Link>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading || statsLoading}
+                className="btn bg-white/20 text-white hover:bg-white/30 btn-md"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${
+                    isLoading || statsLoading ? "animate-spin" : ""
+                  }`}
+                />
+                Refresh
+              </button>
+              <Link
+                to="/create-escrow"
+                className="btn bg-white text-[#014d46] hover:bg-gray-100 btn-lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Create Escrow
+              </Link>
+            </div>
           </div>
         </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -89,8 +133,16 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Escrows</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalEscrows}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Escrows
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {statsLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats?.total_escrows || 0
+                  )}
+                </p>
               </div>
               <div className="p-3 bg-[#e6f7f4] rounded-full">
                 <TrendingUp className="h-6 w-6 text-[#014d46]" />
@@ -106,8 +158,16 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Deals</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeEscrows}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Deals
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {statsLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats?.active_escrows || 0
+                  )}
+                </p>
               </div>
               <div className="p-3 bg-[#e6f7f4] rounded-full">
                 <Shield className="h-6 w-6 text-[#02665c]" />
@@ -124,7 +184,13 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.completedEscrows}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {statsLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats?.completed_escrows || 0
+                  )}
+                </p>
               </div>
               <div className="p-3 bg-[#e6f7f4] rounded-full">
                 <CheckCircle className="h-6 w-6 text-[#014d46]" />
@@ -140,13 +206,42 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Volume</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Volume
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(stats.totalAmount)}
+                  {statsLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    formatCurrency(stats?.total_amount || 0)
+                  )}
                 </p>
               </div>
               <div className="p-3 bg-[#e6f7f4] rounded-full">
                 <CreditCard className="h-6 w-6 text-[#02665c]" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="card p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Disputed</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {statsLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats?.disputed_escrows || 0
+                  )}
+                </p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-full">
+                <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
             </div>
           </motion.div>
@@ -172,30 +267,52 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="card-content">
-            {escrows.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <LoadingSpinner />
+                <span className="ml-2 text-gray-600">Loading escrows...</span>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-gray-900 mb-2">
+                  Error loading escrows
+                </h4>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <button
+                  onClick={() => fetchEscrows(5)}
+                  className="btn btn-outline btn-sm"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : escrows.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">No escrows yet</h4>
+                <h4 className="text-lg font-medium text-gray-900 mb-2">
+                  No escrows yet
+                </h4>
                 <p className="text-gray-600 mb-4">
                   Create your first secure escrow transaction
                 </p>
-                <Link
-                  to="/create-escrow"
-                  className="btn btn-primary btn-md"
-                >
+                <Link to="/create-escrow" className="btn btn-primary btn-md">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Escrow
                 </Link>
               </div>
             ) : (
               <div className="space-y-4">
-                {escrows.slice(0, 5).map((escrow) => (
+                {escrows.map((escrow) => (
                   <div
                     key={escrow.id}
                     className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center space-x-4">
-                      <div className={`p-2 rounded-full ${getStatusColor(escrow.status)}`}>
+                      <div
+                        className={`p-2 rounded-full ${getStatusColor(
+                          escrow.status
+                        )}`}
+                      >
                         {getStatusIcon(escrow.status)}
                       </div>
                       <div>
@@ -211,7 +328,11 @@ const Dashboard = () => {
                       <p className="font-semibold text-gray-900">
                         {formatCurrency(escrow.amount)}
                       </p>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(escrow.status)}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                          escrow.status
+                        )}`}
+                      >
                         {escrow.status}
                       </span>
                     </div>
@@ -235,16 +356,15 @@ const Dashboard = () => {
                 <Wallet className="h-6 w-6 text-primary-600" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">Wallet Management</h4>
+                <h4 className="font-semibold text-gray-900">
+                  Wallet Management
+                </h4>
                 <p className="text-sm text-gray-600">
                   Manage your Ethereum wallet and view transactions
                 </p>
               </div>
             </div>
-            <Link
-              to="/profile"
-              className="btn btn-outline btn-sm mt-4"
-            >
+            <Link to="/profile" className="btn btn-outline btn-sm mt-4">
               Manage Wallet
             </Link>
           </div>
@@ -261,10 +381,7 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <Link
-              to="/profile"
-              className="btn btn-outline btn-sm mt-4"
-            >
+            <Link to="/profile" className="btn btn-outline btn-sm mt-4">
               Security Settings
             </Link>
           </div>

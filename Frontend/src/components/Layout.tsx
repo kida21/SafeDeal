@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'react-hot-toast';
+import DebugAuth from './DebugAuth';
 
 interface LayoutProps {
   children: ReactNode;
@@ -132,6 +133,9 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </main>
       </div>
+      
+      {/* Debug Component */}
+      <DebugAuth />
     </div>
   );
 };
