@@ -21,6 +21,21 @@ type SearchUserRequest struct {
 }
 
 func SearchUser(c fiber.Ctx) error {
+
+	userIDStr := c.Get("X-User-ID")
+	if userIDStr == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Authentication required",
+		})
+	}
+
+	
+	_, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 	query := c.Query("q")
 	firstName := c.Query("first_name")
 	lastName := c.Query("last_name")

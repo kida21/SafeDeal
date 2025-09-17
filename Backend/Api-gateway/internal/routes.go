@@ -19,7 +19,7 @@ func SetupRoutes(app *fiber.App) {
 	app.Post("/register", middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
 	app.Get("/activate", middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
 	app.Post("/refresh-token", middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
-	app.Get("/search", middleware.RateLimitByIP(publicLimiter),proxy.ProxyHandler("user-service"))
+	
 
 	// Authenticated routes
 	authenticated := app.Group("/api")
@@ -47,9 +47,11 @@ func SetupRoutes(app *fiber.App) {
 		// User routes
 		authenticated.Use("/logout", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/profile", proxy.ProxyHandler("user-service"))
+		authenticated.Use("/updateprofile",proxy.ProxyHandler("user-service"))
 		authenticated.Use("/profile/bank-details", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/wallet", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/users", proxy.ProxyHandler("user-service"))
+		authenticated.Use("/search",proxy.ProxyHandler("user-service"))
 
 		// Escrow routes
 		authenticated.Use("/escrows", proxy.ProxyHandler("escrow-service"))
