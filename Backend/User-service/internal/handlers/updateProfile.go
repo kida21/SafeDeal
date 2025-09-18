@@ -94,7 +94,7 @@ func UpdateProfile(c fiber.Ctx) error {
 			"last_name":     coalesce(req.LastName, &user.LastName),
 			"profession":    coalesce(req.Profession, &user.Profession),
 			"activated":     user.Activated,
-			"version":       user.Version + 1,
+			"version":       user.Version,
 		},
 	})
 }
