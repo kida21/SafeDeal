@@ -16,6 +16,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     api := app.Group("/api/escrows")
     {
     api.Post("/", handlers.CreateEscrow)
+    api.Get("/my",handlers.GetUserEscrows)
     api.Get("/:id", handlers.GetEscrow)
     api.Post("/:id/accept",handlers.AcceptEscrow)
     api.Post("/:id/confirm-receipt", handlers.ConfirmReceipt)

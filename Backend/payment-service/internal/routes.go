@@ -18,6 +18,6 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     api := app.Group("/api/payments")
     {
         api.Post("/initiate", handlers.InitiateEscrowPayment)
-        
+        api.Get("/transactions",handlers.GetTransactionHistory)
     }
 }
