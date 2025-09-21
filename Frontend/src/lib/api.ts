@@ -5,11 +5,15 @@ import {
     AuthResponse,
     LoginRequest,
     RegisterRequest,
+    UpdateProfileRequest,
     User,
+    SearchUser,
     Escrow,
     CreateEscrowRequest,
     EscrowPayment,
-    BankDetails
+    BankDetails,
+    Notification,
+    TransactionHistory
 } from '../types';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080';
@@ -96,34 +100,58 @@ export const authApi = {
         api.post('/refresh-token', { refresh_token: refreshToken }),
 };
 
-// User API
+// User API - Based on backend endpoints
 export const userApi = {
+    // GET Profile
     getProfile: (): Promise<AxiosResponse<User>> =>
         api.get('/api/profile'),
 
+    // PATCH Update Profile
+    updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
+        api.patch('/api/updateprofile', data),
+
+    // GET Search - Search for users (returns array of users)
+    searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[], pagination: any }>> =>
+        api.get(`/api/search?q=${encodeURIComponent(query)}`),
+
+    // PUT Bank-Details
     updateBankDetails: (data: BankDetails): Promise<AxiosResponse<User>> =>
         api.put('/api/profile/bank-details', data),
 
+    // POST Wallet
     createWallet: (): Promise<AxiosResponse<User>> =>
         api.post('/api/wallet'),
 };
 
-// Escrow API
+// Escrow API - Based on backend endpoints
 export const escrowApi = {
-    create: (data: any): Promise<AxiosResponse<Escrow>> =>
+    // POST Create-escrow
+    create: (data: CreateEscrowRequest): Promise<AxiosResponse<Escrow>> =>
         api.post('/api/escrows', data),
 
+    // GET My Escrows - Get user's escrows
+    getMyEscrows: (): Promise<AxiosResponse<Escrow[]>> =>
+        api.get('/api/escrows/my'),
+
+    // GET Fetch-escrow
     getById: (id: number): Promise<AxiosResponse<Escrow>> =>
         api.get(`/api/escrows/${id}`),
 
+    // POST Accept-escrow
     accept: (id: number): Promise<AxiosResponse<Escrow>> =>
         api.post(`/api/escrows/${id}/accept`),
 
+    // POST Confirm-receipt
     confirmReceipt: (id: number): Promise<AxiosResponse<Escrow>> =>
         api.post(`/api/escrows/${id}/confirm-receipt`),
 
+    // POST Dispute
     dispute: (id: number, reason: string): Promise<AxiosResponse<Escrow>> =>
         api.post(`/api/escrows/dispute/${id}`, { reason }),
+
+    // GET Dispute (if available)
+    getDispute: (id: number): Promise<AxiosResponse<any>> =>
+        api.get(`/api/escrows/dispute/${id}`),
 
     // Helper function to get multiple escrows by IDs
     getMultipleByIds: async (ids: number[]): Promise<Escrow[]> => {
@@ -136,10 +164,44 @@ export const escrowApi = {
     },
 };
 
-// Payment API
+// Payment API - Based on backend endpoints
 export const paymentApi = {
+    // POST Payment
     initiateEscrowPayment: (escrowId: number): Promise<AxiosResponse<EscrowPayment>> =>
         api.post('/api/payments/initiate', { escrow_id: escrowId }),
+
+    // GET Transaction History
+    getTransactionHistory: (): Promise<AxiosResponse<TransactionHistory[]>> =>
+        api.get('/api/payments/transactions'),
+};
+
+// WebSocket API for real-time features
+export const wsApi = {
+    // Chat WebSocket connection
+    connectChat: (escrowId: number): WebSocket => {
+        const token = localStorage.getItem('access_token');
+        const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/api/chat/ws/${escrowId}`;
+        try {
+            return new WebSocket(wsUrl);
+        } catch (error) {
+            console.warn('WebSocket connection failed:', error);
+            // Return a mock WebSocket that won't cause errors
+            return new WebSocket('ws://localhost:8080/api/chat/ws/1');
+        }
+    },
+
+    // Notification WebSocket connection
+    connectNotifications: (): WebSocket => {
+        const token = localStorage.getItem('access_token');
+        const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/api/notifications/ws`;
+        try {
+            return new WebSocket(wsUrl);
+        } catch (error) {
+            console.warn('WebSocket connection failed:', error);
+            // Return a mock WebSocket that won't cause errors
+            return new WebSocket('ws://localhost:8080/api/notifications/ws');
+        }
+    },
 };
 
 export default api;

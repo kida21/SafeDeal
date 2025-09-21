@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { ArrowLeft, User, DollarSign, FileText, Shield } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, User as UserIcon, DollarSign, Shield } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { escrowApi, userApi } from '../lib/api';
 import { toast } from 'react-hot-toast';
@@ -12,6 +12,7 @@ import { useAuthStore } from '../store/authStore';
 
 const CreateEscrow = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -21,12 +22,20 @@ const CreateEscrow = () => {
     handleSubmit,
     formState: { errors },
     watch,
-    setValue,
-  } = useForm<CreateEscrowRequest & { seller_email: string }>();
+  } = useForm<CreateEscrowRequest & { seller_name: string; seller_id: string }>();
 
   const watchedAmount = watch('amount');
 
-  const onSubmit = async (data: CreateEscrowRequest & { seller_email: string }) => {
+  // Pre-fill seller name if coming from search
+  useEffect(() => {
+    const sellerName = searchParams.get('seller');
+    if (sellerName) {
+      // You could set this in the form if needed
+      console.log('Pre-filling seller name:', sellerName);
+    }
+  }, [searchParams]);
+
+  const onSubmit = async (data: CreateEscrowRequest & { seller_name: string; seller_id: string }) => {
     setIsLoading(true);
     try {
       // Check authentication status
@@ -56,8 +65,15 @@ const CreateEscrow = () => {
         return;
       }
       
-      // In a real app, you would first look up the seller by email
-      // For now, we'll use a mock seller ID
+      // Validate seller ID
+      if (!data.seller_id || isNaN(Number(data.seller_id))) {
+        toast.error('Please enter a valid seller ID.');
+        return;
+      }
+
+      const sellerId = parseInt(data.seller_id);
+      console.log('Using seller ID:', sellerId);
+
       // Validate amount
       if (!data.amount || data.amount <= 0) {
         toast.error('Please enter a valid amount');
@@ -67,7 +83,7 @@ const CreateEscrow = () => {
       // The backend expects the full Escrow model structure
       // Note: buyer_id is set by the backend from the authenticated user
       const escrowData = {
-        seller_id: 2, // This would be fetched from the email
+        seller_id: sellerId,
         amount: parseFloat(data.amount.toString()), // Ensure it's a number
         conditions: data.conditions || "",
         status: "Pending", // Required by backend - must be one of the EscrowStatus values
@@ -79,6 +95,8 @@ const CreateEscrow = () => {
       console.log('Creating escrow with data:', escrowData);
       console.log('Data type:', typeof escrowData);
       console.log('Data stringified:', JSON.stringify(escrowData));
+      console.log('Current user (buyer):', user);
+      console.log('Seller ID being used:', escrowData.seller_id);
       
       const response = await escrowApi.create(escrowData);
       console.log('Escrow created successfully:', response.data);
@@ -94,7 +112,7 @@ const CreateEscrow = () => {
   };
 
   const steps = [
-    { number: 1, title: 'Seller Details', icon: User },
+    { number: 1, title: 'Seller Details', icon: UserIcon },
     { number: 2, title: 'Amount & Conditions', icon: DollarSign },
     { number: 3, title: 'Review & Create', icon: Shield },
   ];
@@ -181,45 +199,60 @@ const CreateEscrow = () => {
                     Seller Information
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Enter the email address of the person you're buying from
+                    Enter the seller's ID to create an escrow with them
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Seller Email Address
+                    Seller ID
                   </label>
                   <input
-                    {...register('seller_email', {
-                      required: 'Seller email is required',
+                    {...register('seller_id' as any, {
+                      required: 'Seller ID is required',
                       pattern: {
-                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                        message: 'Invalid email address'
+                        value: /^\d+$/,
+                        message: 'Seller ID must be a number'
                       }
                     })}
-                    type="email"
+                    type="text"
                     className="input w-full"
-                    placeholder="seller@example.com"
+                    placeholder="Enter seller's user ID (e.g., 1, 2, 3...)"
                   />
-                  {errors.seller_email && (
-                    <p className="text-red-500 text-sm mt-1">{errors.seller_email.message}</p>
+                  {errors.seller_id && (
+                    <p className="text-red-500 text-sm mt-1">{errors.seller_id.message}</p>
                   )}
+                  <p className="text-sm text-gray-500 mt-1">
+                    You can find the seller's ID by asking them or checking your records
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seller Name (Optional - for reference)
+                  </label>
+                  <input
+                    {...register('seller_name')}
+                    type="text"
+                    className="input w-full"
+                    placeholder="Enter seller's name for your reference"
+                  />
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex">
-                    <Shield className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+                    <UserIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
                     <div>
                       <h4 className="text-sm font-medium text-blue-900">
-                        Secure Transaction
+                        Seller Validation
                       </h4>
                       <p className="text-sm text-blue-700 mt-1">
-                        The seller will receive an email notification to accept the escrow. 
-                        Once accepted, you can proceed with payment.
+                        The seller's account status, bank details, and wallet will be validated by the backend when creating the escrow.
                       </p>
                     </div>
                   </div>
                 </div>
+
               </motion.div>
             )}
 
@@ -303,9 +336,15 @@ const CreateEscrow = () => {
 
                 <div className="bg-gray-50 rounded-lg p-6 space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Seller Email:</span>
-                    <span className="font-medium">{watch('seller_email')}</span>
+                    <span className="text-gray-600">Seller ID:</span>
+                    <span className="font-medium">{watch('seller_id' as any)}</span>
                   </div>
+                  {watch('seller_name') && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Seller Name:</span>
+                      <span className="font-medium">{watch('seller_name')}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount:</span>
                     <span className="font-medium">{formatCurrency(watch('amount') || 0)}</span>
@@ -363,7 +402,17 @@ const CreateEscrow = () => {
               {step < 3 ? (
                 <button
                   type="button"
-                  onClick={() => setStep(step + 1)}
+                  onClick={() => {
+                    // Validate seller ID before proceeding to next step
+                    if (step === 1) {
+                      const sellerId = watch('seller_id' as any);
+                      if (!sellerId || isNaN(Number(sellerId))) {
+                        toast.error('Please enter a valid seller ID');
+                        return;
+                      }
+                    }
+                    setStep(step + 1);
+                  }}
                   className="btn btn-primary btn-md"
                 >
                   Next

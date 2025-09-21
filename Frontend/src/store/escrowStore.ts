@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { Escrow } from '../types';
-import { DataService, EscrowStats } from '../lib/dataService';
+import { escrowApi } from '../lib/api';
+
+interface EscrowStats {
+    total_escrows: number;
+    active_escrows: number;
+    completed_escrows: number;
+    disputed_escrows: number;
+    total_amount: number;
+}
 
 interface EscrowState {
     escrows: Escrow[];
@@ -50,11 +58,12 @@ export const useEscrowStore = create<EscrowState>((set, get) => ({
     fetchEscrows: async (limit = 5) => {
         set({ isLoading: true, error: null });
         try {
-            const escrows = await DataService.getEscrows(limit);
+            const response = await escrowApi.getMyEscrows();
+            const escrows = response.data.slice(0, limit);
             set({ escrows, isLoading: false });
         } catch (error: any) {
             set({
-                error: error.message || 'Failed to fetch escrows',
+                error: error.response?.data?.message || 'Failed to fetch escrows',
                 isLoading: false
             });
         }
@@ -62,11 +71,22 @@ export const useEscrowStore = create<EscrowState>((set, get) => ({
     fetchStats: async () => {
         set({ statsLoading: true, error: null });
         try {
-            const stats = await DataService.getEscrowStats();
+            const response = await escrowApi.getMyEscrows();
+            const escrows = response.data;
+
+            // Calculate stats from escrows
+            const stats = {
+                total_escrows: escrows.length,
+                active_escrows: escrows.filter(e => e.status === 'Pending' || e.status === 'Funded').length,
+                completed_escrows: escrows.filter(e => e.status === 'Released').length,
+                disputed_escrows: escrows.filter(e => e.status === 'Disputed').length,
+                total_amount: escrows.reduce((sum, e) => sum + e.amount, 0)
+            };
+
             set({ stats, statsLoading: false });
         } catch (error: any) {
             set({
-                error: error.message || 'Failed to fetch stats',
+                error: error.response?.data?.message || 'Failed to fetch stats',
                 statsLoading: false
             });
         }
@@ -74,11 +94,11 @@ export const useEscrowStore = create<EscrowState>((set, get) => ({
     fetchEscrowById: async (id: number) => {
         set({ isLoading: true, error: null });
         try {
-            const escrow = await DataService.getEscrowById(id);
-            set({ currentEscrow: escrow, isLoading: false });
+            const response = await escrowApi.getById(id);
+            set({ currentEscrow: response.data, isLoading: false });
         } catch (error: any) {
             set({
-                error: error.message || 'Failed to fetch escrow',
+                error: error.response?.data?.message || 'Failed to fetch escrow',
                 isLoading: false
             });
         }
@@ -86,11 +106,28 @@ export const useEscrowStore = create<EscrowState>((set, get) => ({
     refreshAll: async () => {
         set({ isLoading: true, statsLoading: true, error: null });
         try {
-            const { escrows, stats } = await DataService.refreshAll();
-            set({ escrows, stats, isLoading: false, statsLoading: false });
+            const [escrowsResponse] = await Promise.all([
+                escrowApi.getMyEscrows()
+            ]);
+
+            const escrows = escrowsResponse.data;
+            const stats = {
+                total_escrows: escrows.length,
+                active_escrows: escrows.filter(e => e.status === 'Pending' || e.status === 'Funded').length,
+                completed_escrows: escrows.filter(e => e.status === 'Released').length,
+                disputed_escrows: escrows.filter(e => e.status === 'Disputed').length,
+                total_amount: escrows.reduce((sum, e) => sum + e.amount, 0)
+            };
+
+            set({
+                escrows: escrows.slice(0, 5), // Show recent 5 on dashboard
+                stats,
+                isLoading: false,
+                statsLoading: false
+            });
         } catch (error: any) {
             set({
-                error: error.message || 'Failed to refresh data',
+                error: error.response?.data?.message || 'Failed to refresh data',
                 isLoading: false,
                 statsLoading: false
             });

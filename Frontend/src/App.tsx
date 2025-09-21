@@ -9,6 +9,9 @@ import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import CreateEscrow from './pages/CreateEscrow';
 import EscrowDetails from './pages/EscrowDetails';
+import AllEscrows from './pages/AllEscrows';
+import TransactionHistory from './pages/TransactionHistory';
+import UserSearch from './pages/UserSearch';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 // import LoadingSpinner from './components/LoadingSpinner';
@@ -41,7 +44,7 @@ function App() {
     };
 
     initAuth();
-  }, [user, setUser, setLoading]);
+  }, [user, setUser, setLoading, isAuthenticated]);
 
   // if (isLoading) {
   //   return <LoadingSpinner />;
@@ -75,6 +78,21 @@ function App() {
         <Route path="/escrow/:id" element={
           <ProtectedRoute>
             <EscrowDetails />
+          </ProtectedRoute>
+        } />
+        <Route path="/escrows" element={
+          <ProtectedRoute>
+            <AllEscrows />
+          </ProtectedRoute>
+        } />
+        <Route path="/transactions" element={
+          <ProtectedRoute>
+            <TransactionHistory />
+          </ProtectedRoute>
+        } />
+        <Route path="/search" element={
+          <ProtectedRoute>
+            <UserSearch />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={

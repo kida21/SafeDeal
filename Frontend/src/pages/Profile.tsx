@@ -17,8 +17,9 @@ import Layout from "../components/Layout";
 import { useAuthStore } from "../store/authStore";
 import { userApi } from "../lib/api";
 import { toast } from "react-hot-toast";
-import { BankDetails } from "../types";
+import { BankDetails, UpdateProfileRequest } from "../types";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { BANKS, getBankByCode } from "../lib/banks";
 
 const Profile = () => {
   const { user, setUser } = useAuthStore();
@@ -26,6 +27,9 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
+  const [selectedBankCode, setSelectedBankCode] = useState<number | null>(null);
 
   const {
     register,
@@ -34,26 +38,73 @@ const Profile = () => {
     reset,
   } = useForm<BankDetails>();
 
+  const {
+    register: registerProfile,
+    handleSubmit: handleSubmitProfile,
+    formState: { errors: profileErrors },
+    reset: resetProfile,
+  } = useForm<UpdateProfileRequest>();
+
+  // Function to fetch latest profile data
+  const fetchProfile = async () => {
+    setIsFetchingProfile(true);
+    try {
+      const response = await userApi.getProfile();
+      setUser(response.data);
+    } catch (error: any) {
+      console.error('Failed to fetch profile:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setIsFetchingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch latest profile data when component mounts
+    fetchProfile();
+  }, []);
+
   useEffect(() => {
     if (user) {
+      console.log("Resetting forms with user data:", user);
       reset({
         account_name: user.account_name || "",
         account_number: user.account_number || "",
         bank_code: user.bank_code || 0,
       });
+      resetProfile({
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        profession: user.profession || "",
+      });
+      // Set selected bank code for dropdown
+      setSelectedBankCode(user.bank_code || null);
     }
-  }, [user, reset]);
+  }, [user, reset, resetProfile]);
 
   const handleUpdateBankDetails = async (data: BankDetails) => {
+    if (!selectedBankCode) {
+      toast.error("Please select a bank");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      console.log("Sending bank details:", data);
-      console.log("Bank code type:", typeof data.bank_code);
-      console.log("Bank code value:", data.bank_code);
+      const bankData = {
+        ...data,
+        bank_code: selectedBankCode,
+      };
+      
+      console.log("Sending bank details:", bankData);
+      console.log("Bank code type:", typeof selectedBankCode);
+      console.log("Bank code value:", selectedBankCode);
 
-      const response = await userApi.updateBankDetails(data);
+      const response = await userApi.updateBankDetails(bankData);
       setUser(response.data);
       toast.success("Bank details updated successfully!");
+      
+      // Refresh profile data to ensure we have the latest information
+      await fetchProfile();
     } catch (error: any) {
       console.error("Bank details update error:", error);
       console.error("Error response:", error.response?.data);
@@ -79,10 +130,29 @@ const Profile = () => {
         setUser({ ...user, wallet_address: response.data.wallet_address });
       }
       toast.success("Ethereum wallet created successfully!");
+      
+      // Refresh profile data to ensure we have the latest information
+      await fetchProfile();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create wallet");
     } finally {
       setIsCreatingWallet(false);
+    }
+  };
+
+  const handleUpdateProfile = async (data: UpdateProfileRequest) => {
+    setIsUpdatingProfile(true);
+    try {
+      const response = await userApi.updateProfile(data);
+      setUser(response.data);
+      toast.success("Profile updated successfully!");
+      
+      // Refresh profile data to ensure we have the latest information
+      await fetchProfile();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setIsUpdatingProfile(false);
     }
   };
 
@@ -98,10 +168,12 @@ const Profile = () => {
     { id: "security", name: "Security", icon: Shield },
   ];
 
-  if (!user) {
+  if (!user || isFetchingProfile) {
     return (
       <Layout>
-        <LoadingSpinner />
+        <div className="flex items-center justify-center min-h-96">
+          <LoadingSpinner />
+        </div>
       </Layout>
     );
   }
@@ -150,32 +222,61 @@ const Profile = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="card p-6"
               >
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                  Personal Information
-                </h3>
-                <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Personal Information
+                  </h3>
+                  <button
+                    onClick={fetchProfile}
+                    disabled={isFetchingProfile}
+                    className="btn btn-outline btn-sm"
+                  >
+                    {isFetchingProfile ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
+                <form onSubmit={handleSubmitProfile(handleUpdateProfile)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         First Name
                       </label>
                       <input
+                        {...registerProfile("first_name", {
+                          required: "First name is required",
+                          minLength: {
+                            value: 2,
+                            message: "First name must be at least 2 characters"
+                          }
+                        })}
                         type="text"
-                        value={user.first_name}
-                        disabled
-                        className="input w-full bg-gray-50"
+                        className="input w-full"
                       />
+                      {profileErrors.first_name && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {profileErrors.first_name.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Last Name
                       </label>
                       <input
+                        {...registerProfile("last_name", {
+                          required: "Last name is required",
+                          minLength: {
+                            value: 2,
+                            message: "Last name must be at least 2 characters"
+                          }
+                        })}
                         type="text"
-                        value={user.last_name}
-                        disabled
-                        className="input w-full bg-gray-50"
+                        className="input w-full"
                       />
+                      {profileErrors.last_name && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {profileErrors.last_name.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -188,6 +289,9 @@ const Profile = () => {
                       disabled
                       className="input w-full bg-gray-50"
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Email cannot be changed. Contact support if needed.
+                    </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div
@@ -211,7 +315,14 @@ const Profile = () => {
                         : "Account Pending Verification"}
                     </span>
                   </div>
-                </div>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingProfile}
+                    className="btn btn-primary"
+                  >
+                    {isUpdatingProfile ? "Updating..." : "Update Profile"}
+                  </button>
+                </form>
               </motion.div>
             )}
 
@@ -223,9 +334,18 @@ const Profile = () => {
                 className="space-y-6"
               >
                 <div className="card p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                    Ethereum Wallet
-                  </h3>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Ethereum Wallet
+                    </h3>
+                    <button
+                      onClick={fetchProfile}
+                      disabled={isFetchingProfile}
+                      className="btn btn-outline btn-sm"
+                    >
+                      {isFetchingProfile ? "Refreshing..." : "Refresh"}
+                    </button>
+                  </div>
 
                   {user.wallet_address ? (
                     <div className="space-y-4">
@@ -249,7 +369,35 @@ const Profile = () => {
                             <Copy className="h-4 w-4" />
                           </button>
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          This is your Ethereum wallet address for blockchain transactions
+                        </p>
                       </div>
+
+                      {user.encrypted_private_key && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Private Key Status
+                          </label>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type={showPrivateKey ? "text" : "password"}
+                              value={showPrivateKey ? "••••••••••••••••••••••••••••••••" : "••••••••••••••••••••••••••••••••"}
+                              readOnly
+                              className="input flex-1 font-mono text-sm"
+                            />
+                            <button
+                              onClick={() => setShowPrivateKey(!showPrivateKey)}
+                              className="btn btn-outline btn-sm"
+                            >
+                              {showPrivateKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Your private key is encrypted and stored securely
+                          </p>
+                        </div>
+                      )}
 
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div className="flex items-center">
@@ -259,8 +407,7 @@ const Profile = () => {
                               Wallet Active
                             </h4>
                             <p className="text-sm text-green-700 mt-1">
-                              Your Ethereum wallet is ready for blockchain
-                              transactions.
+                              Your Ethereum wallet is ready for blockchain transactions.
                             </p>
                           </div>
                         </div>
@@ -273,8 +420,7 @@ const Profile = () => {
                         No Wallet Created
                       </h4>
                       <p className="text-gray-600 mb-6">
-                        Create an Ethereum wallet to participate in blockchain
-                        transactions.
+                        Create an Ethereum wallet to participate in blockchain transactions.
                       </p>
                       <button
                         onClick={handleCreateWallet}
@@ -317,96 +463,156 @@ const Profile = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="card p-6"
+                className="space-y-6"
               >
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                  Bank Details
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Add your bank account details to receive payments from
-                  completed escrows.
-                </p>
-
-                <form
-                  onSubmit={handleSubmit(handleUpdateBankDetails)}
-                  className="space-y-6"
-                >
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Account Name
-                    </label>
-                    <input
-                      {...register("account_name", {
-                        required: "Account name is required",
-                      })}
-                      className="input w-full"
-                      placeholder="Enter your full name as it appears on your bank account"
-                    />
-                    {errors.account_name && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.account_name.message}
-                      </p>
-                    )}
+                <div className="card p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Bank Details
+                    </h3>
+                    <button
+                      onClick={fetchProfile}
+                      disabled={isFetchingProfile}
+                      className="btn btn-outline btn-sm"
+                    >
+                      {isFetchingProfile ? "Refreshing..." : "Refresh"}
+                    </button>
                   </div>
+                  
+                  <p className="text-gray-600 mb-6">
+                    Add your bank account details to receive payments from completed escrows.
+                  </p>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Account Number
-                    </label>
-                    <input
-                      {...register("account_number", {
-                        required: "Account number is required",
-                        pattern: {
-                          value: /^\d{10,16}$/,
-                          message: "Account number must be 10-16 digits",
-                        },
-                      })}
-                      className="input w-full"
-                      placeholder="Enter your bank account number"
-                    />
-                    {errors.account_number && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.account_number.message}
-                      </p>
-                    )}
-                  </div>
+                  {/* Display current bank details if they exist */}
+                  {(user.account_name || user.account_number || user.bank_code) && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                      <h4 className="text-sm font-medium text-blue-900 mb-3">Current Bank Details</h4>
+                      <div className="space-y-2">
+                        {user.account_name && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-blue-700">Account Name:</span>
+                            <span className="text-sm font-medium text-blue-900">{user.account_name}</span>
+                          </div>
+                        )}
+                        {user.account_number && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-blue-700">Account Number:</span>
+                            <span className="text-sm font-medium text-blue-900 font-mono">{user.account_number}</span>
+                          </div>
+                        )}
+                        {user.bank_code && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-blue-700">Bank:</span>
+                            <span className="text-sm font-medium text-blue-900">
+                              {getBankByCode(user.bank_code)?.name || `Bank Code: ${user.bank_code}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bank Code
-                    </label>
-                    <input
-                      {...register("bank_code", {
-                        required: "Bank code is required",
-                        min: {
-                          value: 100,
-                          message: "Bank code must be at least 100",
-                        },
-                        max: {
-                          value: 999,
-                          message: "Bank code must be at most 999",
-                        },
-                        valueAsNumber: true,
-                      })}
-                      type="number"
-                      className="input w-full"
-                      placeholder="Enter your bank code"
-                    />
-                    {errors.bank_code && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.bank_code.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn btn-primary"
+                  <form
+                    onSubmit={handleSubmit(handleUpdateBankDetails)}
+                    className="space-y-6"
                   >
-                    {isLoading ? "Updating..." : "Update Bank Details"}
-                  </button>
-                </form>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Account Name
+                      </label>
+                      <input
+                        {...register("account_name", {
+                          required: "Account name is required",
+                        })}
+                        className="input w-full"
+                        placeholder="Enter your full name as it appears on your bank account"
+                      />
+                      {errors.account_name && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.account_name.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Account Number
+                      </label>
+                      <input
+                        {...register("account_number", {
+                          required: "Account number is required",
+                          pattern: {
+                            value: /^\d{10,16}$/,
+                            message: "Account number must be 10-16 digits",
+                          },
+                        })}
+                        className="input w-full"
+                        placeholder="Enter your bank account number"
+                      />
+                      {errors.account_number && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.account_number.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Bank
+                      </label>
+                      <select
+                        value={selectedBankCode || ""}
+                        onChange={(e) => setSelectedBankCode(Number(e.target.value) || null)}
+                        className="input w-full"
+                        required
+                      >
+                        <option value="">Select your bank</option>
+                        {BANKS.map((bank) => (
+                          <option key={bank.code} value={bank.code}>
+                            {bank.name} {bank.isMobileMoney ? "(Mobile Money)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {!selectedBankCode && (
+                        <p className="text-red-500 text-sm mt-1">
+                          Please select a bank
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="btn btn-primary"
+                    >
+                      {isLoading ? "Updating..." : "Update Bank Details"}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Bank Information Help */}
+                <div className="card p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Bank Information Help
+                  </h3>
+                  <div className="space-y-3 text-sm text-gray-600">
+                    <p>
+                      <strong>Account Name:</strong> The name as it appears on your bank account statement.
+                    </p>
+                    <p>
+                      <strong>Account Number:</strong> Your bank account number. The required length depends on your selected bank.
+                    </p>
+                    <p>
+                      <strong>Bank:</strong> Select your bank from the dropdown. Mobile money services are clearly marked.
+                    </p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                      <p className="text-yellow-800">
+                        <strong>Note:</strong> This information is used to process payments from completed escrows. 
+                        Make sure the details are accurate to avoid payment delays.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             )}
 

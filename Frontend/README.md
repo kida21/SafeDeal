@@ -1,160 +1,120 @@
 # SafeDeal Frontend
 
-A modern React frontend for the SafeDeal escrow platform, built with TypeScript, Vite, and Tailwind CSS.
+A modern React + TypeScript frontend for the SafeDeal escrow platform.
 
 ## Features
 
-- **Modern UI/UX**: Clean, responsive design matching the provided design specifications
-- **Authentication**: JWT-based authentication with refresh token handling
-- **Escrow Management**: Create, manage, and track escrow transactions
-- **Payment Integration**: Chapa payment gateway integration
-- **Real-time Chat**: WebSocket-based communication for escrow discussions
-- **Wallet Management**: Ethereum wallet creation and management
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-
-## Tech Stack
-
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **Tailwind CSS** for styling
-- **React Router** for navigation
-- **Zustand** for state management
-- **React Hook Form** for form handling
-- **Axios** for API communication
-- **Framer Motion** for animations
-- **Lucide React** for icons
-- **React Hot Toast** for notifications
+- 🔐 **Authentication**: Login, registration, and profile management
+- 💰 **Escrow Management**: Create, view, and manage escrow transactions
+- 💬 **Real-time Chat**: WebSocket-based communication during transactions
+- 🔔 **Notifications**: Real-time notifications for escrow updates
+- 💳 **Payment Integration**: Chapa payment processing
+- 👥 **User Search**: Find and connect with other users
+- 📊 **Transaction History**: View all payment transactions
+- 🎨 **Modern UI**: Responsive design with Tailwind CSS
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js (v16 or higher)
 - npm or yarn
-- Backend API running on http://localhost:8080
+- Backend services running (optional for basic UI)
 
 ### Installation
 
-1. Install dependencies:
-```bash
-npm install
-```
+1. Navigate to the Frontend directory:
+   ```bash
+   cd Frontend
+   ```
 
-2. Create environment file:
-```bash
-cp .env.example .env
-```
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-3. Update the environment variables in `.env`:
-```
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. Open your browser and navigate to `http://localhost:3000`
+
+## Backend Integration
+
+The frontend is fully integrated with the backend services:
+
+- **User Service**: Authentication and profile management
+- **Escrow Service**: Escrow transaction management
+- **Payment Service**: Payment processing and history
+- **Chat Service**: Real-time messaging
+- **Notification Service**: Real-time notifications
+
+### Backend Configuration
+
+Set the backend URL in your environment variables:
+
+```bash
+# .env.local
 VITE_API_URL=http://localhost:8080
 ```
-
-4. Start the development server:
-```bash
-npm run dev
-```
-
-The application will be available at http://localhost:3000
-
-### Building for Production
-
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory.
 
 ## Project Structure
 
 ```
-src/
-├── components/          # Reusable UI components
-│   ├── Layout.tsx      # Main layout component
-│   ├── LoginModal.tsx  # Authentication modal
-│   └── ...
-├── pages/              # Page components
-│   ├── LandingPage.tsx # Landing page
-│   ├── Dashboard.tsx   # User dashboard
-│   ├── CreateEscrow.tsx # Escrow creation
-│   └── ...
-├── store/              # Zustand state management
-│   ├── authStore.ts    # Authentication state
-│   └── escrowStore.ts  # Escrow state
-├── lib/                # Utility functions
-│   ├── api.ts          # API client
-│   └── utils.ts        # Helper functions
-├── types/              # TypeScript type definitions
-└── App.tsx             # Main application component
+Frontend/
+├── src/
+│   ├── components/          # Reusable UI components
+│   ├── pages/              # Page components
+│   ├── store/              # State management (Zustand)
+│   ├── lib/                # API client and utilities
+│   ├── types/              # TypeScript type definitions
+│   └── assets/             # Static assets
+├── public/                 # Public assets
+└── index.html             # HTML template
 ```
 
-## Key Features
+## Key Components
 
-### Authentication
-- Login/Register with email validation
-- JWT token management with automatic refresh
-- Protected routes
-- Session persistence
-
-### Escrow Management
-- Create new escrow transactions
-- Multi-step form with validation
-- Real-time status updates
-- Payment integration with Chapa
-
-### Dashboard
-- Overview of user's escrows
-- Statistics and metrics
-- Quick actions and navigation
-
-### Profile Management
-- User profile information
-- Bank account details
-- Ethereum wallet management
-- Security settings
+- **Layout**: Main application layout with navigation
+- **RealTimeChat**: WebSocket-based chat component
+- **NotificationCenter**: Real-time notifications
+- **PaymentModal**: Payment processing interface
+- **AuthForm**: Authentication forms
 
 ## API Integration
 
-The frontend integrates with the following backend services:
+The frontend uses a centralized API client (`lib/api.ts`) with:
 
-- **User Service**: Authentication and profile management
-- **Escrow Service**: Escrow creation and management
-- **Payment Service**: Payment processing with Chapa
-- **Chat Service**: Real-time communication
+- Automatic token refresh
+- Request/response interceptors
+- Error handling
+- WebSocket connections
 
 ## Development
 
-### Code Style
-- TypeScript for type safety
-- ESLint for code linting
-- Prettier for code formatting
-- Tailwind CSS for styling
+### Available Scripts
 
-### State Management
-- Zustand for global state
-- React Hook Form for form state
-- Local storage for persistence
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
 
-### API Client
-- Axios with interceptors
-- Automatic token refresh
-- Error handling and notifications
+### Error Handling
 
-## Deployment
+The application includes comprehensive error handling:
 
-The frontend can be deployed to any static hosting service:
+- API errors are caught and displayed to users
+- WebSocket connections gracefully handle backend unavailability
+- Form validation with user-friendly error messages
+- Loading states for better UX
 
-1. Build the project: `npm run build`
-2. Deploy the `dist` directory to your hosting service
-3. Configure environment variables for production API URL
+## Notes
 
-## Contributing
-
-1. Follow the existing code style
-2. Add TypeScript types for new features
-3. Test thoroughly before submitting
-4. Update documentation as needed
-
-## License
-
-This project is part of the SafeDeal platform.
+- The frontend will work without the backend running (with limited functionality)
+- WebSocket features require the backend services to be running
+- All API calls include proper error handling and loading states

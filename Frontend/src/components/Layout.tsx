@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -7,12 +7,16 @@ import {
   LogOut, 
   Lock,
   Bell,
-  Settings
+  Settings,
+  Shield,
+  CreditCard,
+  Search
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'react-hot-toast';
 import DebugAuth from './DebugAuth';
+import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {
   children: ReactNode;
@@ -21,6 +25,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -35,7 +40,10 @@ const Layout = ({ children }: LayoutProps) => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'My Escrows', href: '/escrows', icon: Shield },
     { name: 'Create Escrow', href: '/create-escrow', icon: Plus },
+    { name: 'Search Users', href: '/search', icon: Search },
+    { name: 'Transactions', href: '/transactions', icon: CreditCard },
     { name: 'Profile', href: '/profile', icon: User },
   ];
 
@@ -118,8 +126,12 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <button 
+                onClick={() => setShowNotifications(true)}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors relative"
+              >
                 <Bell className="h-5 w-5" />
+                {/* Notification badge could be added here */}
               </button>
               <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <Settings className="h-5 w-5" />
@@ -136,6 +148,12 @@ const Layout = ({ children }: LayoutProps) => {
       
       {/* Debug Component */}
       <DebugAuth />
+      
+      {/* Notification Center */}
+      <NotificationCenter 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+      />
     </div>
   );
 };

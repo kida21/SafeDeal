@@ -22,7 +22,7 @@ import {
   formatRelativeTime,
   getStatusColor,
 } from "../lib/utils";
-import { Escrow } from "../types";
+// import { Escrow } from "../types"; // Not used in this component
 import { toast } from "react-hot-toast";
 import LoadingSpinner from "../components/LoadingSpinner";
 
@@ -44,17 +44,19 @@ const Dashboard = () => {
     const loadData = async () => {
       try {
         await Promise.all([
-          fetchEscrows(5), // Get recent 5 escrows
-          fetchStats(),
+          fetchEscrows(5), // Get recent 5 escrows from backend
+          fetchStats(), // Get stats calculated from backend data
         ]);
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
-        toast.error("Failed to load dashboard data");
+        toast.error("Failed to load dashboard data. Please check your connection.");
       }
     };
 
-    loadData();
-  }, [fetchEscrows, fetchStats]);
+    if (user) {
+      loadData();
+    }
+  }, [fetchEscrows, fetchStats, user]);
 
   const handleRefresh = async () => {
     try {
@@ -97,6 +99,12 @@ const Dashboard = () => {
               </h2>
               <p className="text-primary-100">
                 Manage your secure transactions and escrow deals
+              </p>
+              <p className="text-primary-200 text-sm mt-1">
+                Dashboard powered by backend API endpoints
+              </p>
+              <p className="text-primary-300 text-xs mt-1">
+                Dashboard uses available backend endpoints only
               </p>
             </div>
             <div className="flex items-center space-x-3">
@@ -293,7 +301,7 @@ const Dashboard = () => {
                   No escrows yet
                 </h4>
                 <p className="text-gray-600 mb-4">
-                  Create your first secure escrow transaction
+                  Create your first secure escrow transaction. Individual escrows can be viewed by ID.
                 </p>
                 <Link to="/create-escrow" className="btn btn-primary btn-md">
                   <Plus className="h-4 w-4 mr-2" />
