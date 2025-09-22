@@ -39,7 +39,11 @@ func CreateEscrow(c fiber.Ctx) error {
 			"error": "Seller ID is required",
 		})
 	}
-
+    if escrow.Amount <= 0 {
+		 return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+             "error": "Amount must be greater than zero",
+	       })
+    }
 	if uint32(buyerID) == uint32(escrow.SellerID) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Buyer and seller cannot be the same user",
@@ -102,6 +106,7 @@ func CreateEscrow(c fiber.Ctx) error {
 
 	// ✅ Set escrow fields
 	escrow.BuyerID = uint(buyerID)
+	escrow.Status = model.Pending
 
 	
 

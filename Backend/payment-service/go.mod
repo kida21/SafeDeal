@@ -4,6 +4,7 @@ go 1.24.5
 
 require (
 	blockchain_adapter v0.0.0-00010101000000-000000000000
+	github.com/SafeDeal/proto/auth v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/payment v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/consul/api v1.32.1
