@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"escrow_service/internal/model"
+	"escrow_service/utils"
 	"log"
 	"math/big"
 	"message_broker/rabbitmq/events"
@@ -165,7 +166,9 @@ func (c *Consumer) ListenForTransferEvents() {
 				escrow.Status = model.Released
 				c.DB.Save(&escrow)
 				log.Printf("Escrow updated to Released in DB")
-
+                if err := utils.AddContact(c.DB, escrow.BuyerID, escrow.SellerID, escrow.ID); err != nil {
+                        log.Printf("Failed to add contact: %v", err)
+                    }
 				
 				if c.blockchainClient == nil {
 					log.Println("blockchainClient not initialized")
@@ -196,6 +199,7 @@ func (c *Consumer) ListenForTransferEvents() {
 						break
 					}
 				}
+				
 			}
 		}
 	}()

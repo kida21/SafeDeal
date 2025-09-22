@@ -61,6 +61,7 @@ func SetupRoutes(app *fiber.App) {
 		authenticated.Use("/escrows/:id/accept", proxy.ProxyHandler("escrow-service"))
 		authenticated.Use("/escrows/:id/confirm-receipt", proxy.ProxyHandler("escrow-service"))
 		authenticated.Use("/escrows/dispute/:id",proxy.ProxyHandler("escrow-service"))
+		authenticated.Use("/escrows/contacts",proxy.ProxyHandler("escrow-service"))
 
 		// Payment routes
 		authenticated.Use("/payments/initiate", proxy.ProxyHandler("payment-service"))

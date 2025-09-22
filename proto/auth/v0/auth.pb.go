@@ -142,11 +142,11 @@ type User struct {
 	Email         string                  `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
 	Activated     bool                    `protobuf:"varint,5,opt,name=activated,proto3" json:"activated,omitempty"`
 	Version       int32                   `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
-	WalletAddress *wrapperspb.StringValue `protobuf:"bytes,7,opt,name=wallet_address,json=walletAddress,proto3" json:"wallet_address,omitempty"`
-	AccountName   *wrapperspb.StringValue `protobuf:"bytes,8,opt,name=account_name,json=accountName,proto3" json:"account_name,omitempty"`
-	AccountNumber *wrapperspb.StringValue `protobuf:"bytes,9,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
-	BankCode      *wrapperspb.Int32Value  `protobuf:"bytes,10,opt,name=bank_code,json=bankCode,proto3" json:"bank_code,omitempty"`
-	Profession    string                  `protobuf:"bytes,11,opt,name=profession,proto3" json:"profession,omitempty"`
+	Profession    string                  `protobuf:"bytes,7,opt,name=profession,proto3" json:"profession,omitempty"`
+	WalletAddress *wrapperspb.StringValue `protobuf:"bytes,8,opt,name=wallet_address,json=walletAddress,proto3" json:"wallet_address,omitempty"`
+	AccountName   *wrapperspb.StringValue `protobuf:"bytes,9,opt,name=account_name,json=accountName,proto3" json:"account_name,omitempty"`
+	AccountNumber *wrapperspb.StringValue `protobuf:"bytes,10,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"`
+	BankCode      *wrapperspb.Int32Value  `protobuf:"bytes,11,opt,name=bank_code,json=bankCode,proto3" json:"bank_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -223,6 +223,13 @@ func (x *User) GetVersion() int32 {
 	return 0
 }
 
+func (x *User) GetProfession() string {
+	if x != nil {
+		return x.Profession
+	}
+	return ""
+}
+
 func (x *User) GetWalletAddress() *wrapperspb.StringValue {
 	if x != nil {
 		return x.WalletAddress
@@ -249,13 +256,6 @@ func (x *User) GetBankCode() *wrapperspb.Int32Value {
 		return x.BankCode
 	}
 	return nil
-}
-
-func (x *User) GetProfession() string {
-	if x != nil {
-		return x.Profession
-	}
-	return ""
 }
 
 type GetUserRequest struct {
@@ -591,15 +591,15 @@ const file_proto_auth_v0_auth_proto_rawDesc = "" +
 	"\tlast_name\x18\x03 \x01(\tR\blastName\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\x12\x1c\n" +
 	"\tactivated\x18\x05 \x01(\bR\tactivated\x12\x18\n" +
-	"\aversion\x18\x06 \x01(\x05R\aversion\x12C\n" +
-	"\x0ewallet_address\x18\a \x01(\v2\x1c.google.protobuf.StringValueR\rwalletAddress\x12?\n" +
-	"\faccount_name\x18\b \x01(\v2\x1c.google.protobuf.StringValueR\vaccountName\x12C\n" +
-	"\x0eaccount_number\x18\t \x01(\v2\x1c.google.protobuf.StringValueR\raccountNumber\x128\n" +
-	"\tbank_code\x18\n" +
-	" \x01(\v2\x1b.google.protobuf.Int32ValueR\bbankCode\x12\x1e\n" +
+	"\aversion\x18\x06 \x01(\x05R\aversion\x12\x1e\n" +
 	"\n" +
-	"profession\x18\v \x01(\tR\n" +
-	"profession\")\n" +
+	"profession\x18\a \x01(\tR\n" +
+	"profession\x12C\n" +
+	"\x0ewallet_address\x18\b \x01(\v2\x1c.google.protobuf.StringValueR\rwalletAddress\x12?\n" +
+	"\faccount_name\x18\t \x01(\v2\x1c.google.protobuf.StringValueR\vaccountName\x12C\n" +
+	"\x0eaccount_number\x18\n" +
+	" \x01(\v2\x1c.google.protobuf.StringValueR\raccountNumber\x128\n" +
+	"\tbank_code\x18\v \x01(\v2\x1b.google.protobuf.Int32ValueR\bbankCode\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\"d\n" +
 	"\x0fGetUserResponse\x12\x18\n" +

@@ -70,7 +70,7 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
     userIDStr := c.Get("X-User-ID")
     buyerID, _ := strconv.ParseUint(userIDStr, 10, 32)
 
-    escrowClient, _ := escrow.NewEscrowServiceClient("escrow-service:50052")
+    // escrowClient, _ := escrow.NewEscrowServiceClient("escrow-service:50052")
     
     escrowResp, err := escrowClient.GetEscrow(uint32(req.EscrowID))
     

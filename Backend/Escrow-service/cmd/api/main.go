@@ -38,6 +38,7 @@ func main() {
     db.ConnectDB()
    
     db.DB.AutoMigrate(&model.Escrow{})
+    db.DB.AutoMigrate(&model.Contact{})
     go startGRPCServer(db.DB)
     consul.RegisterService("escrow-service", "escrow-service", 8082)
     
