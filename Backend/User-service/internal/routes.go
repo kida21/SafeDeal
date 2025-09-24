@@ -17,7 +17,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     app.Get("/activate", handlers.ActivateAccount)
     app.Post("/login", handlers.Login)
     app.Post("/refresh-token",handlers.RefreshToken)
-    
+    app.Post("/resend",handlers.ResendActivation)
 
      api := app.Group("/api")
     {   
@@ -27,6 +27,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
         api.Put("/profile/bank-details",handlers.UpdateBankDetails)
         api.Post("/wallet",handlers.CreateWallet)
         api.Get("/search", handlers.SearchUser)
+        
         
     }
     

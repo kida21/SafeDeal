@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"payment_service/internal/auth"
 	"payment_service/internal/escrow"
 	"payment_service/internal/model"
 	"payment_service/pkg/chapa"
@@ -16,6 +17,7 @@ import (
 
 var chapaClient = chapa.NewChapaClient(os.Getenv("CHAPA_SECRET_KEY"))
 var escrowClient *escrow.EscrowServiceClient
+var userServiceClient *auth.UserServiceClient
 
 func init() {
     var err error
@@ -23,16 +25,14 @@ func init() {
     if err != nil {
         panic("failed to initialize escrow gRPC client: " + err.Error())
     }
+    userServiceClient, err = auth.NewUserServiceClient("user-service:50051")
+    if err != nil {
+        panic("failed to initialize user gRPC client: " + err.Error())
+    }
 }
 func InitiateEscrowPayment(c fiber.Ctx) error {
     type Request struct {
         EscrowID   uint   `json:"escrow_id"`
-        BuyerID    uint    `json:"buyer_id"`
-        Amount     float64 `json:"amount"`  
-        Currency   string `json:"currency"`
-        Email      string `json:"email"`      
-        FirstName  string `json:"first_name"`   
-        LastName   string `json:"last_name"`  
         Phone      string `json:"phone_number"` 
     }
 
@@ -47,30 +47,16 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
         })
     }
     
-    if req.Amount <= 0 {
+   if req.Phone == ""{
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Amount must be greater than zero",
-        })
-    }
-    if req.Currency == "" {
-        req.Currency = "ETB" 
-    }
-    if req.Email == "" {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Email is required",
-        })
-    }
-
-    if req.FirstName == "" || req.LastName == ""{
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error":"either first name or last name is empty",
+            "error": "Phone Number is required",
         })
     }
     
     userIDStr := c.Get("X-User-ID")
     buyerID, _ := strconv.ParseUint(userIDStr, 10, 32)
 
-    escrowClient, _ := escrow.NewEscrowServiceClient("escrow-service:50052")
+    // escrowClient, _ := escrow.NewEscrowServiceClient("escrow-service:50052")
     
     escrowResp, err := escrowClient.GetEscrow(uint32(req.EscrowID))
     
@@ -79,13 +65,20 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
             "error": "Escrow not found",
         })
     }
-   
+    if escrowResp.Amount <= 0 {
+		 return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+             "error": "Amount must be greater than zero",
+	       })
+    }
     if escrowResp.BuyerId != uint32(buyerID) {
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
             "error": "You are not authorized to fund this escrow",
         })
     }
-    
+    userResp, err := userServiceClient.GetUser(uint32(buyerID))
+	if err != nil || !userResp.Activated {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "User not found or not activated"})
+	}
 
     var existing model.EscrowPayment
     db := c.Locals("db").(*gorm.DB)
@@ -97,11 +90,11 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
 
     txRef := utils.GenerateTxRef()
     paymentURL, _, err := chapaClient.InitiatePayment(chapa.ChapaRequest{
-        Amount:           fmt.Sprintf("%.2f", req.Amount),
-        Currency:          req.Currency,
-        Email:             req.Email,
-        FirstName:         req.FirstName,
-        LastName:          req.LastName,
+        Amount:           fmt.Sprintf("%.2f", escrowResp.Amount),
+        Currency:          "ETB",
+        Email:             userResp.Email,
+        FirstName:         userResp.FirstName,
+        LastName:          userResp.LastName,
         PhoneNumber:       req.Phone,
         TxRef:             txRef,
         CallbackURL:       "https://webhook.site/077164d6-29cb-40df-ba29-8a00e59a7e60",
@@ -120,10 +113,10 @@ func InitiateEscrowPayment(c fiber.Ctx) error {
 
    db.Create(&model.EscrowPayment{
         EscrowID:       req.EscrowID,
-        BuyerID:         req.BuyerID,
+        BuyerID:         uint(buyerID),
         TransactionRef: txRef,
-        Amount:         req.Amount,
-        Currency:       req.Currency,
+        Amount:         float64(escrowResp.Amount),
+        Currency:       "ETB",
         Status:         model.Pending,
         PaymentURL:     paymentURL,
     })

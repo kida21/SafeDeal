@@ -113,6 +113,7 @@ func (s *AuthServer) GetUser(ctx context.Context, req *v0.GetUserRequest) (*v0.G
             AccountName: accountNamePb,
             AccountNumber: accountNumberPb,
             BankCode: bankCodePb,
+            Profession: user.Profession,
             
         },
     }, nil
