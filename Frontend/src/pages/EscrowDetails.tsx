@@ -81,46 +81,81 @@ const EscrowDetails = () => {
   };
 
   const handleAccept = async () => {
-    if (!escrow) return;
+    const escrowId = Number(id);
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      toast.error('Invalid escrow ID');
+      return;
+    }
     
     setIsProcessing(true);
     try {
-      await escrowApi.accept(escrow.id);
+      await escrowApi.accept(escrowId);
       toast.success('Escrow accepted successfully!');
       fetchEscrowDetails();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to accept escrow');
+      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to accept escrow');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleConfirmReceipt = async () => {
-    if (!escrow) return;
+    const escrowId = Number(id);
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      toast.error('Invalid escrow ID');
+      return;
+    }
     
     setIsProcessing(true);
     try {
-      await escrowApi.confirmReceipt(escrow.id);
+      await escrowApi.confirmReceipt(escrowId);
       toast.success('Receipt confirmed! Funds will be released to the seller.');
       fetchEscrowDetails();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to confirm receipt');
+      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to confirm receipt');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleInitiatePayment = async () => {
-    if (!escrow) return;
+    const escrowId = Number(id);
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      toast.error('Invalid escrow ID');
+      return;
+    }
     
+    // Ensure phone number is available (required by payment provider)
+    let profile: any = {};
+    try { profile = JSON.parse(localStorage.getItem('user_profile') || '{}'); } catch {}
+    let phone = profile?.phone_number as string | undefined;
+    if (!phone || typeof phone !== 'string' || phone.trim().length < 7) {
+      const entered = prompt('Enter your phone number for payment (required):');
+      if (!entered || entered.trim().length < 7) {
+        toast.error('A valid phone number is required to proceed.');
+        return;
+      }
+      phone = entered.trim();
+      // Persist for next time
+      try {
+        const nextProfile = { ...profile, phone_number: phone };
+        localStorage.setItem('user_profile', JSON.stringify(nextProfile));
+      } catch {}
+    }
+
     setIsProcessing(true);
     try {
-      const response = await paymentApi.initiateEscrowPayment(escrow.id);
+      const response = await paymentApi.initiateEscrowPayment(escrowId, {
+        email: user?.email,
+        first_name: user?.first_name,
+        last_name: user?.last_name,
+        phone_number: phone,
+      });
       setPayment(response.data);
       setShowPayment(true);
       toast.success('Payment initiated! Please complete the payment.');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to initiate payment');
+      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to initiate payment');
     } finally {
       setIsProcessing(false);
     }
@@ -262,7 +297,7 @@ const EscrowDetails = () => {
                   </button>
                 )}
 
-                {isSeller && escrow.status === 'Pending' && (
+                {isSeller && escrow.status === 'Funded' && (
                   <button
                     onClick={handleAccept}
                     disabled={isProcessing}
@@ -284,18 +319,25 @@ const EscrowDetails = () => {
                   </button>
                 )}
 
-                {(isBuyer || isSeller) && escrow.status !== 'Disputed' && (
+                {(isBuyer || isSeller) && escrow.status === 'Funded' && (
                   <button
                     onClick={() => {
+                      const escrowId = Number(id);
+                      if (!Number.isFinite(escrowId) || escrowId <= 0) {
+                        toast.error('Invalid escrow ID');
+                        return;
+                      }
                       const reason = prompt('Please provide a reason for the dispute:');
-                      if (reason) {
-                        escrowApi.dispute(escrow.id, reason).then(() => {
+                      if (!reason) return;
+                      escrowApi
+                        .dispute(escrowId, reason)
+                        .then(() => {
                           toast.success('Dispute created successfully');
                           fetchEscrowDetails();
-                        }).catch(error => {
-                          toast.error('Failed to create dispute');
+                        })
+                        .catch((error) => {
+                          toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to create dispute');
                         });
-                      }
                     }}
                     className="btn btn-outline btn-lg w-full"
                   >
@@ -386,7 +428,7 @@ const EscrowDetails = () => {
         <RealTimeChat
           isOpen={showChat}
           onClose={() => setShowChat(false)}
-          escrowId={escrow.id}
+          escrowId={Number(id)}
         />
 
         <PaymentModal

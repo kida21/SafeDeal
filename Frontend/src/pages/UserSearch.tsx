@@ -70,7 +70,7 @@ const UserSearch = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by name, profession, or email..."
+                placeholder="Search by first name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input pl-12 w-full"
@@ -177,7 +177,7 @@ const UserSearch = () => {
                     <div className="flex items-center space-x-3">
                       {user.activated ? (
                         <Link
-                          to={`/create-escrow?seller=${user.first_name} ${user.last_name}`}
+                          to={`/create-escrow?seller=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&seller_id=${user.id}`}
                           className="btn btn-primary btn-sm"
                         >
                           Create Escrow
@@ -197,58 +197,27 @@ const UserSearch = () => {
 
         {/* Search Tips */}
         {!hasSearched && (
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Search Tips
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-start space-x-3">
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <Search className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Search by Name</h4>
-                  <p className="text-sm text-gray-600">
-                    Enter the user's first or last name to find them quickly.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="p-2 bg-green-100 rounded-full">
-                  <Briefcase className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Search by Profession</h4>
-                  <p className="text-sm text-gray-600">
-                    Find users by their profession or business type.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="p-2 bg-purple-100 rounded-full">
-                  <Mail className="h-4 w-4 text-purple-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Search by Email</h4>
-                  <p className="text-sm text-gray-600">
-                    If you know their email address, you can search by it.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="p-2 bg-yellow-100 rounded-full">
-                  <CheckCircle className="h-4 w-4 text-yellow-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Verified Users Only</h4>
-                  <p className="text-sm text-gray-600">
-                    Only verified users can participate in escrow transactions.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+  <div className="card p-4 sm:p-6">
+    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+      Search Tips
+    </h3>
+    <div className="grid grid-cols-1 gap-4 sm:gap-6">
+      <div className="flex items-start space-x-3">
+        <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
+          <Search className="h-4 w-4 text-blue-600" />
+        </div>
+        <div>
+          <h4 className="font-medium text-gray-900">Search by Name</h4>
+          <p className="text-sm sm:text-base text-gray-600">
+            Enter the user's first name to find them quickly.
+          </p>
+        </div>
+      </div>
+      {/* Add more search tips here if needed */}
+    </div>
+  </div>
+)}
+
       </div>
     </Layout>
   );

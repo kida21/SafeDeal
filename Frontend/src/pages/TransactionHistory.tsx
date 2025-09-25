@@ -35,7 +35,8 @@ const TransactionHistory = () => {
     setError(null);
     try {
       const response = await paymentApi.getTransactionHistory();
-      setTransactions(response.data);
+      const list = (response.data as any)?.transactions;
+      setTransactions(Array.isArray(list) ? list : []);
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to fetch transactions');
       toast.error('Failed to load transaction history');

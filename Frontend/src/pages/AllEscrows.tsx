@@ -38,7 +38,13 @@ const AllEscrows = () => {
     setError(null);
     try {
       const response = await escrowApi.getMyEscrows();
-      setEscrows(response.data);
+      const payload: any = response.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.escrows)
+        ? payload.escrows
+        : [];
+      setEscrows(list as Escrow[]);
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to fetch escrows');
       toast.error('Failed to load escrows');
@@ -67,16 +73,18 @@ const AllEscrows = () => {
     }
   };
 
-  const filteredEscrows = escrows.filter(escrow => {
-    const matchesSearch = 
-      escrow.id.toString().includes(searchTerm) ||
-      escrow.amount.toString().includes(searchTerm) ||
-      escrow.conditions?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || escrow.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const filteredEscrows = Array.isArray(escrows)
+    ? escrows.filter((escrow) => {
+        const term = searchTerm.trim().toLowerCase();
+        const matchesSearch = !term
+          ? true
+          : escrow.id.toString().includes(term) ||
+            escrow.amount.toString().includes(term) ||
+            (escrow.conditions || '').toLowerCase().includes(term);
+        const matchesStatus = statusFilter === 'all' || escrow.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
+    : [];
 
   if (isLoading) {
     return (

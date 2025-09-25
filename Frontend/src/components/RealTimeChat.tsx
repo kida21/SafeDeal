@@ -23,7 +23,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && Number.isFinite(escrowId) && escrowId > 0) {
       connectWebSocket();
     } else {
       disconnectWebSocket();
@@ -35,6 +35,12 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
   }, [isOpen, escrowId]);
 
   const connectWebSocket = () => {
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      console.warn('RealTimeChat: invalid escrowId, skipping WebSocket connect', escrowId);
+      setConnectionError('Invalid escrow.');
+      setIsConnected(false);
+      return;
+    }
     try {
       const ws = wsApi.connectChat(escrowId);
       wsRef.current = ws;

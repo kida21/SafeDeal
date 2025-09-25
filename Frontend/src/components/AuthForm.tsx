@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
-import { authApi } from "../lib/api";
+import { authApi, userApi } from "../lib/api";
 import { toast } from "react-hot-toast";
 import { LoginRequest, RegisterRequest } from "../types";
 import { useNavigate } from "react-router-dom";
@@ -31,10 +31,33 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
       let response;
       if (isLogin) {
         response = await authApi.login(data as LoginRequest);
-        const { user, access_token, refresh_token } = response.data;
-        localStorage.setItem("access_token", access_token);
-        localStorage.setItem("refresh_token", refresh_token);
-        setUser(user);
+        // Be resilient to different token field names
+        const body: any = response?.data || {};
+        const accessToken = body.access_token || body.accessToken || body.token || response?.headers?.["authorization"]?.replace(/^Bearer\s+/i, "");
+        const refreshToken = body.refresh_token || body.refreshToken || body.refresh || '';
+
+        if (!accessToken) {
+          toast.error("Login succeeded but no access token returned by server.");
+          return;
+        }
+
+        try { localStorage.setItem("access_token", accessToken); } catch {}
+        if (refreshToken) {
+          try { localStorage.setItem("refresh_token", refreshToken); } catch {}
+        }
+
+        // Fetch fresh profile to ensure activation and details are current
+        try {
+          const profileResp = await userApi.getProfile();
+          const profile = profileResp.data;
+          setUser(profile);
+          try { localStorage.setItem("user_profile", JSON.stringify(profile)); } catch {}
+        } catch (e) {
+          // If profile fails immediately after login, force user to re-auth
+          toast.error("Failed to load profile after login. Please try again.");
+          return;
+        }
+
         toast.success("Login successful!");
         navigate("/dashboard");
       } else {

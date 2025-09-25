@@ -26,12 +26,15 @@ const CreateEscrow = () => {
 
   const watchedAmount = watch('amount');
 
-  // Pre-fill seller name if coming from search
+  // Pre-fill seller name/id if coming from search
   useEffect(() => {
     const sellerName = searchParams.get('seller');
+    const sellerId = searchParams.get('seller_id');
     if (sellerName) {
-      // You could set this in the form if needed
-      console.log('Pre-filling seller name:', sellerName);
+      (document.querySelector('input[name="seller_name"]') as HTMLInputElement | null)?.setAttribute('value', sellerName);
+    }
+    if (sellerId) {
+      (document.querySelector('input[name="seller_id"]') as HTMLInputElement | null)?.setAttribute('value', sellerId);
     }
   }, [searchParams]);
 
@@ -199,11 +202,14 @@ const CreateEscrow = () => {
                     Seller Information
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Enter the seller's ID to create an escrow with them
+                    Search for the seller or enter their ID
                   </p>
                 </div>
 
                 <div>
+                  <div className="mb-3">
+                    <Link to="/search" className="btn btn-outline btn-sm">Search Users</Link>
+                  </div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Seller ID
                   </label>

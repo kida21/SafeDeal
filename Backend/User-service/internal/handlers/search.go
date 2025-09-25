@@ -113,16 +113,17 @@ func SearchUser(c fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to search users"})
 	}
 
-	// Build response
-	var results []fiber.Map
-	for _, u := range users {
-		results = append(results, fiber.Map{
-			"first_name": u.FirstName,
-			"last_name":  u.LastName,
-			"profession": u.Profession,
-			"activated":  u.Activated,
-		})
-	}
+    // Build response (include id so clients can map to user IDs)
+    var results []fiber.Map
+    for _, u := range users {
+        results = append(results, fiber.Map{
+            "id":         u.ID,
+            "first_name": u.FirstName,
+            "last_name":  u.LastName,
+            "profession": u.Profession,
+            "activated":  u.Activated,
+        })
+    }
 
 	return c.JSON(fiber.Map{
 		"users": results,

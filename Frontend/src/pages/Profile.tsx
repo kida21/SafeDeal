@@ -315,6 +315,23 @@ const Profile = () => {
                         : "Account Pending Verification"}
                     </span>
                   </div>
+                  {!user.activated && (
+                    <div className="mt-3">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await userApi.resendActivation(user.email);
+                            toast.success('Activation email sent! Please check your inbox.');
+                          } catch (e: any) {
+                            toast.error(e?.response?.data?.error || 'Failed to resend activation email');
+                          }
+                        }}
+                        className="btn btn-outline btn-sm"
+                      >
+                        Resend Activation Email
+                      </button>
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={isUpdatingProfile}

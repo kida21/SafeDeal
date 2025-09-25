@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Layout from "../components/Layout";
 import { useAuthStore } from "../store/authStore";
-import { useEscrowStore } from "../store/escrowStore";
+import { escrowApi } from "../lib/api";
 import {
   formatCurrency,
   formatRelativeTime,
@@ -28,43 +28,103 @@ import LoadingSpinner from "../components/LoadingSpinner";
 
 const Dashboard = () => {
   const { user } = useAuthStore();
-  const {
-    escrows,
-    stats,
-    isLoading,
-    statsLoading,
-    error,
-    fetchEscrows,
-    fetchStats,
-    refreshAll,
-  } = useEscrowStore();
+  const [escrows, setEscrows] = useState<any[]>([]);
+  const [stats, setStats] = useState<{
+    total_escrows: number;
+    active_escrows: number;
+    completed_escrows: number;
+    disputed_escrows: number;
+    total_amount: number;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch escrows and stats when component mounts
     const loadData = async () => {
+      setIsLoading(true);
+      setStatsLoading(true);
+      setError(null);
       try {
-        await Promise.all([
-          fetchEscrows(5), // Get recent 5 escrows from backend
-          fetchStats(), // Get stats calculated from backend data
-        ]);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
+        const response = await escrowApi.getMyEscrows();
+        const payload: any = response.data;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.escrows)
+          ? payload.escrows
+          : [];
+
+        // Prefer backend-provided summary if available
+        const summary = payload?.summary;
+        const computed = {
+          total_escrows: list.length,
+          active_escrows: list.filter((e: any) => e.status === 'Pending' || e.status === 'Funded').length,
+          completed_escrows: list.filter((e: any) => e.status === 'Released').length,
+          disputed_escrows: list.filter((e: any) => e.status === 'Disputed').length,
+          total_amount: list.reduce((sum: number, e: any) => sum + (e.amount || 0), 0),
+        };
+
+        setEscrows(list.slice(0, 5));
+        setStats({
+          total_escrows: Number(summary?.total ?? computed.total_escrows),
+          active_escrows: Number(summary?.active ?? computed.active_escrows),
+          completed_escrows: Number(summary?.completed ?? computed.completed_escrows),
+          disputed_escrows: Number(summary?.disputed ?? computed.disputed_escrows),
+          total_amount: Number(summary?.total_amount ?? computed.total_amount),
+        });
+      } catch (err: any) {
+        console.error("Failed to load dashboard data:", err);
+        setError(err?.response?.data?.message || 'Failed to load dashboard data');
         toast.error("Failed to load dashboard data. Please check your connection.");
+      } finally {
+        setIsLoading(false);
+        setStatsLoading(false);
       }
     };
 
     if (user) {
       loadData();
     }
-  }, [fetchEscrows, fetchStats, user]);
+  }, [user]);
 
   const handleRefresh = async () => {
     try {
-      await refreshAll();
+      // Reuse the same load logic
+      setIsLoading(true);
+      setStatsLoading(true);
+      setError(null);
+      const response = await escrowApi.getMyEscrows();
+      const payload: any = response.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.escrows)
+        ? payload.escrows
+        : [];
+      const summary = payload?.summary;
+      const computed = {
+        total_escrows: list.length,
+        active_escrows: list.filter((e: any) => e.status === 'Pending' || e.status === 'Funded').length,
+        completed_escrows: list.filter((e: any) => e.status === 'Released').length,
+        disputed_escrows: list.filter((e: any) => e.status === 'Disputed').length,
+        total_amount: list.reduce((sum: number, e: any) => sum + (e.amount || 0), 0),
+      };
+      setEscrows(list.slice(0, 5));
+      setStats({
+        total_escrows: Number(summary?.total ?? computed.total_escrows),
+        active_escrows: Number(summary?.active ?? computed.active_escrows),
+        completed_escrows: Number(summary?.completed ?? computed.completed_escrows),
+        disputed_escrows: Number(summary?.disputed ?? computed.disputed_escrows),
+        total_amount: Number(summary?.total_amount ?? computed.total_amount),
+      });
       toast.success("Dashboard refreshed");
-    } catch (error) {
-      console.error("Failed to refresh dashboard data:", error);
+    } catch (err: any) {
+      console.error("Failed to refresh dashboard data:", err);
+      setError(err?.response?.data?.message || 'Failed to refresh dashboard data');
       toast.error("Failed to refresh dashboard data");
+    } finally {
+      setIsLoading(false);
+      setStatsLoading(false);
     }
   };
 
@@ -122,7 +182,7 @@ const Dashboard = () => {
               </button>
               <Link
                 to="/create-escrow"
-                className="btn bg-white text-[#014d46] hover:bg-gray-100 btn-lg"
+                className="btn bg-white text-[#014d46] hover:bg-gray-100 btn-md"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Create Escrow
@@ -288,7 +348,7 @@ const Dashboard = () => {
                 </h4>
                 <p className="text-gray-600 mb-4">{error}</p>
                 <button
-                  onClick={() => fetchEscrows(5)}
+                  onClick={handleRefresh}
                   className="btn btn-outline btn-sm"
                 >
                   Try Again
@@ -311,8 +371,9 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-4">
                 {escrows.map((escrow) => (
-                  <div
+                  <Link
                     key={escrow.id}
+                    to={`/escrow/${escrow.id}`}
                     className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center space-x-4">
@@ -344,7 +405,7 @@ const Dashboard = () => {
                         {escrow.status}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

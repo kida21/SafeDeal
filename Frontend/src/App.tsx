@@ -32,11 +32,13 @@ function App() {
             // Get user profile
             const profileResponse = await userApi.getProfile();
             setUser(profileResponse.data);
+            try { localStorage.setItem('user_profile', JSON.stringify(profileResponse.data)); } catch {}
           }
         } catch (error) {
           console.error('Auth initialization failed:', error);
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
+          try { localStorage.removeItem('user_profile'); } catch {}
         } finally {
           setLoading(false);
         }

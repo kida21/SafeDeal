@@ -12,7 +12,6 @@ import {
     CreateEscrowRequest,
     EscrowPayment,
     BankDetails,
-    Notification,
     TransactionHistory
 } from '../types';
 
@@ -72,14 +71,17 @@ api.interceptors.response.use(
                     return api(originalRequest);
                 } else {
                     console.log('No refresh token found');
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
                 }
             } catch (refreshError) {
                 console.error('Token refresh failed:', refreshError);
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('refresh_token');
-                window.location.href = '/login';
             }
         }
+
+        // Note: Do not clear tokens on 403. These are business-rule errors (e.g., not activated).
 
         return Promise.reject(error);
     }
@@ -121,6 +123,10 @@ export const userApi = {
     // POST Wallet
     createWallet: (): Promise<AxiosResponse<User>> =>
         api.post('/api/wallet'),
+
+    // POST Resend Activation Email (public route via gateway)
+    resendActivation: (email: string): Promise<AxiosResponse<{ message: string }>> =>
+        axios.post(`${API_BASE_URL}/resend`, { email }, { headers: { 'Content-Type': 'application/json' } }),
 };
 
 // Escrow API - Based on backend endpoints
@@ -130,7 +136,8 @@ export const escrowApi = {
         api.post('/api/escrows', data),
 
     // GET My Escrows - Get user's escrows
-    getMyEscrows: (): Promise<AxiosResponse<Escrow[]>> =>
+    // Backend returns: { escrows: Escrow[], summary: { total, active, completed } }
+    getMyEscrows: (): Promise<AxiosResponse<{ escrows: Escrow[]; summary: { total: number; active: number; completed: number } }>> =>
         api.get('/api/escrows/my'),
 
     // GET Fetch-escrow
@@ -167,11 +174,38 @@ export const escrowApi = {
 // Payment API - Based on backend endpoints
 export const paymentApi = {
     // POST Payment
-    initiateEscrowPayment: (escrowId: number): Promise<AxiosResponse<EscrowPayment>> =>
-        api.post('/api/payments/initiate', { escrow_id: escrowId }),
+    initiateEscrowPayment: async (escrowId: number, p0: { email: string | undefined; first_name: string | undefined; last_name: string | undefined; phone_number: string; }): Promise<AxiosResponse<EscrowPayment>> => {
+        // Fetch escrow to get amount if needed
+        const escrowResp = await api.get(`/api/escrows/${escrowId}`);
+        const amount = escrowResp?.data?.amount;
+        const profileRaw = localStorage.getItem('user_profile');
+        let email = '';
+        let first_name = '';
+        let last_name = '';
+        let phone_number = '';
+        try {
+            if (profileRaw) {
+                const profile = JSON.parse(profileRaw);
+                email = profile.email || '';
+                first_name = profile.first_name || '';
+                last_name = profile.last_name || '';
+                phone_number = profile.phone_number || '';
+            }
+        } catch { }
+
+        return api.post('/api/payments/initiate', {
+            escrow_id: escrowId,
+            amount,
+            currency: 'ETB',
+            email,
+            first_name,
+            last_name,
+            phone_number,
+        });
+    },
 
     // GET Transaction History
-    getTransactionHistory: (): Promise<AxiosResponse<TransactionHistory[]>> =>
+    getTransactionHistory: (): Promise<AxiosResponse<{ transactions: TransactionHistory[]; total: number; status: string }>> =>
         api.get('/api/payments/transactions'),
 };
 
@@ -179,27 +213,46 @@ export const paymentApi = {
 export const wsApi = {
     // Chat WebSocket connection
     connectChat: (escrowId: number): WebSocket => {
-        const token = localStorage.getItem('access_token');
-        const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/api/chat/ws/${escrowId}`;
+        const token = localStorage.getItem('access_token') || '';
+        if (escrowId === undefined || escrowId === null) {
+            console.warn('connectChat called without a valid escrowId');
+            // Return a dummy WS that will immediately close to avoid null checks downstream
+            const dummy = new WebSocket('ws://localhost:0');
+            try { dummy.close(); } catch { }
+            return dummy;
+        }
+
+        const wsBase = API_BASE_URL.startsWith('https')
+            ? API_BASE_URL.replace('https', 'wss')
+            : API_BASE_URL.replace('http', 'ws');
+        const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+        const wsUrl = `${wsBase}/api/chat/ws/${escrowId}${qs}`;
         try {
             return new WebSocket(wsUrl);
         } catch (error) {
             console.warn('WebSocket connection failed:', error);
-            // Return a mock WebSocket that won't cause errors
-            return new WebSocket('ws://localhost:8080/api/chat/ws/1');
+            // Return a dummy socket that immediately closes
+            const dummy = new WebSocket('ws://localhost:0');
+            try { dummy.close(); } catch { }
+            return dummy;
         }
     },
 
     // Notification WebSocket connection
     connectNotifications: (): WebSocket => {
-        const token = localStorage.getItem('access_token');
-        const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/api/notifications/ws`;
+        const token = localStorage.getItem('access_token') || '';
+        const wsBase = API_BASE_URL.startsWith('https')
+            ? API_BASE_URL.replace('https', 'wss')
+            : API_BASE_URL.replace('http', 'ws');
+        const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+        const wsUrl = `${wsBase}/api/notifications/ws${qs}`;
         try {
             return new WebSocket(wsUrl);
         } catch (error) {
             console.warn('WebSocket connection failed:', error);
-            // Return a mock WebSocket that won't cause errors
-            return new WebSocket('ws://localhost:8080/api/notifications/ws');
+            const dummy = new WebSocket('ws://localhost:0');
+            try { dummy.close(); } catch { }
+            return dummy;
         }
     },
 };
