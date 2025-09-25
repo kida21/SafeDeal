@@ -117,6 +117,7 @@ func SearchUser(c fiber.Ctx) error {
 	var results []fiber.Map
 	for _, u := range users {
 		results = append(results, fiber.Map{
+			"id": u.ID,
 			"first_name": u.FirstName,
 			"last_name":  u.LastName,
 			"profession": u.Profession,
