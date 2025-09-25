@@ -15,6 +15,7 @@ import TransactionHistory from './pages/TransactionHistory';
 import UserSearch from './pages/UserSearch';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
+import NotificationToast from './components/NotificationToast';
 // import LoadingSpinner from './components/LoadingSpinner';
 
 function App() {
@@ -198,8 +199,11 @@ function App() {
         {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      
+      {/* Global Notification Toast */}
+      <NotificationToast isEnabled={isAuthenticated} />
     </div>
   );
-}
+};
 
 export default App;

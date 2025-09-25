@@ -30,6 +30,7 @@ const Profile = () => {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isFetchingProfile, setIsFetchingProfile] = useState(false);
   const [selectedBankCode, setSelectedBankCode] = useState<number | null>(null);
+  const [showBankForm, setShowBankForm] = useState(false);
 
   const {
     register,
@@ -503,7 +504,16 @@ const Profile = () => {
                   {/* Display current bank details if they exist */}
                   {(user.account_name || user.account_number || user.bank_code) && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                      <h4 className="text-sm font-medium text-blue-900 mb-3">Current Bank Details</h4>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-blue-900">Current Bank Details</h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowBankForm(!showBankForm)}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          {showBankForm ? 'Cancel Update' : 'Update Details'}
+                        </button>
+                      </div>
                       <div className="space-y-2">
                         {user.account_name && (
                           <div className="flex justify-between">
@@ -529,10 +539,12 @@ const Profile = () => {
                     </div>
                   )}
 
-                  <form
-                    onSubmit={handleSubmit(handleUpdateBankDetails)}
-                    className="space-y-6"
-                  >
+                  {/* Show form only if no bank details exist or user wants to update */}
+                  {(!user.account_name && !user.account_number && !user.bank_code) || showBankForm ? (
+                    <form
+                      onSubmit={handleSubmit(handleUpdateBankDetails)}
+                      className="space-y-6"
+                    >
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Account Name
@@ -605,6 +617,7 @@ const Profile = () => {
                       {isLoading ? "Updating..." : "Update Bank Details"}
                     </button>
                   </form>
+                ) : null}
                 </div>
 
                 {/* Bank Information Help */}

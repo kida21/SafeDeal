@@ -156,7 +156,44 @@ const CreateEscrow = () => {
       if (error.response?.status === 403 && error.response?.data?.error?.includes('not activated')) {
         toast.error('Account activation issue detected. Please try logging out and logging back in.');
       } else {
-        toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to create escrow');
+        // Enhanced error handling for bank details compatibility
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to create escrow';
+        
+        // Check if error is related to bank details compatibility
+        if (errorMessage.toLowerCase().includes('bank') || errorMessage.toLowerCase().includes('account')) {
+          // Try to determine if it's buyer or seller bank details issue
+          if (errorMessage.toLowerCase().includes('buyer') || errorMessage.toLowerCase().includes('your')) {
+            toast.error(`❌ Buyer Bank Details Issue: ${errorMessage}`, {
+              duration: 6000,
+              style: {
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                color: '#DC2626',
+              },
+            });
+          } else if (errorMessage.toLowerCase().includes('seller')) {
+            toast.error(`❌ Seller Bank Details Issue: ${errorMessage}`, {
+              duration: 6000,
+              style: {
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                color: '#DC2626',
+              },
+            });
+          } else {
+            // Generic bank details error with perspective clarification
+            toast.error(`❌ Bank Details Compatibility Issue: ${errorMessage}. Please check both buyer and seller bank account details.`, {
+              duration: 6000,
+              style: {
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                color: '#DC2626',
+              },
+            });
+          }
+        } else {
+          toast.error(errorMessage);
+        }
       }
     } finally {
       setIsLoading(false);

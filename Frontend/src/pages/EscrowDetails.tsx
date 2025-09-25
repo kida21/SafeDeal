@@ -196,7 +196,41 @@ const EscrowDetails = () => {
       setShowPayment(true);
       toast.success('Payment initiated! Please complete the payment.');
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to initiate payment');
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || 'Failed to initiate payment';
+      
+      // Enhanced error handling for bank details compatibility
+      if (errorMessage.toLowerCase().includes('bank') || errorMessage.toLowerCase().includes('account')) {
+        if (errorMessage.toLowerCase().includes('buyer') || errorMessage.toLowerCase().includes('your')) {
+          toast.error(`❌ Your Bank Details Issue: ${errorMessage}`, {
+            duration: 6000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
+        } else if (errorMessage.toLowerCase().includes('seller')) {
+          toast.error(`❌ Seller Bank Details Issue: ${errorMessage}`, {
+            duration: 6000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
+        } else {
+          toast.error(`❌ Bank Details Issue: ${errorMessage}`, {
+            duration: 6000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
+        }
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsProcessing(false);
     }
