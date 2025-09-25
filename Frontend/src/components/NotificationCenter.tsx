@@ -23,6 +23,7 @@ interface NotificationCenterProps {
 const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
   const { user } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -45,32 +46,49 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('Notification WebSocket connected');
         setIsConnected(true);
         setConnectionError(null);
+        // Request notification history on connect
+        ws.send(JSON.stringify({ type: 'get_history' }));
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Received notification:', data);
           
-          if (data.type === 'notification') {
+          if (data.type === 'history') {
+            // Load notification history - clear existing and load all
+            const historyNotifications = (data.data || []).map((item: any) => ({
+              id: item.id || Date.now() + Math.random(),
+              user_id: item.user_id || user?.id || 0,
+              type: item.type || 'info',
+              title: item.title || 'No Title',
+              message: item.message || 'No message',
+              read: false, // Mark as unread initially
+              metadata: item.metadata,
+              created_at: item.created_at || new Date().toISOString()
+            }));
+            setNotifications(historyNotifications.reverse()); // Reverse to show newest first
+          } else if (data.type === 'notification') {
+            // Handle new real-time notification
+            const notificationData = data.data || data;
             const notification: Notification = {
-              id: data.id || Date.now(),
-              user_id: data.user_id,
-              type: data.notification_type || 'info',
-              title: data.title,
-              message: data.message,
-              read: false,
-              metadata: data.metadata,
-              created_at: data.created_at || new Date().toISOString()
+              id: notificationData.id || Date.now(),
+              user_id: notificationData.user_id || user?.id || 0,
+              type: notificationData.type || 'info',
+              title: notificationData.title || 'New Notification',
+              message: notificationData.message || 'You have a new notification.',
+              read: false, // New notifications are unread
+              metadata: notificationData.metadata,
+              created_at: notificationData.created_at || new Date().toISOString()
             };
             
-            setNotifications(prev => [notification, ...prev]);
-          } else if (data.type === 'history') {
-            // Load notification history
-            setNotifications(data.notifications || []);
+            setNotifications(prev => {
+              // Check if notification already exists to prevent duplicates
+              const exists = prev.some(n => n.id === notification.id);
+              if (exists) return prev;
+              return [notification, ...prev]; // Add to beginning (newest first)
+            });
           }
         } catch (error) {
           console.error('Error parsing notification message:', error);
@@ -78,21 +96,15 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
       };
 
       ws.onclose = () => {
-        console.log('Notification WebSocket disconnected');
         setIsConnected(false);
         setConnectionError('Connection lost. Notification service unavailable.');
-        
-        // Don't attempt to reconnect automatically to prevent infinite loops
-        // when backend is not running
       };
 
-      ws.onerror = (error) => {
-        console.error('Notification WebSocket error:', error);
+      ws.onerror = () => {
         setConnectionError('Notification service unavailable. Backend may not be running.');
         setIsConnected(false);
       };
     } catch (error) {
-      console.error('Failed to connect notification WebSocket:', error);
       setConnectionError('Failed to connect to notification service.');
       setIsConnected(false);
     }
@@ -280,11 +292,17 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                       key={notification.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`p-4 rounded-lg border ${
+                      className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${
                         notification.read 
                           ? 'bg-white border-gray-200' 
                           : getNotificationColor(notification.type)
                       }`}
+                      onClick={() => {
+                        setSelectedNotification(notification);
+                        if (!notification.read) {
+                          markAsRead(notification.id);
+                        }
+                      }}
                     >
                       <div className="flex items-start space-x-3">
                         <div className="flex-shrink-0">
@@ -293,39 +311,50 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <h4 className={`text-sm font-medium ${
-                              notification.read ? 'text-gray-900' : 'text-gray-900'
+                              notification.read ? 'text-gray-900' : 'font-bold text-primary-800'
                             }`}>
-                              {notification.title}
+                              {notification.title || 'No Title'}
                             </h4>
                             <div className="flex items-center space-x-2">
                               <span className="text-xs text-gray-500">
                                 {formatRelativeTime(notification.created_at)}
                               </span>
                               {!notification.read && (
-                                <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
+                                <div className="w-2 h-2 bg-primary-600 rounded-full animate-pulse"></div>
                               )}
                             </div>
                           </div>
-                          <p className={`text-sm mt-1 ${
-                            notification.read ? 'text-gray-600' : 'text-gray-700'
+                          <p className={`text-sm mt-1 line-clamp-2 ${
+                            notification.read ? 'text-gray-600' : 'text-gray-800'
                           }`}>
-                            {notification.message}
+                            {notification.message || 'No message'}
                           </p>
-                          <div className="flex items-center space-x-2 mt-3">
-                            {!notification.read && (
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="text-xs text-gray-500">
+                              Type: {notification.type}
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              {!notification.read && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsRead(notification.id);
+                                  }}
+                                  className="text-xs text-primary-600 hover:text-primary-700 px-2 py-1 rounded hover:bg-primary-50"
+                                >
+                                  Mark as read
+                                </button>
+                              )}
                               <button
-                                onClick={() => markAsRead(notification.id)}
-                                className="text-xs text-primary-600 hover:text-primary-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notification.id);
+                                }}
+                                className="text-xs text-red-600 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
                               >
-                                Mark as read
+                                Delete
                               </button>
-                            )}
-                            <button
-                              onClick={() => deleteNotification(notification.id)}
-                              className="text-xs text-red-600 hover:text-red-700"
-                            >
-                              Delete
-                            </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -337,6 +366,92 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
           </motion.div>
         </motion.div>
       )}
+      
+      {/* Notification Details Modal */}
+      <AnimatePresence>
+        {selectedNotification && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]"
+            onClick={() => setSelectedNotification(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold">Notification Details</h3>
+                  <button
+                    onClick={() => setSelectedNotification(null)}
+                    className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Body */}
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-4">
+                  <div className="flex">
+                    <span className="font-semibold w-20 text-gray-700">Title:</span>
+                    <span className="flex-1 text-gray-900">{selectedNotification.title || 'N/A'}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-20 text-gray-700">Message:</span>
+                    <span className="flex-1 text-gray-900 break-words">{selectedNotification.message || 'N/A'}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-20 text-gray-700">Type:</span>
+                    <span className="flex-1 text-gray-900">{selectedNotification.type || 'N/A'}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-20 text-gray-700">ID:</span>
+                    <span className="flex-1 text-gray-900 font-mono text-sm">{selectedNotification.id || 'N/A'}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-20 text-gray-700">Time:</span>
+                    <span className="flex-1 text-gray-900">
+                      {new Date(selectedNotification.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  {selectedNotification.metadata && (
+                    <div>
+                      <span className="font-semibold text-gray-700 block mb-2">Raw Metadata:</span>
+                      <pre className="bg-gray-50 p-3 rounded-lg text-xs text-gray-800 border overflow-auto max-h-40">
+                        {(() => {
+                          try {
+                            return JSON.stringify(JSON.parse(selectedNotification.metadata), null, 2);
+                          } catch {
+                            return selectedNotification.metadata || 'Invalid JSON';
+                          }
+                        })()}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-200 text-right">
+                <button
+                  onClick={() => setSelectedNotification(null)}
+                  className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 };

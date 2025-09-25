@@ -214,6 +214,7 @@ const CreateEscrow = () => {
                     Seller ID
                   </label>
                   <input
+                  disabled
                     {...register('seller_id' as any, {
                       required: 'Seller ID is required',
                       pattern: {

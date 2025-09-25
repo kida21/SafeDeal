@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, MessageCircle, Wifi, WifiOff } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
-import { formatRelativeTime } from '../lib/utils';
-import { Message } from '../types';
-import { wsApi } from '../lib/api';
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Send, MessageCircle, Wifi, WifiOff } from "lucide-react";
+import { useAuthStore } from "../store/authStore";
+import { formatRelativeTime } from "../lib/utils";
+import { Message } from "../types";
+import { wsApi } from "../lib/api";
 
 interface RealTimeChatProps {
   isOpen: boolean;
@@ -15,7 +15,7 @@ interface RealTimeChatProps {
 const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -36,8 +36,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
 
   const connectWebSocket = () => {
     if (!Number.isFinite(escrowId) || escrowId <= 0) {
-      console.warn('RealTimeChat: invalid escrowId, skipping WebSocket connect', escrowId);
-      setConnectionError('Invalid escrow.');
+      setConnectionError("Invalid escrow ID.");
       setIsConnected(false);
       return;
     }
@@ -46,7 +45,6 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
         setConnectionError(null);
       };
@@ -54,45 +52,57 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Received message:', data);
-          
-          if (data.type === 'message') {
+
+          // Handle history messages (array format)
+          if (Array.isArray(data)) {
+            const historyMessages = data.map(msg => ({
+              id: msg.id || Date.now() + Math.random(),
+              escrow_id: escrowId,
+              sender_id: msg.sender_id,
+              content: msg.content || '',
+              created_at: msg.created_at || new Date().toISOString(),
+              sender: msg.sender,
+            }));
+            setMessages(historyMessages);
+          } else {
+            // Handle single message (direct format from your test)
             const message: Message = {
               id: data.id || Date.now(),
               escrow_id: escrowId,
               sender_id: data.sender_id,
-              content: data.content,
+              content: data.content || '',
               created_at: data.created_at || new Date().toISOString(),
-              sender: data.sender
+              sender: data.sender,
             };
-            
-            setMessages(prev => [...prev, message]);
-          } else if (data.type === 'history') {
-            // Load message history
-            setMessages(data.messages || []);
+
+            setMessages((prev) => {
+              // Check if message already exists to prevent duplicates
+              const exists = prev.some(msg => msg.id === message.id);
+              if (exists) return prev;
+              return [...prev, message];
+            });
           }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          // Handle non-JSON messages
+          console.warn("Received non-JSON message:", event.data);
         }
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
         setIsConnected(false);
-        setConnectionError('Connection lost. Chat service unavailable.');
-        
-        // Don't attempt to reconnect automatically to prevent infinite loops
-        // when backend is not running
+        setConnectionError("Connection lost. Chat service unavailable.");
       };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setConnectionError('Chat service unavailable. Backend may not be running.');
+      ws.onerror = () => {
+        setConnectionError(
+          "Chat service unavailable. Backend may not be running."
+        );
         setIsConnected(false);
       };
     } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
-      setConnectionError('Chat service unavailable. Backend may not be running.');
+      setConnectionError(
+        "Chat service unavailable. Backend may not be running."
+      );
       setIsConnected(false);
     }
   };
@@ -107,7 +117,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -119,17 +129,14 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
     if (!newMessage.trim() || !isConnected || !wsRef.current) return;
 
     const messageData = {
-      type: 'message',
       content: newMessage.trim(),
-      escrow_id: escrowId,
-      sender_id: user?.id
     };
 
     try {
       wsRef.current.send(JSON.stringify(messageData));
-      setNewMessage('');
+      setNewMessage("");
     } catch (error) {
-      console.error('Failed to send message:', error);
+      setConnectionError("Failed to send message");
     }
   };
 
@@ -185,9 +192,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Escrow Chat
                   </h3>
-                  <p className="text-sm text-gray-600">
-                    Escrow #{escrowId}
-                  </p>
+                  <p className="text-sm text-gray-600">Escrow #{escrowId}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
@@ -212,70 +217,126 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-50 to-white">
               {messages.length === 0 ? (
-                <div className="text-center py-8">
-                  <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">
-                    No messages yet
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <MessageCircle className="h-10 w-10 text-primary-600" />
+                  </div>
+                  <h4 className="text-xl font-semibold text-gray-900 mb-3">
+                    Start the conversation
                   </h4>
-                  <p className="text-gray-600">
-                    Start the conversation by sending a message.
+                  <p className="text-gray-600 max-w-sm mx-auto leading-relaxed">
+                    Send your first message to begin chatting about this escrow transaction.
                   </p>
                 </div>
               ) : (
                 messages.map((message) => {
                   const isOwn = message.sender_id === user?.id;
+                  const hasContent = message.content && message.content.trim();
+                  
+                  if (!hasContent) return null;
+                  
                   return (
                     <motion.div
                       key={message.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                      className={`flex mb-4 ${
+                        isOwn ? "justify-end" : "justify-start"
+                      }`}
                     >
-                      <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                          isOwn
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
+                      <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
+                        isOwn ? "flex-row-reverse space-x-reverse" : "flex-row"
+                      }`}>
+                        {/* Avatar */}
                         {!isOwn && (
-                          <p className="text-xs font-medium mb-1 opacity-75">
-                            {message.sender?.first_name} {message.sender?.last_name}
-                          </p>
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                            {message.sender?.first_name?.[0] || 'U'}
+                          </div>
                         )}
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          isOwn ? 'text-primary-100' : 'text-gray-500'
-                        }`}>
-                          {formatRelativeTime(message.created_at)}
-                        </p>
+                        
+                        {/* Message bubble */}
+                        <div className="flex flex-col">
+                          {!isOwn && (
+                            <p className="text-xs font-medium text-gray-600 mb-1 px-1">
+                              {message.sender?.first_name} {message.sender?.last_name}
+                            </p>
+                          )}
+                          <div
+                            className={`px-4 py-3 rounded-2xl shadow-sm ${
+                              isOwn
+                                ? "bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-md"
+                                : "bg-white border border-gray-200 text-gray-900 rounded-bl-md"
+                            }`}
+                          >
+                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                          </div>
+                          <p
+                            className={`text-xs mt-1 px-1 ${
+                              isOwn ? "text-right text-gray-500" : "text-left text-gray-500"
+                            }`}
+                          >
+                            {formatRelativeTime(message.created_at)}
+                          </p>
+                        </div>
+                        
+                        {/* Own avatar */}
+                        {isOwn && (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                            {user?.first_name?.[0] || 'M'}
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   );
-                })
+                }).filter(Boolean)
               )}
               <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}
-            <div className="p-6 border-t border-gray-200">
-              <form onSubmit={handleSendMessage} className="flex space-x-3">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder={isConnected ? "Type your message..." : "Connecting..."}
-                  className="input flex-1"
-                  disabled={!isConnected}
-                />
+            <div className="p-6 border-t border-gray-200 bg-white">
+              <form onSubmit={handleSendMessage} className="flex items-end space-x-3">
+                <div className="flex-1">
+                  <textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                      }
+                    }}
+                    placeholder={
+                      isConnected ? "Type your message... (Press Enter to send, Shift+Enter for new line)" : "Connecting..."
+                    }
+                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-all duration-200 max-h-32 min-h-[48px]"
+                    disabled={!isConnected}
+                    rows={1}
+                    style={{
+                      height: 'auto',
+                      minHeight: '48px',
+                      maxHeight: '128px'
+                    }}
+                    ref={(textarea) => {
+                      if (textarea) {
+                        textarea.style.height = 'auto';
+                        textarea.style.height = Math.min(textarea.scrollHeight, 128) + 'px';
+                      }
+                    }}
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={!isConnected || !newMessage.trim()}
-                  className="btn btn-primary"
+                  className={`p-3 rounded-full transition-all duration-200 ${
+                    !isConnected || !newMessage.trim()
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-br from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  }`}
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5" />
                 </button>
               </form>
             </div>
