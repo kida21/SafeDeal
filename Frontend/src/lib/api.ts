@@ -63,8 +63,14 @@ api.interceptors.response.use(
                         refresh_token: refreshToken,
                     });
 
-                    const { access_token } = response.data;
+                    const { access_token, refresh_token: newRefreshToken } = response.data;
                     localStorage.setItem('access_token', access_token);
+                    
+                    // Update refresh token if provided
+                    if (newRefreshToken) {
+                        localStorage.setItem('refresh_token', newRefreshToken);
+                    }
+                    
                     console.log('Token refreshed successfully');
 
                     originalRequest.headers.Authorization = `Bearer ${access_token}`;
@@ -98,7 +104,7 @@ export const authApi = {
     logout: (): Promise<AxiosResponse<void>> =>
         api.post('/api/logout'),
 
-    refreshToken: (refreshToken: string): Promise<AxiosResponse<{ access_token: string }>> =>
+    refreshToken: (refreshToken: string): Promise<AxiosResponse<{ access_token: string; refresh_token?: string }>> =>
         api.post('/refresh-token', { refresh_token: refreshToken }),
 };
 

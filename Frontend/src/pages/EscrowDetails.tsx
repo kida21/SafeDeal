@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   Shield, 
@@ -8,11 +7,11 @@ import {
   CheckCircle, 
   AlertCircle,
   User,
-  DollarSign,
-  FileText,
   MessageCircle,
   CreditCard,
-  ExternalLink
+  Phone,
+  X,
+  FileText
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useAuthStore } from '../store/authStore';
@@ -23,6 +22,7 @@ import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 import RealTimeChat from '../components/RealTimeChat';
 import PaymentModal from '../components/PaymentModal';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const formatDateSafe = (date: string | number | Date | null | undefined) => {
   if (!date) return "Unknown date";
@@ -59,6 +59,10 @@ const EscrowDetails = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -130,17 +134,9 @@ const EscrowDetails = () => {
     try { profile = JSON.parse(localStorage.getItem('user_profile') || '{}'); } catch {}
     let phone = profile?.phone_number as string | undefined;
     if (!phone || typeof phone !== 'string' || phone.trim().length < 7) {
-      const entered = prompt('Enter your phone number for payment (required):');
-      if (!entered || entered.trim().length < 7) {
-        toast.error('A valid phone number is required to proceed.');
-        return;
-      }
-      phone = entered.trim();
-      // Persist for next time
-      try {
-        const nextProfile = { ...profile, phone_number: phone };
-        localStorage.setItem('user_profile', JSON.stringify(nextProfile));
-      } catch {}
+      setPhoneNumber('');
+      setShowPhoneModal(true);
+      return;
     }
 
     setIsProcessing(true);
@@ -165,6 +161,75 @@ const EscrowDetails = () => {
     setShowPayment(false);
     fetchEscrowDetails();
     toast.success('Payment completed successfully!');
+  };
+
+  const handlePhoneSubmit = async () => {
+    if (!phoneNumber || phoneNumber.trim().length < 7) {
+      toast.error('Please enter a valid phone number (at least 7 digits)');
+      return;
+    }
+
+    const escrowId = Number(id);
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      toast.error('Invalid escrow ID');
+      return;
+    }
+
+    // Save phone number for future use
+    try {
+      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      const nextProfile = { ...profile, phone_number: phoneNumber.trim() };
+      localStorage.setItem('user_profile', JSON.stringify(nextProfile));
+    } catch {}
+
+    setShowPhoneModal(false);
+    setIsProcessing(true);
+    
+    try {
+      const response = await paymentApi.initiateEscrowPayment(escrowId, {
+        email: user?.email,
+        first_name: user?.first_name,
+        last_name: user?.last_name,
+        phone_number: phoneNumber.trim(),
+      });
+      setPayment(response.data);
+      setShowPayment(true);
+      toast.success('Payment initiated! Please complete the payment.');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to initiate payment');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDisputeSubmit = async () => {
+    if (!disputeReason || disputeReason.trim().length < 10) {
+      toast.error('Please provide a detailed reason for the dispute (at least 10 characters)');
+      return;
+    }
+
+    const escrowId = Number(id);
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      toast.error('Invalid escrow ID');
+      return;
+    }
+
+    setShowDisputeModal(false);
+    setIsProcessing(true);
+    
+    try {
+      await escrowApi.dispute(escrowId, disputeReason.trim());
+      toast.success('Dispute created successfully');
+      
+      // Send AI arbitrator message to chat
+      await sendArbitratorMessage(escrowId, disputeReason.trim());
+      
+      fetchEscrowDetails();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to create dispute');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const sendArbitratorMessage = async (escrowId: number, reason: string) => {
@@ -363,29 +428,9 @@ const EscrowDetails = () => {
 
                 {(isBuyer || isSeller) && escrow.status === 'Funded' && (
                   <button
-                    onClick={async () => {
-                      const escrowId = Number(id);
-                      if (!Number.isFinite(escrowId) || escrowId <= 0) {
-                        toast.error('Invalid escrow ID');
-                        return;
-                      }
-                      const reason = prompt('Please provide a reason for the dispute:');
-                      if (!reason) return;
-                      
-                      setIsProcessing(true);
-                      try {
-                        await escrowApi.dispute(escrowId, reason);
-                        toast.success('Dispute created successfully');
-                        
-                        // Send AI arbitrator message to chat
-                        await sendArbitratorMessage(escrowId, reason);
-                        
-                        fetchEscrowDetails();
-                      } catch (error: any) {
-                        toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to create dispute');
-                      } finally {
-                        setIsProcessing(false);
-                      }
+                    onClick={() => {
+                      setDisputeReason('');
+                      setShowDisputeModal(true);
                     }}
                     disabled={isProcessing}
                     className="btn btn-outline btn-lg w-full"
@@ -397,10 +442,16 @@ const EscrowDetails = () => {
 
                 <button
                   onClick={() => setShowChat(true)}
-                  className="btn btn-outline btn-lg w-full"
+                  disabled={escrow.status === 'Pending'}
+                  className={`btn btn-lg w-full ${
+                    escrow.status === 'Pending' 
+                      ? 'btn-disabled cursor-not-allowed opacity-50' 
+                      : 'btn-outline'
+                  }`}
+                  title={escrow.status === 'Pending' ? 'Chat will be available after escrow is accepted' : 'Open chat'}
                 >
                   <MessageCircle className="h-5 w-5 mr-2" />
-                  Open Chat
+                  {escrow.status === 'Pending' ? 'Chat (Pending Acceptance)' : 'Open Chat'}
                 </button>
               </div>
             </div>
@@ -487,6 +538,190 @@ const EscrowDetails = () => {
           paymentUrl={payment?.payment_url}
           onPaymentComplete={handlePaymentComplete}
         />
+
+        {/* Phone Number Modal */}
+        <AnimatePresence>
+          {showPhoneModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+              onClick={() => setShowPhoneModal(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary-100 rounded-full">
+                      <Phone className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Phone Number Required
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Enter your phone number to proceed with payment
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowPhoneModal(false)}
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="e.g., +1234567890 or 08012345678"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                      autoFocus
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This will be used for payment verification and saved for future transactions
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                  <button
+                    onClick={() => setShowPhoneModal(false)}
+                    className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePhoneSubmit}
+                    disabled={!phoneNumber || phoneNumber.trim().length < 7}
+                    className="btn btn-primary"
+                  >
+                    Continue Payment
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Dispute Reason Modal */}
+        <AnimatePresence>
+          {showDisputeModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+              onClick={() => setShowDisputeModal(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-2xl w-full max-w-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-red-100 rounded-full">
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Create Dispute
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Provide a detailed reason for this dispute
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowDisputeModal(false)}
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Dispute Reason *
+                    </label>
+                    <textarea
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                      placeholder="Please provide a detailed explanation of the issue. Include any relevant information that will help the AI arbitrator understand the situation..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
+                      rows={6}
+                      autoFocus
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-gray-500">
+                        Minimum 10 characters required
+                      </p>
+                      <p className={`text-xs ${disputeReason.length >= 10 ? 'text-green-600' : 'text-gray-400'}`}>
+                        {disputeReason.length}/10
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <FileText className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-medium text-yellow-800 mb-1">
+                          Important Information
+                        </h4>
+                        <ul className="text-xs text-yellow-700 space-y-1">
+                          <li>• An AI arbitrator will review your case within 24-48 hours</li>
+                          <li>• Both parties will be notified of the decision</li>
+                          <li>• Provide as much detail as possible for a fair resolution</li>
+                          <li>• The arbitrator will join the chat to gather more information if needed</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                  <button
+                    onClick={() => setShowDisputeModal(false)}
+                    className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDisputeSubmit}
+                    disabled={!disputeReason || disputeReason.trim().length < 10}
+                    className="btn btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
+                  >
+                    Create Dispute
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </Layout>
   );

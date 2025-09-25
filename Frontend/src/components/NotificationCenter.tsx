@@ -68,7 +68,9 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
               metadata: item.metadata,
               created_at: item.created_at || new Date().toISOString()
             }));
-            setNotifications(historyNotifications.reverse()); // Reverse to show newest first
+            // Sort by created_at descending (newest first)
+            historyNotifications.sort((a: Notification, b: Notification) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            setNotifications(historyNotifications);
           } else if (data.type === 'notification') {
             // Handle new real-time notification
             const notificationData = data.data || data;
@@ -87,7 +89,10 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
               // Check if notification already exists to prevent duplicates
               const exists = prev.some(n => n.id === notification.id);
               if (exists) return prev;
-              return [notification, ...prev]; // Add to beginning (newest first)
+              
+              // Add new notification and sort by created_at descending (newest first)
+              const updated = [notification, ...prev];
+              return updated.sort((a: Notification, b: Notification) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             });
           }
         } catch (error) {
@@ -422,20 +427,7 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                       {new Date(selectedNotification.created_at).toLocaleString()}
                     </span>
                   </div>
-                  {selectedNotification.metadata && (
-                    <div>
-                      <span className="font-semibold text-gray-700 block mb-2">Raw Metadata:</span>
-                      <pre className="bg-gray-50 p-3 rounded-lg text-xs text-gray-800 border overflow-auto max-h-40">
-                        {(() => {
-                          try {
-                            return JSON.stringify(JSON.parse(selectedNotification.metadata), null, 2);
-                          } catch {
-                            return selectedNotification.metadata || 'Invalid JSON';
-                          }
-                        })()}
-                      </pre>
-                    </div>
-                  )}
+
                 </div>
               </div>
               
