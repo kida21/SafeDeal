@@ -5,6 +5,8 @@ import { useAuthStore } from "../store/authStore";
 import { formatRelativeTime } from "../lib/utils";
 import { Message } from "../types";
 import { wsApi } from "../lib/api";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface RealTimeChatProps {
   isOpen: boolean;
@@ -270,7 +272,67 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                                 : "bg-white border border-gray-200 text-gray-900 rounded-bl-md"
                             }`}
                           >
-                            <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                            <div className={`text-sm leading-relaxed break-words ${
+                              isOwn ? "markdown-white" : "markdown-dark"
+                            }`}>
+                              <ReactMarkdown 
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                                  strong: ({ children }) => <strong className={isOwn ? "font-bold text-white" : "font-bold text-gray-900"}>{children}</strong>,
+                                  em: ({ children }) => <em className={isOwn ? "italic text-white" : "italic text-gray-800"}>{children}</em>,
+                                  code: ({ children }) => (
+                                    <code className={`px-1 py-0.5 rounded text-xs font-mono ${
+                                      isOwn 
+                                        ? "bg-primary-700 text-primary-100" 
+                                        : "bg-gray-200 text-gray-800"
+                                    }`}>
+                                      {children}
+                                    </code>
+                                  ),
+                                  pre: ({ children }) => (
+                                    <pre className={`p-2 rounded text-xs font-mono overflow-x-auto ${
+                                      isOwn 
+                                        ? "bg-primary-700 text-primary-100" 
+                                        : "bg-gray-200 text-gray-800"
+                                    }`}>
+                                      {children}
+                                    </pre>
+                                  ),
+                                  ul: ({ children }) => <ul className="list-disc list-inside space-y-1">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal list-inside space-y-1">{children}</ol>,
+                                  li: ({ children }) => <li className="text-sm">{children}</li>,
+                                  h1: ({ children }) => <h1 className={`text-lg font-bold mb-1 ${isOwn ? "text-white" : "text-gray-900"}`}>{children}</h1>,
+                                  h2: ({ children }) => <h2 className={`text-base font-bold mb-1 ${isOwn ? "text-white" : "text-gray-900"}`}>{children}</h2>,
+                                  h3: ({ children }) => <h3 className={`text-sm font-bold mb-1 ${isOwn ? "text-white" : "text-gray-900"}`}>{children}</h3>,
+                                  blockquote: ({ children }) => (
+                                    <blockquote className={`border-l-2 pl-2 italic ${
+                                      isOwn 
+                                        ? "border-primary-300 text-primary-100" 
+                                        : "border-gray-400 text-gray-700"
+                                    }`}>
+                                      {children}
+                                    </blockquote>
+                                  ),
+                                  a: ({ children, href }) => (
+                                    <a 
+                                      href={href} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className={`underline hover:no-underline ${
+                                        isOwn 
+                                          ? "text-primary-100 hover:text-white" 
+                                          : "text-primary-600 hover:text-primary-800"
+                                      }`}
+                                    >
+                                      {children}
+                                    </a>
+                                  ),
+                                }}
+                              >
+                                {message.content}
+                              </ReactMarkdown>
+                            </div>
                           </div>
                           <p
                             className={`text-xs mt-1 px-1 ${
@@ -309,7 +371,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                       }
                     }}
                     placeholder={
-                      isConnected ? "Type your message... (Press Enter to send, Shift+Enter for new line)" : "Connecting..."
+                      isConnected ? "Type your message with **markdown**... (Press Enter to send, Shift+Enter for new line)" : "Connecting..."
                     }
                     className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-all duration-200 max-h-32 min-h-[48px]"
                     disabled={!isConnected}

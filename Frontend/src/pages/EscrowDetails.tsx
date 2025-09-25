@@ -91,7 +91,7 @@ const EscrowDetails = () => {
     try {
       await escrowApi.accept(escrowId);
       toast.success('Escrow accepted successfully!');
-      fetchEscrowDetails();
+      await fetchEscrowDetails(); // Refresh to get updated status
     } catch (error: any) {
       toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to accept escrow');
     } finally {
@@ -165,6 +165,36 @@ const EscrowDetails = () => {
     setShowPayment(false);
     fetchEscrowDetails();
     toast.success('Payment completed successfully!');
+  };
+
+  const sendArbitratorMessage = async (escrowId: number, reason: string) => {
+    try {
+      // Simulate sending a message from AI arbitrator to the chat
+      // In a real implementation, this would be handled by the backend
+      const arbitratorMessage = {
+        content: `🤖 **AI Arbitrator**: A dispute has been created for this escrow.\n\n**Dispute Reason:** ${reason}\n\nI will review the case and provide a resolution within 24-48 hours. Both parties will be notified of the decision. Please provide any additional evidence or information that may help resolve this dispute.`,
+        type: 'message',
+        escrow_id: escrowId,
+        sender_id: 0, // Special ID for AI arbitrator
+        sender: {
+          id: 0,
+          first_name: 'AI',
+          last_name: 'Arbitrator',
+          email: 'arbitrator@safedeal.com',
+          activated: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          profession: 'AI Arbitrator'
+        }
+      };
+      
+      // This would typically be sent via WebSocket or API call
+      // For now, we'll just log it and show a toast
+      console.log('AI Arbitrator message would be sent:', arbitratorMessage);
+      toast.success('AI Arbitrator has been notified and will join the chat shortly');
+    } catch (error) {
+      console.error('Failed to send arbitrator message:', error);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -297,7 +327,7 @@ const EscrowDetails = () => {
                   </button>
                 )}
 
-                {isSeller && escrow.status === 'Funded' && (
+                {isSeller && escrow.status === 'Pending' && (
                   <button
                     onClick={handleAccept}
                     disabled={isProcessing}
@@ -306,6 +336,18 @@ const EscrowDetails = () => {
                     <CheckCircle className="h-5 w-5 mr-2" />
                     {isProcessing ? 'Accepting...' : 'Accept Escrow'}
                   </button>
+                )}
+                
+                {isSeller && escrow.status === 'Funded' && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                      <span className="text-green-800 font-medium">Escrow Accepted</span>
+                    </div>
+                    <p className="text-green-700 text-sm mt-1">
+                      You have successfully accepted this escrow. Waiting for buyer to confirm receipt.
+                    </p>
+                  </div>
                 )}
 
                 {isBuyer && escrow.status === 'Funded' && (
@@ -321,7 +363,7 @@ const EscrowDetails = () => {
 
                 {(isBuyer || isSeller) && escrow.status === 'Funded' && (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       const escrowId = Number(id);
                       if (!Number.isFinite(escrowId) || escrowId <= 0) {
                         toast.error('Invalid escrow ID');
@@ -329,20 +371,27 @@ const EscrowDetails = () => {
                       }
                       const reason = prompt('Please provide a reason for the dispute:');
                       if (!reason) return;
-                      escrowApi
-                        .dispute(escrowId, reason)
-                        .then(() => {
-                          toast.success('Dispute created successfully');
-                          fetchEscrowDetails();
-                        })
-                        .catch((error) => {
-                          toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to create dispute');
-                        });
+                      
+                      setIsProcessing(true);
+                      try {
+                        await escrowApi.dispute(escrowId, reason);
+                        toast.success('Dispute created successfully');
+                        
+                        // Send AI arbitrator message to chat
+                        await sendArbitratorMessage(escrowId, reason);
+                        
+                        fetchEscrowDetails();
+                      } catch (error: any) {
+                        toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to create dispute');
+                      } finally {
+                        setIsProcessing(false);
+                      }
                     }}
+                    disabled={isProcessing}
                     className="btn btn-outline btn-lg w-full"
                   >
                     <AlertCircle className="h-5 w-5 mr-2" />
-                    Create Dispute
+                    {isProcessing ? 'Creating Dispute...' : 'Create Dispute'}
                   </button>
                 )}
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { ArrowLeft, User as UserIcon, DollarSign, Shield } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, DollarSign, Shield, CheckCircle } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { escrowApi, userApi } from '../lib/api';
@@ -16,12 +16,14 @@ const CreateEscrow = () => {
   const { user, isAuthenticated } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [selectedSeller, setSelectedSeller] = useState<{ id: number; name: string } | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<CreateEscrowRequest & { seller_name: string; seller_id: string }>();
 
   const watchedAmount = watch('amount');
@@ -30,20 +32,27 @@ const CreateEscrow = () => {
   useEffect(() => {
     const sellerName = searchParams.get('seller');
     const sellerId = searchParams.get('seller_id');
-    if (sellerName) {
-      (document.querySelector('input[name="seller_name"]') as HTMLInputElement | null)?.setAttribute('value', sellerName);
+    if (sellerName && sellerId) {
+      const seller = {
+        id: parseInt(sellerId),
+        name: sellerName
+      };
+      setSelectedSeller(seller);
+      setValue('seller_name', sellerName);
+      setValue('seller_id' as any, sellerId);
     }
-    if (sellerId) {
-      (document.querySelector('input[name="seller_id"]') as HTMLInputElement | null)?.setAttribute('value', sellerId);
-    }
-  }, [searchParams]);
+  }, [searchParams, setValue]);
 
   const onSubmit = async (data: CreateEscrowRequest & { seller_name: string; seller_id: string }) => {
     setIsLoading(true);
     try {
-      // Check authentication status
+      console.log('=== ESCROW CREATION DEBUG ===');
+      console.log('Form data received:', data);
       console.log('User authenticated:', isAuthenticated);
-      console.log('User:', user);
+      console.log('Current user (buyer):', user);
+      console.log('Current user ID:', user?.id);
+      console.log('User activation status:', user?.activated);
+      console.log('User email:', user?.email);
       
       // Debug: Check if token exists
       const token = localStorage.getItem('access_token');
@@ -56,11 +65,36 @@ const CreateEscrow = () => {
         return;
       }
       
-      // Test API call to verify token is working
+      // Test API call to verify token is working and get fresh user data
       try {
         console.log('Testing API call with profile endpoint...');
         const profileResponse = await userApi.getProfile();
         console.log('Profile API call successful:', profileResponse.data);
+        console.log('Backend user activation status:', profileResponse.data.activated);
+        
+        // Check if there's a mismatch between frontend and backend user data
+        if (user?.activated !== profileResponse.data.activated) {
+          console.warn('User activation status mismatch!');
+          console.warn('Frontend user.activated:', user?.activated);
+          console.warn('Backend user.activated:', profileResponse.data.activated);
+          
+          if (!profileResponse.data.activated) {
+            toast.error('Your account is not activated. Please check your email and activate your account.');
+            return;
+          } else {
+            // Update the auth store with fresh user data
+            console.log('Updating auth store with fresh user data...');
+            const { setUser } = useAuthStore.getState();
+            setUser(profileResponse.data);
+            toast.success('User data refreshed from server.');
+          }
+        }
+        
+        // Double-check activation status before proceeding
+        if (!profileResponse.data.activated) {
+          toast.error('Your account is not activated. Please activate your account before creating escrows.');
+          return;
+        }
       } catch (profileError) {
         console.error('Profile API call failed:', profileError);
         toast.error('Authentication failed. Please log in again.');
@@ -68,14 +102,15 @@ const CreateEscrow = () => {
         return;
       }
       
-      // Validate seller ID
-      if (!data.seller_id || isNaN(Number(data.seller_id))) {
-        toast.error('Please enter a valid seller ID.');
+      // Validate seller selection - only allow search-selected sellers
+      if (!selectedSeller) {
+        toast.error('Please search and select a seller to create an escrow.');
         return;
       }
-
-      const sellerId = parseInt(data.seller_id);
-      console.log('Using seller ID:', sellerId);
+      
+      const sellerId = selectedSeller.id;
+      console.log('Using selected seller ID:', sellerId, 'Name:', selectedSeller.name);
+      console.log('Buyer ID (current user):', user?.id, typeof user?.id);
 
       // Validate amount
       if (!data.amount || data.amount <= 0) {
@@ -83,32 +118,46 @@ const CreateEscrow = () => {
         return;
       }
 
-      // The backend expects the full Escrow model structure
-      // Note: buyer_id is set by the backend from the authenticated user
-      const escrowData = {
+      // Create the escrow request with only the required fields
+      // The backend will automatically set buyer_id from the authenticated user
+      const escrowData: CreateEscrowRequest = {
         seller_id: sellerId,
-        amount: parseFloat(data.amount.toString()), // Ensure it's a number
+        amount: parseFloat(data.amount.toString()),
         conditions: data.conditions || "",
-        status: "Pending", // Required by backend - must be one of the EscrowStatus values
-        // Don't include active - it has a default value
-        // Don't include buyer_id - it's set by the backend
-        // Don't include blockchain fields - they're set later
       };
 
+      console.log('=== FINAL ESCROW CREATION ===');
       console.log('Creating escrow with data:', escrowData);
-      console.log('Data type:', typeof escrowData);
-      console.log('Data stringified:', JSON.stringify(escrowData));
-      console.log('Current user (buyer):', user);
+      console.log('Current user (buyer) ID:', user?.id);
+      console.log('Current user activated status:', user?.activated);
       console.log('Seller ID being used:', escrowData.seller_id);
+      console.log('Request headers will include token:', !!localStorage.getItem('access_token'));
+      
+      // Validate that buyer and seller are different
+      if (user?.id === sellerId) {
+        toast.error('You cannot create an escrow with yourself as the seller');
+        return;
+      }
+      
+      console.log('All validations passed, sending request to backend...');
       
       const response = await escrowApi.create(escrowData);
       console.log('Escrow created successfully:', response.data);
       toast.success('Escrow created successfully!');
       navigate(`/escrow/${response.data.id}`);
     } catch (error: any) {
+      console.error('=== ESCROW CREATION ERROR ===');
       console.error('Error creating escrow:', error);
-      console.error('Error response:', error.response?.data);
-      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to create escrow');
+      console.error('Error status:', error.response?.status);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error config:', error.config);
+      
+      // Specific handling for activation error
+      if (error.response?.status === 403 && error.response?.data?.error?.includes('not activated')) {
+        toast.error('Account activation issue detected. Please try logging out and logging back in.');
+      } else {
+        toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to create escrow');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -210,55 +259,73 @@ const CreateEscrow = () => {
                   <div className="mb-3">
                     <Link to="/search" className="btn btn-outline btn-sm">Search Users</Link>
                   </div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Seller ID
-                  </label>
-                  <input
-                  disabled
-                    {...register('seller_id' as any, {
-                      required: 'Seller ID is required',
-                      pattern: {
-                        value: /^\d+$/,
-                        message: 'Seller ID must be a number'
-                      }
-                    })}
-                    type="text"
-                    className="input w-full"
-                    placeholder="Enter seller's user ID (e.g., 1, 2, 3...)"
-                  />
-                  {errors.seller_id && (
-                    <p className="text-red-500 text-sm mt-1">{errors.seller_id.message}</p>
-                  )}
-                  <p className="text-sm text-gray-500 mt-1">
-                    You can find the seller's ID by asking them or checking your records
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Seller Name (Optional - for reference)
-                  </label>
-                  <input
-                    {...register('seller_name')}
-                    type="text"
-                    className="input w-full"
-                    placeholder="Enter seller's name for your reference"
-                  />
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex">
-                    <UserIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+                  
+                  {selectedSeller ? (
+                    // Show selected seller from search
                     <div>
-                      <h4 className="text-sm font-medium text-blue-900">
-                        Seller Validation
-                      </h4>
-                      <p className="text-sm text-blue-700 mt-1">
-                        The seller's account status, bank details, and wallet will be validated by the backend when creating the escrow.
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Selected Seller
+                      </label>
+                      <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <UserIcon className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{selectedSeller.name}</p>
+                            <p className="text-sm text-gray-600">User ID: {selectedSeller.id}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedSeller(null);
+                            setValue('seller_name', '');
+                            setValue('seller_id' as any, '');
+                          }}
+                          className="px-3 py-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded text-sm font-medium transition-colors"
+                        >
+                          Change
+                        </button>
+                      </div>
+                      <p className="text-sm text-green-600 mt-2 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Seller selected from search results
                       </p>
                     </div>
-                  </div>
+                  ) : (
+                    // Show search requirement message
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <UserIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">
+                        No Seller Selected
+                      </h4>
+                      <p className="text-gray-600 mb-4">
+                        Please use the search button above to find and select a seller for this escrow.
+                      </p>
+                      <Link to="/search" className="btn btn-primary">
+                        Search for Seller
+                      </Link>
+                    </div>
+                  )}
                 </div>
+
+
+                {selectedSeller && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex">
+                      <Shield className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-900">
+                          Secure Transaction
+                        </h4>
+                        <p className="text-sm text-blue-700 mt-1">
+                          The seller's account status, bank details, and wallet will be validated when creating the escrow. Your funds will be held securely until the transaction is completed.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </motion.div>
             )}

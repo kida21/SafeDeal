@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, MessageCircle } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
-import { formatRelativeTime } from '../lib/utils';
-import { Message } from '../types';
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Send, MessageCircle } from "lucide-react";
+import { useAuthStore } from "../store/authStore";
+import { formatRelativeTime } from "../lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Message } from "../types";
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -14,7 +16,7 @@ interface ChatModalProps {
 const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -26,57 +28,62 @@ const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
           id: 1,
           escrow_id: escrowId,
           sender_id: user?.id || 1,
-          content: 'Hello! I\'m ready to proceed with the transaction.',
+          content: "Hello! I'm **ready** to proceed with the transaction.",
           created_at: new Date(Date.now() - 3600000).toISOString(),
           sender: {
             id: user?.id || 1,
-            first_name: user?.first_name || 'You',
-            last_name: user?.last_name || '',
-            email: user?.email || '',
+            first_name: user?.first_name || "You",
+            last_name: user?.last_name || "",
+            email: user?.email || "",
             activated: true,
-            created_at: '',
-            updated_at: '',
-          }
+            created_at: "",
+            updated_at: "",
+            profession: ""
+          },
         },
         {
           id: 2,
           escrow_id: escrowId,
           sender_id: 2,
-          content: 'Great! I\'ve accepted the escrow. Please proceed with the payment.',
+          content:
+            "Great! I've accepted the escrow. Please proceed with the payment.\n\n- [ ] Send money\n- [ ] Confirm item",
           created_at: new Date(Date.now() - 1800000).toISOString(),
           sender: {
             id: 2,
-            first_name: 'John',
-            last_name: 'Doe',
-            email: 'john@example.com',
+            first_name: "John",
+            last_name: "Doe",
+            email: "john@example.com",
             activated: true,
-            created_at: '',
-            updated_at: '',
-          }
+            created_at: "",
+            updated_at: "",
+            profession: ""
+          },
         },
         {
           id: 3,
           escrow_id: escrowId,
           sender_id: user?.id || 1,
-          content: 'Payment has been made. Please confirm when you receive the item.',
+          content:
+            "Payment has been made. Please confirm when you receive the item.\n\n`inline code example`",
           created_at: new Date(Date.now() - 900000).toISOString(),
           sender: {
             id: user?.id || 1,
-            first_name: user?.first_name || 'You',
-            last_name: user?.last_name || '',
-            email: user?.email || '',
+            first_name: user?.first_name || "You",
+            last_name: user?.last_name || "",
+            email: user?.email || "",
             activated: true,
-            created_at: '',
-            updated_at: '',
-          }
-        }
+            created_at: "",
+            updated_at: "",
+            profession: ""
+          },
+        },
       ];
       setMessages(mockMessages);
     }
   }, [isOpen, escrowId, user]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -95,20 +102,20 @@ const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
       created_at: new Date().toISOString(),
       sender: {
         id: user?.id || 1,
-        first_name: user?.first_name || 'You',
-        last_name: user?.last_name || '',
-        email: user?.email || '',
+        first_name: user?.first_name || "You",
+        last_name: user?.last_name || "",
+        email: user?.email || "",
         activated: true,
-        created_at: '',
-        updated_at: '',
-      }
+        created_at: "",
+        updated_at: "",
+        profession: ""
+      },
     };
 
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
-    
-    // In a real app, you would send this to the chat service via WebSocket
-    // For now, we'll just add it to the local state
+    setMessages((prev) => [...prev, message]);
+    setNewMessage("");
+
+    // TODO: Send message via WebSocket or API in real app
   };
 
   return (
@@ -138,9 +145,7 @@ const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Escrow Chat
                   </h3>
-                  <p className="text-sm text-gray-600">
-                    Escrow #{escrowId}
-                  </p>
+                  <p className="text-sm text-gray-600">Escrow #{escrowId}</p>
                 </div>
               </div>
               <button
@@ -158,13 +163,13 @@ const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
                   >
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         isOwn
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
+                          ? "bg-primary-600 text-white"
+                          : "bg-gray-100 text-gray-900"
                       }`}
                     >
                       {!isOwn && (
@@ -172,10 +177,16 @@ const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
                           {message.sender?.first_name} {message.sender?.last_name}
                         </p>
                       )}
-                      <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        isOwn ? 'text-primary-100' : 'text-gray-500'
-                      }`}>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                      <p
+                        className={`text-xs mt-1 ${
+                          isOwn ? "text-primary-100" : "text-gray-500"
+                        }`}
+                      >
                         {formatRelativeTime(message.created_at)}
                       </p>
                     </div>
@@ -192,7 +203,7 @@ const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message..."
+                  placeholder="Type your message with markdown..."
                   className="input flex-1"
                   disabled={isLoading}
                 />
