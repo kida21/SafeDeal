@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
+
 func Login(c fiber.Ctx) error {
 	type Request struct {
 		Email    string `json:"email"`
@@ -42,17 +43,15 @@ func Login(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
 	}
 
-	// Revoke all existing sessions & refresh tokens
+	// Revoke existing sessions
 	session.RevokeAllSessionsForUser(user.ID)
 	refresh.RevokeAllRefreshTokensForUser(user.ID)
 
-	// Generate session ID
+	// Generate new session
 	sessionID := session.GenerateSessionID(user.ID)
-
-	// Generate refresh token linked to session ID
 	refreshToken := refresh.GenerateRefreshToken(sessionID)
 
-	// Create access token with session ID
+	// Create access token
 	claims := CustomClaims{
 		UserID: uint32(user.ID),
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -67,8 +66,21 @@ func Login(c fiber.Ctx) error {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, _ := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
 
+	// Set refresh token in HTTP-only cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		Domain:   "", // Optional: set to your domain in production
+		MaxAge:   604800, // 7 days
+		Secure:   false,   // HTTPS only
+		HTTPOnly: true,   // Not accessible via JS
+		SameSite: fiber.CookieSameSiteStrictMode,
+	})
+
+	// Return only access token in body
 	return c.JSON(fiber.Map{
-		"access_token":  signedToken,
-		"refresh_token": refreshToken,
+		"access_token": signedToken,
+		"expires_in":   900,
 	})
 }
