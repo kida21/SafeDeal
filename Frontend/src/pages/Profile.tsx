@@ -336,7 +336,7 @@ const Profile = () => {
                   <button
                     type="submit"
                     disabled={isUpdatingProfile}
-                    className="btn btn-primary"
+                    className="btn btn-primary btn-md"
                   >
                     {isUpdatingProfile ? "Updating..." : "Update Profile"}
                   </button>
@@ -443,7 +443,7 @@ const Profile = () => {
                       <button
                         onClick={handleCreateWallet}
                         disabled={isCreatingWallet}
-                        className="btn btn-primary"
+                        className="btn btn-primary btn-md"
                       >
                         {isCreatingWallet ? "Creating..." : "Create Wallet"}
                       </button>
@@ -570,17 +570,32 @@ const Profile = () => {
                       <input
                         {...register("account_number", {
                           required: "Account number is required",
-                          pattern: {
-                            value: /^\d{10,16}$/,
-                            message: "Account number must be 10-16 digits",
+                          validate: (value) => {
+                            if (!selectedBankCode) {
+                              return "Please select a bank first";
+                            }
+                            const bank = getBankByCode(selectedBankCode);
+                            if (!bank) {
+                              return "Invalid bank selected";
+                            }
+                            const digitPattern = new RegExp(`^\\d{${bank.accountLength}}$`);
+                            if (!digitPattern.test(value)) {
+                              return `Account number must be exactly ${bank.accountLength} digits for ${bank.name}`;
+                            }
+                            return true;
                           },
                         })}
                         className="input w-full"
-                        placeholder="Enter your bank account number"
+                        placeholder={selectedBankCode ? `Enter ${getBankByCode(selectedBankCode)?.accountLength || 'your'} digit account number` : "Enter your bank account number"}
                       />
                       {errors.account_number && (
                         <p className="text-red-500 text-sm mt-1">
                           {errors.account_number.message}
+                        </p>
+                      )}
+                      {selectedBankCode && (
+                        <p className="text-blue-600 text-sm mt-1">
+                          Required: {getBankByCode(selectedBankCode)?.accountLength} digits for {getBankByCode(selectedBankCode)?.name}
                         </p>
                       )}
                     </div>
@@ -612,7 +627,7 @@ const Profile = () => {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="btn btn-primary"
+                      className="btn btn-primary btn-md"
                     >
                       {isLoading ? "Updating..." : "Update Bank Details"}
                     </button>

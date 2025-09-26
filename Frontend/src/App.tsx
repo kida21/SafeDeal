@@ -35,7 +35,7 @@ function App() {
       }
 
       // If we have tokens but no user, or if access token is expired/expiring
-      if (refreshToken && (!user || (accessToken && isTokenExpired(accessToken)))) {
+      if (refreshToken && (!user || (accessToken && isTokenExpired(accessToken, 1)))) {
         setLoading(true);
         
         try {
@@ -62,13 +62,20 @@ function App() {
               console.log('User profile loaded successfully');
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Auth initialization failed:', error);
-          // Clear all auth data on failure
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          try { localStorage.removeItem('user_profile'); } catch {}
-          setUser(null);
+          // Only clear auth data if refresh token is actually invalid
+          // Don't clear on network errors or temporary server issues
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            console.log('Refresh token is invalid, clearing auth data');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            try { localStorage.removeItem('user_profile'); } catch {}
+            setUser(null);
+          } else {
+            console.log('Temporary auth error, keeping user logged in');
+            // Keep user logged in, the proactive refresh will handle it
+          }
         } finally {
           setLoading(false);
         }
@@ -99,43 +106,75 @@ function App() {
     initAuth();
   }, [user, setUser, setLoading]);
 
-  // Proactive token refresh - check every 5 minutes
+  // Proactive token refresh - schedule refresh before expiration
   useEffect(() => {
-    const startTokenRefreshInterval = () => {
+    const scheduleTokenRefresh = () => {
+      // Clear any existing timeout
       if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
+        clearTimeout(refreshIntervalRef.current);
       }
 
-      refreshIntervalRef.current = window.setInterval(async () => {
-        const accessToken = localStorage.getItem('access_token');
-        const refreshToken = localStorage.getItem('refresh_token');
+      const accessToken = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
 
-        if (accessToken && refreshToken && user && isTokenExpired(accessToken, 5)) {
-          console.log('Proactively refreshing token...');
-          try {
-            const response = await authApi.refreshToken(refreshToken);
-            if (response.data.access_token) {
-              localStorage.setItem('access_token', response.data.access_token);
-              if (response.data.refresh_token) {
-                localStorage.setItem('refresh_token', response.data.refresh_token);
+      if (accessToken && refreshToken && user) {
+        const timeUntilExpiration = getTimeUntilExpiration(accessToken);
+        
+        if (timeUntilExpiration !== null && timeUntilExpiration > 2) {
+          // Schedule refresh 2 minutes before expiration (at 14m40s for 15min token)
+          const refreshTime = (timeUntilExpiration - 2) * 60 * 1000;
+          
+          console.log(`Scheduling token refresh in ${Math.round(refreshTime / 1000 / 60)} minutes`);
+          
+          refreshIntervalRef.current = window.setTimeout(async () => {
+            console.log('Proactively refreshing token before expiration...');
+            try {
+              const response = await authApi.refreshToken(refreshToken);
+              if (response.data.access_token) {
+                localStorage.setItem('access_token', response.data.access_token);
+                if (response.data.refresh_token) {
+                  localStorage.setItem('refresh_token', response.data.refresh_token);
+                }
+                console.log('Token proactively refreshed successfully');
+                
+                // Schedule the next refresh
+                scheduleTokenRefresh();
               }
-              console.log('Token proactively refreshed successfully');
+            } catch (error) {
+              console.error('Proactive token refresh failed:', error);
+              // Don't clear tokens here, let the API interceptor handle it
+              // Try again in 1 minute as fallback
+              refreshIntervalRef.current = window.setTimeout(scheduleTokenRefresh, 60 * 1000);
             }
-          } catch (error) {
-            console.error('Proactive token refresh failed:', error);
-            // Don't clear tokens here, let the API interceptor handle it
-          }
+          }, refreshTime);
+        } else if (timeUntilExpiration !== null && timeUntilExpiration <= 2) {
+          // Token expires very soon, refresh immediately
+          console.log('Token expires very soon, refreshing immediately...');
+          authApi.refreshToken(refreshToken)
+            .then(response => {
+              if (response.data.access_token) {
+                localStorage.setItem('access_token', response.data.access_token);
+                if (response.data.refresh_token) {
+                  localStorage.setItem('refresh_token', response.data.refresh_token);
+                }
+                console.log('Token refreshed immediately');
+                scheduleTokenRefresh();
+              }
+            })
+            .catch(error => {
+              console.error('Immediate token refresh failed:', error);
+            });
         }
-      }, 5 * 60 * 1000); // Check every 5 minutes
+      }
     };
 
     if (user && isAuthenticated) {
-      startTokenRefreshInterval();
+      scheduleTokenRefresh();
     }
 
     return () => {
       if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
+        clearTimeout(refreshIntervalRef.current);
         refreshIntervalRef.current = null;
       }
     };

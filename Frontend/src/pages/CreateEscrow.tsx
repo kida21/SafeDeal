@@ -138,6 +138,36 @@ const CreateEscrow = () => {
         toast.error('You cannot create an escrow with yourself as the seller');
         return;
       }
+
+      // Check buyer activation status before submitting
+      if (!user?.activated && user?.activated !== true) {
+        console.log('=== BUYER ACTIVATION CHECK FAILED ===');
+        console.log('User activated field:', user?.activated);
+        // console.log('User account_status field:', user?.account_status);
+        
+        toast.error('🚫 Your account is not activated. Please complete your account activation before creating an escrow.', {
+          duration: 8000,
+          style: {
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626',
+          },
+        });
+        return;
+      }
+
+      // Check if seller activation status is available (if we have that info)
+      if (selectedSeller && (selectedSeller as any).activated === false) {
+        toast.error('🚫 The selected seller\'s account is not activated. Please choose a different seller.', {
+          duration: 8000,
+          style: {
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626',
+          },
+        });
+        return;
+      }
       
       console.log('All validations passed, sending request to backend...');
       
@@ -152,9 +182,55 @@ const CreateEscrow = () => {
       console.error('Error response data:', error.response?.data);
       console.error('Error config:', error.config);
       
-      // Specific handling for activation error
-      if (error.response?.status === 403 && error.response?.data?.error?.includes('not activated')) {
-        toast.error('Account activation issue detected. Please try logging out and logging back in.');
+      // Specific handling for activation errors
+      if (error.response?.status === 403) {
+        const errorMessage = error.response?.data?.error || '';
+        
+        if (errorMessage.includes('Buyer account is not activated')) {
+          toast.error('🚫 Your account appears to be inactive. Please check your profile activation status or contact support.', {
+            duration: 8000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
+          
+          // Log current user activation status for debugging
+          console.log('=== ACTIVATION DEBUG INFO ===');
+          console.log('Current user object:', user);
+          console.log('User activated status:', user?.activated);
+          // console.log('User account_status:', user?.account_status);
+          console.log('Backend error:', errorMessage);
+          
+        } else if (errorMessage.includes('Seller account is not activated')) {
+          toast.error('🚫 The selected seller\'s account is not activated. Please choose a different seller or contact them to activate their account.', {
+            duration: 8000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
+        } else if (errorMessage.includes('not activated')) {
+          toast.error('🚫 Account Activation Issue: One or both accounts are not properly activated. Please verify activation status.', {
+            duration: 8000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
+        } else {
+          toast.error(`🚫 Access Denied: ${errorMessage}`, {
+            duration: 6000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
+        }
       } else {
         // Enhanced error handling for bank details compatibility
         const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to create escrow';
@@ -340,7 +416,7 @@ const CreateEscrow = () => {
                       <p className="text-gray-600 mb-4">
                         Please use the search button above to find and select a seller for this escrow.
                       </p>
-                      <Link to="/search" className="btn btn-primary">
+                      <Link to="/search" className="btn btn-primary btn-md">
                         Search for Seller
                       </Link>
                     </div>

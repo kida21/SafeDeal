@@ -13,6 +13,7 @@ import {
   Search
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { authApi } from '../lib/api';
 import { toast } from 'react-hot-toast';
 import DebugAuth from './DebugAuth';
@@ -25,6 +26,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const { unreadCount } = useNotificationStore();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handleLogout = async () => {
@@ -131,7 +133,11 @@ const Layout = ({ children }: LayoutProps) => {
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors relative"
               >
                 <Bell className="h-5 w-5" />
-                {/* Notification badge could be added here */}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
               <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <Settings className="h-5 w-5" />

@@ -11,6 +11,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { formatRelativeTime } from '../lib/utils';
 import { Notification } from '../types';
 import { wsApi } from '../lib/api';
@@ -22,7 +23,16 @@ interface NotificationCenterProps {
 
 const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
   const { user } = useAuthStore();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { 
+    notifications, 
+    unreadCount, 
+    setNotifications, 
+    addNotification, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification, 
+    clearAllNotifications 
+  } = useNotificationStore();
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -85,15 +95,7 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
               created_at: notificationData.created_at || new Date().toISOString()
             };
             
-            setNotifications(prev => {
-              // Check if notification already exists to prevent duplicates
-              const exists = prev.some(n => n.id === notification.id);
-              if (exists) return prev;
-              
-              // Add new notification and sort by created_at descending (newest first)
-              const updated = [notification, ...prev];
-              return updated.sort((a: Notification, b: Notification) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-            });
+            addNotification(notification);
           }
         } catch (error) {
           console.error('Error parsing notification message:', error);
@@ -150,29 +152,6 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
     }
   };
 
-  const markAsRead = (id: number) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
-
-  const deleteNotification = (id: number) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-  };
-
-  const clearAllNotifications = () => {
-    setNotifications([]);
-  };
 
   const getConnectionStatus = () => {
     if (isConnected) {
@@ -199,7 +178,6 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <AnimatePresence>

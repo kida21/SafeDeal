@@ -80,10 +80,19 @@ api.interceptors.response.use(
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
                 }
-            } catch (refreshError) {
+            } catch (refreshError: any) {
                 console.error('Token refresh failed:', refreshError);
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
+                // Only clear tokens if refresh token is actually invalid (401/403)
+                // Don't clear on network errors or temporary server issues
+                if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+                    console.log('Refresh token is invalid, clearing tokens');
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    // Redirect to login page
+                    window.location.href = '/login';
+                } else {
+                    console.log('Temporary refresh error, keeping tokens for retry');
+                }
             }
         }
 
