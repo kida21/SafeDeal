@@ -18,7 +18,6 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -85,8 +84,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
             });
           }
         } catch (error) {
-          // Handle non-JSON messages
-          console.warn("Received non-JSON message:", event.data);
+          // Handle non-JSON messages silently
         }
       };
 

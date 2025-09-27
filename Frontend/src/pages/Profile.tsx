@@ -53,7 +53,6 @@ const Profile = () => {
       const response = await userApi.getProfile();
       setUser(response.data);
     } catch (error: any) {
-      console.error('Failed to fetch profile:', error);
       toast.error('Failed to load profile data');
     } finally {
       setIsFetchingProfile(false);
@@ -67,7 +66,6 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
-      console.log("Resetting forms with user data:", user);
       reset({
         account_name: user.account_name || "",
         account_number: user.account_number || "",
@@ -96,19 +94,11 @@ const Profile = () => {
         bank_code: selectedBankCode,
       };
       
-      console.log("Sending bank details:", bankData);
-      console.log("Bank code type:", typeof selectedBankCode);
-      console.log("Bank code value:", selectedBankCode);
 
       const response = await userApi.updateBankDetails(bankData);
       setUser(response.data);
       toast.success("Bank details updated successfully!");
-      
-      // Refresh profile data to ensure we have the latest information
-      await fetchProfile();
     } catch (error: any) {
-      console.error("Bank details update error:", error);
-      console.error("Error response:", error.response?.data);
       toast.error(
         error.response?.data?.message ||
           error.response?.data?.error ||
@@ -131,9 +121,6 @@ const Profile = () => {
         setUser({ ...user, wallet_address: response.data.wallet_address });
       }
       toast.success("Ethereum wallet created successfully!");
-      
-      // Refresh profile data to ensure we have the latest information
-      await fetchProfile();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create wallet");
     } finally {
@@ -147,9 +134,6 @@ const Profile = () => {
       const response = await userApi.updateProfile(data);
       setUser(response.data);
       toast.success("Profile updated successfully!");
-      
-      // Refresh profile data to ensure we have the latest information
-      await fetchProfile();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to update profile");
     } finally {

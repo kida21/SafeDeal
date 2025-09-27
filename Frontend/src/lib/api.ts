@@ -16,7 +16,6 @@ import {
 } from '../types';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080';
-console.log('API Base URL:', API_BASE_URL);
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -29,13 +28,8 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('access_token');
-        console.log('API Request:', config.url);
-        console.log('Token exists:', !!token);
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('Authorization header set:', `Bearer ${token}...`);
-        } else {
-            console.warn('No access token found in localStorage');
         }
         return config;
     },
@@ -44,59 +38,90 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor - FALLBACK ONLY (proactive refresh prevents 401s)
+// This is the safety net for edge cases as shown in the images
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Handle successful refresh token response
+        if (response.config.url?.includes('/refresh-token') && response.data) {
+            const { access_token, refresh_token: newRefreshToken } = response.data;
+            
+            if (access_token) {
+                localStorage.setItem('access_token', access_token);
+                console.debug('✅ Access token updated from refresh response');
+            }
+            
+            // Update refresh token if provided (token rotation)
+            if (newRefreshToken) {
+                localStorage.setItem('refresh_token', newRefreshToken);
+                console.debug('✅ Refresh token rotated');
+            }
+        }
+        
+        return response;
+    },
     async (error) => {
-        console.log('API Response Error:', error.response?.status, error.response?.data);
         const originalRequest = error.config;
 
+        // Only handle 401 errors as fallback (proactive refresh should prevent these)
         if (error.response?.status === 401 && !originalRequest._retry) {
-            console.log('401 error, attempting token refresh...');
             originalRequest._retry = true;
+            console.debug('🔄 401 intercepted - attempting fallback refresh');
 
             try {
                 const refreshToken = localStorage.getItem('refresh_token');
-                if (refreshToken) {
-                    console.log('Refresh token found, attempting refresh...');
-                    const response = await axios.post(`${API_BASE_URL}/refresh-token`, {
-                        refresh_token: refreshToken,
-                    });
-
-                    const { access_token, refresh_token: newRefreshToken } = response.data;
-                    localStorage.setItem('access_token', access_token);
-                    
-                    // Update refresh token if provided
-                    if (newRefreshToken) {
-                        localStorage.setItem('refresh_token', newRefreshToken);
-                    }
-                    
-                    console.log('Token refreshed successfully');
-
-                    originalRequest.headers.Authorization = `Bearer ${access_token}`;
-                    return api(originalRequest);
-                } else {
-                    console.log('No refresh token found');
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
+                if (!refreshToken) {
+                    console.debug('❌ No refresh token available');
+                    throw new Error('No refresh token');
                 }
+
+                // Attempt refresh using the correct endpoint
+                const response = await axios.post(`${API_BASE_URL}/refresh-token`, {
+                    refresh_token: refreshToken,
+                }, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const { access_token, refresh_token: newRefreshToken } = response.data;
+                
+                if (!access_token) {
+                    throw new Error('No access token in refresh response');
+                }
+
+                // Store new tokens
+                localStorage.setItem('access_token', access_token);
+                if (newRefreshToken) {
+                    localStorage.setItem('refresh_token', newRefreshToken);
+                }
+
+                console.debug('✅ Fallback refresh successful');
+
+                // Retry original request with new token
+                originalRequest.headers.Authorization = `Bearer ${access_token}`;
+                return api(originalRequest);
+
             } catch (refreshError: any) {
-                console.error('Token refresh failed:', refreshError);
-                // Only clear tokens if refresh token is actually invalid (401/403)
-                // Don't clear on network errors or temporary server issues
+                console.debug('❌ Fallback refresh failed:', refreshError.message);
+                
+                // Only clear tokens on actual auth failures (not network errors)
                 if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
-                    console.log('Refresh token is invalid, clearing tokens');
+                    console.debug('🚪 Clearing tokens and redirecting to login');
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
+                    localStorage.removeItem('user_profile');
+                    
                     // Redirect to login page
                     window.location.href = '/login';
-                } else {
-                    console.log('Temporary refresh error, keeping tokens for retry');
+                    return Promise.reject(new Error('Authentication failed'));
                 }
+                
+                // For network errors, don't clear tokens - let proactive refresh handle it
+                console.debug('🌐 Network error during refresh - keeping tokens');
             }
         }
 
-        // Note: Do not clear tokens on 403. These are business-rule errors (e.g., not activated).
+        // Don't clear tokens on 403 - these are business logic errors (not activated, etc.)
+        // Don't clear tokens on network errors - proactive refresh will handle them
 
         return Promise.reject(error);
     }
@@ -230,7 +255,6 @@ export const wsApi = {
     connectChat: (escrowId: number): WebSocket => {
         const token = localStorage.getItem('access_token') || '';
         if (escrowId === undefined || escrowId === null) {
-            console.warn('connectChat called without a valid escrowId');
             // Return a dummy WS that will immediately close to avoid null checks downstream
             const dummy = new WebSocket('ws://localhost:0');
             try { dummy.close(); } catch { }
@@ -245,7 +269,6 @@ export const wsApi = {
         try {
             return new WebSocket(wsUrl);
         } catch (error) {
-            console.warn('WebSocket connection failed:', error);
             // Return a dummy socket that immediately closes
             const dummy = new WebSocket('ws://localhost:0');
             try { dummy.close(); } catch { }
@@ -264,7 +287,6 @@ export const wsApi = {
         try {
             return new WebSocket(wsUrl);
         } catch (error) {
-            console.warn('WebSocket connection failed:', error);
             const dummy = new WebSocket('ws://localhost:0');
             try { dummy.close(); } catch { }
             return dummy;

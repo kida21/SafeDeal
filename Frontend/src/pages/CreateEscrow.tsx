@@ -46,18 +46,6 @@ const CreateEscrow = () => {
   const onSubmit = async (data: CreateEscrowRequest & { seller_name: string; seller_id: string }) => {
     setIsLoading(true);
     try {
-      console.log('=== ESCROW CREATION DEBUG ===');
-      console.log('Form data received:', data);
-      console.log('User authenticated:', isAuthenticated);
-      console.log('Current user (buyer):', user);
-      console.log('Current user ID:', user?.id);
-      console.log('User activation status:', user?.activated);
-      console.log('User email:', user?.email);
-      
-      // Debug: Check if token exists
-      const token = localStorage.getItem('access_token');
-      console.log('Token exists:', !!token);
-      console.log('Token value:', token ? token.substring(0, 20) + '...' : 'No token');
       
       if (!isAuthenticated || !user) {
         toast.error('You must be logged in to create an escrow');
@@ -65,40 +53,9 @@ const CreateEscrow = () => {
         return;
       }
       
-      // Test API call to verify token is working and get fresh user data
-      try {
-        console.log('Testing API call with profile endpoint...');
-        const profileResponse = await userApi.getProfile();
-        console.log('Profile API call successful:', profileResponse.data);
-        console.log('Backend user activation status:', profileResponse.data.activated);
-        
-        // Check if there's a mismatch between frontend and backend user data
-        if (user?.activated !== profileResponse.data.activated) {
-          console.warn('User activation status mismatch!');
-          console.warn('Frontend user.activated:', user?.activated);
-          console.warn('Backend user.activated:', profileResponse.data.activated);
-          
-          if (!profileResponse.data.activated) {
-            toast.error('Your account is not activated. Please check your email and activate your account.');
-            return;
-          } else {
-            // Update the auth store with fresh user data
-            console.log('Updating auth store with fresh user data...');
-            const { setUser } = useAuthStore.getState();
-            setUser(profileResponse.data);
-            toast.success('User data refreshed from server.');
-          }
-        }
-        
-        // Double-check activation status before proceeding
-        if (!profileResponse.data.activated) {
-          toast.error('Your account is not activated. Please activate your account before creating escrows.');
-          return;
-        }
-      } catch (profileError) {
-        console.error('Profile API call failed:', profileError);
-        toast.error('Authentication failed. Please log in again.');
-        navigate('/login');
+      // Check user activation status
+      if (!user?.activated) {
+        toast.error('Your account is not activated. Please check your email and activate your account.');
         return;
       }
       
@@ -109,8 +66,6 @@ const CreateEscrow = () => {
       }
       
       const sellerId = selectedSeller.id;
-      console.log('Using selected seller ID:', sellerId, 'Name:', selectedSeller.name);
-      console.log('Buyer ID (current user):', user?.id, typeof user?.id);
 
       // Validate amount
       if (!data.amount || data.amount <= 0) {
@@ -126,12 +81,6 @@ const CreateEscrow = () => {
         conditions: data.conditions || "",
       };
 
-      console.log('=== FINAL ESCROW CREATION ===');
-      console.log('Creating escrow with data:', escrowData);
-      console.log('Current user (buyer) ID:', user?.id);
-      console.log('Current user activated status:', user?.activated);
-      console.log('Seller ID being used:', escrowData.seller_id);
-      console.log('Request headers will include token:', !!localStorage.getItem('access_token'));
       
       // Validate that buyer and seller are different
       if (user?.id === sellerId) {
@@ -141,9 +90,6 @@ const CreateEscrow = () => {
 
       // Check buyer activation status before submitting
       if (!user?.activated && user?.activated !== true) {
-        console.log('=== BUYER ACTIVATION CHECK FAILED ===');
-        console.log('User activated field:', user?.activated);
-        // console.log('User account_status field:', user?.account_status);
         
         toast.error('🚫 Your account is not activated. Please complete your account activation before creating an escrow.', {
           duration: 8000,
@@ -169,18 +115,10 @@ const CreateEscrow = () => {
         return;
       }
       
-      console.log('All validations passed, sending request to backend...');
-      
       const response = await escrowApi.create(escrowData);
-      console.log('Escrow created successfully:', response.data);
       toast.success('Escrow created successfully!');
       navigate(`/escrow/${response.data.id}`);
     } catch (error: any) {
-      console.error('=== ESCROW CREATION ERROR ===');
-      console.error('Error creating escrow:', error);
-      console.error('Error status:', error.response?.status);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error config:', error.config);
       
       // Specific handling for activation errors
       if (error.response?.status === 403) {
@@ -196,12 +134,6 @@ const CreateEscrow = () => {
             },
           });
           
-          // Log current user activation status for debugging
-          console.log('=== ACTIVATION DEBUG INFO ===');
-          console.log('Current user object:', user);
-          console.log('User activated status:', user?.activated);
-          // console.log('User account_status:', user?.account_status);
-          console.log('Backend error:', errorMessage);
           
         } else if (errorMessage.includes('Seller account is not activated')) {
           toast.error('🚫 The selected seller\'s account is not activated. Please choose a different seller or contact them to activate their account.', {

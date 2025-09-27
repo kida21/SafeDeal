@@ -98,7 +98,7 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
             addNotification(notification);
           }
         } catch (error) {
-          console.error('Error parsing notification message:', error);
+          // Handle parsing errors silently
         }
       };
 

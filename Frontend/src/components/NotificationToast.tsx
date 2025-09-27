@@ -24,7 +24,7 @@ const NotificationToast = ({ isEnabled = true }: NotificationToastProps) => {
       setWsConnection(ws);
 
       ws.onopen = () => {
-        console.log('Notification toast WebSocket connected');
+        // Connected
       };
 
       ws.onmessage = (event) => {
@@ -61,21 +61,20 @@ const NotificationToast = ({ isEnabled = true }: NotificationToastProps) => {
             }, 5000);
           }
         } catch (error) {
-          console.error('Error parsing notification toast message:', error);
+          // Handle parsing errors silently
         }
       };
 
       ws.onclose = () => {
-        console.log('Notification toast WebSocket disconnected');
         setWsConnection(null);
       };
 
-      ws.onerror = (error) => {
-        console.error('Notification toast WebSocket error:', error);
+      ws.onerror = () => {
+        // Handle WebSocket errors silently
       };
 
     } catch (error) {
-      console.error('Failed to connect notification toast WebSocket:', error);
+      // Handle connection errors silently
     }
 
     return () => {

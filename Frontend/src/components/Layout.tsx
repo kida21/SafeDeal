@@ -35,7 +35,6 @@ const Layout = ({ children }: LayoutProps) => {
       logout();
       toast.success('Logged out successfully');
     } catch (error) {
-      console.error('Logout error:', error);
       logout(); // Still logout locally even if API call fails
     }
   };

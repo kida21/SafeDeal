@@ -74,7 +74,6 @@ const Dashboard = () => {
           total_amount: Number(summary?.total_amount ?? computed.total_amount),
         });
       } catch (err: any) {
-        console.error("Failed to load dashboard data:", err);
         setError(err?.response?.data?.message || 'Failed to load dashboard data');
         toast.error("Failed to load dashboard data. Please check your connection.");
       } finally {
@@ -119,7 +118,6 @@ const Dashboard = () => {
       });
       toast.success("Dashboard refreshed");
     } catch (err: any) {
-      console.error("Failed to refresh dashboard data:", err);
       setError(err?.response?.data?.message || 'Failed to refresh dashboard data');
       toast.error("Failed to refresh dashboard data");
     } finally {

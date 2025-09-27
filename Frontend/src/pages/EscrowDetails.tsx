@@ -11,7 +11,8 @@ import {
   CreditCard,
   Phone,
   X,
-  FileText
+  FileText,
+  ExternalLink
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useAuthStore } from '../store/authStore';
@@ -70,15 +71,28 @@ const EscrowDetails = () => {
     }
   }, [id]);
 
-  const fetchEscrowDetails = async () => {
+  const fetchEscrowDetails = async (retryCount = 0) => {
     if (!id) return;
     
     setIsLoading(true);
     try {
       const response = await escrowApi.getById(parseInt(id));
       setEscrow(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch escrow details');
+    } catch (error: any) {
+      // If it's a server error and we haven't retried too many times, try again
+      if (error?.response?.status === 500 && retryCount < 2) {
+        setTimeout(() => {
+          fetchEscrowDetails(retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+        return;
+      }
+      
+      // Show error message only if all retries failed
+      if (retryCount >= 2) {
+        toast.error('Unable to load escrow details after multiple attempts. Please refresh the page.');
+      } else {
+        toast.error('Failed to fetch escrow details');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +109,11 @@ const EscrowDetails = () => {
     try {
       await escrowApi.accept(escrowId);
       toast.success('Escrow accepted successfully!');
-      await fetchEscrowDetails(); // Refresh to get updated status
+      
+      // Add delay before refreshing to give backend time to process
+      setTimeout(() => {
+        fetchEscrowDetails();
+      }, 1500);
     } catch (error: any) {
       toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to accept escrow');
     } finally {
@@ -114,7 +132,11 @@ const EscrowDetails = () => {
     try {
       await escrowApi.confirmReceipt(escrowId);
       toast.success('Receipt confirmed! Funds will be released to the seller.');
-      fetchEscrowDetails();
+      
+      // Add delay before refreshing to give backend time to process
+      setTimeout(() => {
+        fetchEscrowDetails();
+      }, 1500);
     } catch (error: any) {
       toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to confirm receipt');
     } finally {
@@ -159,13 +181,17 @@ const EscrowDetails = () => {
 
   const handlePaymentComplete = () => {
     setShowPayment(false);
-    fetchEscrowDetails();
     toast.success('Payment completed successfully!');
+    
+    // Add a delay before refreshing to give backend time to process
+    setTimeout(() => {
+      fetchEscrowDetails();
+    }, 2000);
   };
 
   const handlePhoneSubmit = async () => {
-    if (!phoneNumber || phoneNumber.trim().length < 7) {
-      toast.error('Please enter a valid phone number (at least 7 digits)');
+    if (!phoneNumber || phoneNumber.trim().length < 10) {
+      toast.error('Please enter a valid phone number (at least 10 digits)');
       return;
     }
 
@@ -258,7 +284,10 @@ const EscrowDetails = () => {
       // Send AI arbitrator message to chat
       await sendArbitratorMessage(escrowId, disputeReason.trim());
       
-      fetchEscrowDetails();
+      // Add delay before refreshing to give backend time to process
+      setTimeout(() => {
+        fetchEscrowDetails();
+      }, 1500);
     } catch (error: any) {
       toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to create dispute');
     } finally {
@@ -288,11 +317,10 @@ const EscrowDetails = () => {
       };
       
       // This would typically be sent via WebSocket or API call
-      // For now, we'll just log it and show a toast
-      console.log('AI Arbitrator message would be sent:', arbitratorMessage);
+      // For now, we'll just show a toast
       toast.success('AI Arbitrator has been notified and will join the chat shortly');
     } catch (error) {
-      console.error('Failed to send arbitrator message:', error);
+      // Handle error silently
     }
   };
 
@@ -401,9 +429,20 @@ const EscrowDetails = () => {
                 {escrow.blockchain_tx_hash && (
                   <div>
                     <label className="text-sm font-medium text-gray-600">Blockchain Transaction</label>
-                    <p className="text-sm font-mono text-gray-900 break-all">
-                      {escrow.blockchain_tx_hash}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-sm font-mono text-gray-900 break-all flex-1 mr-3">
+                        {escrow.blockchain_tx_hash}
+                      </p>
+                      <a
+                        href={`https://sepolia.etherscan.io/tx/${escrow.blockchain_tx_hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-outline btn-sm flex-shrink-0"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Etherscan
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -643,7 +682,7 @@ const EscrowDetails = () => {
                   </button>
                   <button
                     onClick={handlePhoneSubmit}
-                    disabled={!phoneNumber || phoneNumber.trim().length < 7}
+                    disabled={!phoneNumber || phoneNumber.trim().length < 10}
                     className="btn btn-primary"
                   >
                     Continue Payment
