@@ -1,202 +1,74 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
-
-// Extend AxiosRequestConfig to include our custom property
-declare module 'axios' {
-    export interface AxiosRequestConfig {
-        skipAuthRefresh?: boolean;
-    }
-}
-
-// Ensure Vite's types are available for import.meta
-/// <reference types="vite/client" />
 import {
-    AuthResponse,
-    LoginRequest,
-    RegisterRequest,
-    UpdateProfileRequest,
-    User,
-    SearchUser,
-    Escrow,
-    CreateEscrowRequest,
-    EscrowPayment,
-    BankDetails,
-    TransactionHistory
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+  User,
+  SearchUser,
+  Escrow,
+  CreateEscrowRequest,
+  EscrowPayment,
+  BankDetails,
+  TransactionHistory,
 } from '../types';
+
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080';
 
+// Create Axios instance
 const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // ✅ Enables sending HTTP-only cookies automatically
 });
 
-// Request interceptor to add auth token
+// Add access token to all requests
 api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh and retry logic
-api.interceptors.response.use(
-    (response) => {
-        // Handle successful refresh token response
-        if (response.config.url?.includes('/refresh-token') && response.data) {
-            const { access_token, refresh_token: newRefreshToken } = response.data;
-            
-            if (access_token) {
-                localStorage.setItem('access_token', access_token);
-                console.debug('✅ Access token updated from refresh response');
-            }
-            
-            // Update refresh token if provided (token rotation)
-            if (newRefreshToken) {
-                localStorage.setItem('refresh_token', newRefreshToken);
-                console.debug('✅ Refresh token rotated');
-            }
-        }
-        
-        return response;
-    },
-    async (error) => {
-        const originalRequest = error.config;
-
-        // Only handle 401 errors and only if this isn't a retry
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            // If this is a refresh token request, don't retry
-            if (originalRequest.url?.includes('/refresh-token')) {
-                console.debug('❌ Refresh token failed - logging out');
-                // Clear auth data
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('user_profile');
-                window.location.href = '/login';
-                return Promise.reject(error);
-            }
-
-            console.debug('🔄 401 intercepted - attempting token refresh');
-            originalRequest._retry = true;
-
-            try {
-                const refreshToken = localStorage.getItem('refresh_token');
-                if (!refreshToken) {
-                    console.debug('❌ No refresh token available');
-                    throw new Error('No refresh token');
-                }
-
-                // Attempt to refresh the token
-                const response = await axios.post(
-                    `${API_BASE_URL}/refresh-token`,
-                    { refresh_token: refreshToken },
-                    {
-                        headers: { 'Content-Type': 'application/json' },
-                        // @ts-ignore - skipAuthRefresh is a custom property we're adding
-                        skipAuthRefresh: true // Prevent infinite loops
-                    } as AxiosRequestConfig
-                );
-
-                const { access_token, refresh_token: newRefreshToken } = response.data;
-                
-                if (!access_token) {
-                    throw new Error('No access token in refresh response');
-                }
-
-                // Store new tokens
-                localStorage.setItem('access_token', access_token);
-                if (newRefreshToken) {
-                    localStorage.setItem('refresh_token', newRefreshToken);
-                }
-
-                console.debug('✅ Token refresh successful');
-
-                // Update the auth header
-                originalRequest.headers.Authorization = `Bearer ${access_token}`;
-                
-                // Update the original request config with the new token
-                originalRequest.headers = {
-                    ...originalRequest.headers,
-                    'Authorization': `Bearer ${access_token}`
-                };
-
-                // Retry the original request with the new token
-                return api(originalRequest);
-
-            } catch (refreshError: any) {
-                console.debug('❌ Fallback refresh failed:', refreshError.message);
-                
-                // Only clear tokens on actual auth failures (not network errors)
-                if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
-                    console.debug('🚪 Clearing tokens and redirecting to login');
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('user_profile');
-                    
-                    // Redirect to login page
-                    window.location.href = '/login';
-                    return Promise.reject(new Error('Authentication failed'));
-                }
-                
-                // For network errors, don't clear tokens - let proactive refresh handle it
-                console.debug('🌐 Network error during refresh - keeping tokens');
-            }
-        }
-
-        // Don't clear tokens on 403 - these are business logic errors (not activated, etc.)
-        // Don't clear tokens on network errors - proactive refresh will handle them
-
-        return Promise.reject(error);
-    }
+// Add access token to all requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
-// Auth API
+// ---------- API endpoints ----------
 export const authApi = {
-    login: (data: LoginRequest): Promise<AxiosResponse<AuthResponse>> =>
-        api.post('/login', data),
+  login: (data: LoginRequest): Promise<AxiosResponse<AuthResponse>> =>
+    api.post('/login', data),
 
-    register: (data: RegisterRequest): Promise<AxiosResponse<AuthResponse>> =>
-        api.post('/register', data),
+  register: (data: RegisterRequest): Promise<AxiosResponse<AuthResponse>> =>
+    api.post('/register', data),
 
-    logout: (): Promise<AxiosResponse<void>> =>
-        api.post('/api/logout'),
+  logout: (): Promise<AxiosResponse<void>> => api.post('/api/logout'),
 
-    refreshToken: (refreshToken: string): Promise<AxiosResponse<{ access_token: string; refresh_token?: string }>> =>
-        api.post('/refresh-token', { refresh_token: refreshToken }),
+  // ✅ Refresh using cookie — no params needed
+  refreshToken: (): Promise<AxiosResponse<{ access_token: string; expires_in: number }>> =>
+    api.post('/refresh-token'),
 };
 
-// User API - Based on backend endpoints
 export const userApi = {
-    // GET Profile
-    getProfile: (): Promise<AxiosResponse<User>> =>
-        api.get('/api/profile'),
-
-    // PATCH Update Profile
-    updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
-        api.patch('/api/updateprofile', data),
-
-    // GET Search - Search for users (returns array of users)
-    searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[], pagination: any }>> =>
-        api.get(`/api/search?q=${encodeURIComponent(query)}`),
-
-    // PUT Bank-Details
-    updateBankDetails: (data: BankDetails): Promise<AxiosResponse<User>> =>
-        api.put('/api/profile/bank-details', data),
-
-    // POST Wallet
-    createWallet: (): Promise<AxiosResponse<User>> =>
-        api.post('/api/wallet'),
-
-    // POST Resend Activation Email (public route via gateway)
-    resendActivation: (email: string): Promise<AxiosResponse<{ message: string }>> =>
-        axios.post(`${API_BASE_URL}/resend`, { email }, { headers: { 'Content-Type': 'application/json' } }),
+  getProfile: (): Promise<AxiosResponse<User>> => api.get('/api/profile'),
+  updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
+    api.patch('/api/updateprofile', data),
+  searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[]; pagination: any }>> =>
+    api.get(`/api/search?q=${encodeURIComponent(query)}`),
+  updateBankDetails: (data: BankDetails): Promise<AxiosResponse<User>> =>
+    api.put('/api/profile/bank-details', data),
+  createWallet: (): Promise<AxiosResponse<User>> => api.post('/api/wallet'),
+  resendActivation: (email: string): Promise<AxiosResponse<{ message: string }>> =>
+    axios.post(`${API_BASE_URL}/resend`, { email }),
 };
 
 // Escrow API - Based on backend endpoints

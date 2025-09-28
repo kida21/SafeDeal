@@ -170,3 +170,21 @@ export const getTokenInfo = (token: string): string => {
   
   return `Expires in ${minutes}m ${seconds}s`;
 };
+// In tokenUtils.ts
+export const logTokenExpiration = (token: string): (() => void) => {
+  if (!token) {
+    console.debug('⏰ No token provided for expiration logging');
+    return () => {};
+  }
+
+  // Initial log
+  console.log(`⏰ Token status: ${getTokenInfo(token)}`);
+
+  // Log every minute
+  const intervalId = setInterval(() => {
+    console.log(`⏰ Token status: ${getTokenInfo(token)}`);
+  }, 60000);
+
+  // Return cleanup function
+  return () => clearInterval(intervalId);
+};

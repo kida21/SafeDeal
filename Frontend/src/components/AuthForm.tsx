@@ -27,47 +27,52 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
 
   const onSubmit = async (data: LoginRequest | RegisterRequest) => {
     setIsLoading(true);
+
     try {
-      let response;
       if (isLogin) {
-        response = await authApi.login(data as LoginRequest);
-        // Be resilient to different token field names
+        // 🔹 1. Attempt login
+        const response = await authApi.login(data as LoginRequest);
+
         const body: any = response?.data || {};
-        const accessToken = body.access_token || body.accessToken || body.token || response?.headers?.["authorization"]?.replace(/^Bearer\s+/i, "");
-        const refreshToken = body.refresh_token || body.refreshToken || body.refresh || '';
+
+        // 🔹 2. Extract access token
+        const accessToken =
+          body.access_token ||
+          body.accessToken ||
+          body.token ||
+          response?.headers?.["authorization"]?.replace(/^Bearer\s+/i, "");
 
         if (!accessToken) {
-          toast.error("Login succeeded but no access token returned by server.");
+          toast.error(
+            "Login succeeded but no access token returned by server."
+          );
           return;
         }
 
-        try { localStorage.setItem("access_token", accessToken); } catch {}
-        if (refreshToken) {
-          try { localStorage.setItem("refresh_token", refreshToken); } catch {}
-        }
+        // 🔹 3. Save access token (cookie is already set automatically)
+        localStorage.setItem("access_token", accessToken);
 
-        // Fetch fresh profile to ensure activation and details are current
+        // 🔹 4. Fetch user profile
         try {
           const profileResp = await userApi.getProfile();
           const profile = profileResp.data;
           setUser(profile);
-          try { localStorage.setItem("user_profile", JSON.stringify(profile)); } catch {}
+          localStorage.setItem("user_profile", JSON.stringify(profile));
         } catch (e) {
-          // If profile fails immediately after login, force user to re-auth
           toast.error("Failed to load profile after login. Please try again.");
           return;
         }
 
+        // 🔹 5. Success
         toast.success("Login successful!");
         navigate("/dashboard");
       } else {
-        response = await authApi.register(data as RegisterRequest);
-        toast(
-          "Account created. Please verify your email (Mailtrap) to activate.",
-          { icon: "✉️" }
-        );
+        // Registration flow
+        await authApi.register(data as RegisterRequest);
+        toast("Account created. Please verify your email before login.", {
+          icon: "✉️",
+        });
         navigate("/");
-        return;
       }
     } catch (error: any) {
       const apiMessage =
@@ -88,6 +93,7 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
+      {/* Tabs: Login / Register */}
       <div className="flex mb-8">
         <button
           onClick={() => handleTabChange("login")}
@@ -111,7 +117,9 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
         </button>
       </div>
 
+      {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Registration-only fields */}
         {!isLogin && (
           <>
             <div className="flex space-x-4">
@@ -171,6 +179,7 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
           </>
         )}
 
+        {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Email
@@ -192,6 +201,7 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
           )}
         </div>
 
+        {/* Password */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Password
@@ -214,11 +224,7 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           {errors.password && (
@@ -228,6 +234,7 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
           )}
         </div>
 
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={isLoading}
@@ -237,9 +244,10 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
         </button>
       </form>
 
+      {/* Footer link */}
       {isLogin && (
         <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account?{" "}
+          Don’t have an account?{" "}
           <button
             onClick={() => handleTabChange("register")}
             className="text-primary-600 hover:text-primary-700 font-medium"
