@@ -1,4 +1,12 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
+
+// Extend AxiosRequestConfig to include our custom property
+declare module 'axios' {
+    export interface AxiosRequestConfig {
+        skipAuthRefresh?: boolean;
+    }
+}
+
 // Ensure Vite's types are available for import.meta
 /// <reference types="vite/client" />
 import {
@@ -38,8 +46,7 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor - FALLBACK ONLY (proactive refresh prevents 401s)
-// This is the safety net for edge cases as shown in the images
+// Response interceptor to handle token refresh and retry logic
 api.interceptors.response.use(
     (response) => {
         // Handle successful refresh token response
@@ -63,10 +70,21 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Only handle 401 errors as fallback (proactive refresh should prevent these)
+        // Only handle 401 errors and only if this isn't a retry
         if (error.response?.status === 401 && !originalRequest._retry) {
+            // If this is a refresh token request, don't retry
+            if (originalRequest.url?.includes('/refresh-token')) {
+                console.debug('❌ Refresh token failed - logging out');
+                // Clear auth data
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user_profile');
+                window.location.href = '/login';
+                return Promise.reject(error);
+            }
+
+            console.debug('🔄 401 intercepted - attempting token refresh');
             originalRequest._retry = true;
-            console.debug('🔄 401 intercepted - attempting fallback refresh');
 
             try {
                 const refreshToken = localStorage.getItem('refresh_token');
@@ -75,12 +93,16 @@ api.interceptors.response.use(
                     throw new Error('No refresh token');
                 }
 
-                // Attempt refresh using the correct endpoint
-                const response = await axios.post(`${API_BASE_URL}/refresh-token`, {
-                    refresh_token: refreshToken,
-                }, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                // Attempt to refresh the token
+                const response = await axios.post(
+                    `${API_BASE_URL}/refresh-token`,
+                    { refresh_token: refreshToken },
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        // @ts-ignore - skipAuthRefresh is a custom property we're adding
+                        skipAuthRefresh: true // Prevent infinite loops
+                    } as AxiosRequestConfig
+                );
 
                 const { access_token, refresh_token: newRefreshToken } = response.data;
                 
@@ -94,10 +116,18 @@ api.interceptors.response.use(
                     localStorage.setItem('refresh_token', newRefreshToken);
                 }
 
-                console.debug('✅ Fallback refresh successful');
+                console.debug('✅ Token refresh successful');
 
-                // Retry original request with new token
+                // Update the auth header
                 originalRequest.headers.Authorization = `Bearer ${access_token}`;
+                
+                // Update the original request config with the new token
+                originalRequest.headers = {
+                    ...originalRequest.headers,
+                    'Authorization': `Bearer ${access_token}`
+                };
+
+                // Retry the original request with the new token
                 return api(originalRequest);
 
             } catch (refreshError: any) {

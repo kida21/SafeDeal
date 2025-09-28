@@ -24,13 +24,20 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentUrl, onPaymentComplete }
     // Open payment URL in new tab
     const paymentWindow = window.open(paymentUrl, '_blank', 'width=800,height=600');
     
-    // In a real app, you would listen for payment completion via webhooks or polling
-    // For now, we'll simulate a successful payment after a delay
-    setTimeout(() => {
-      setPaymentStatus('completed');
-      setIsProcessing(false);
-      onPaymentComplete?.();
-    }, 3000);
+    // Listen for payment completion via polling (in a real app, use webhooks)
+    const checkPaymentStatus = setInterval(() => {
+      if (paymentWindow?.closed) {
+        clearInterval(checkPaymentStatus);
+        // When the payment window is closed, assume payment is complete
+        // In a real implementation, you would verify the payment status with your backend
+        setPaymentStatus('completed');
+        setIsProcessing(false);
+        onPaymentComplete?.();
+      }
+    }, 1000);
+    
+    // Cleanup interval if component unmounts
+    return () => clearInterval(checkPaymentStatus);
   };
 
   const handleClose = () => {
@@ -88,16 +95,10 @@ const PaymentModal = ({ isOpen, onClose, amount, paymentUrl, onPaymentComplete }
                   {formatCurrency(amount)}
                 </span>
               </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-600">Fee (2.5%):</span>
-                <span className="font-medium">
-                  {formatCurrency(amount * 0.025)}
-                </span>
-              </div>
               <div className="flex justify-between items-center border-t pt-2">
-                <span className="text-gray-600">Total:</span>
+                <span className="text-gray-600">Total Amount:</span>
                 <span className="font-bold text-lg">
-                  {formatCurrency(amount * 1.025)}
+                  {formatCurrency(amount)}
                 </span>
               </div>
             </div>

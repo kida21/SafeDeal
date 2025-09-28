@@ -73,26 +73,45 @@ const EscrowDetails = () => {
 
   const fetchEscrowDetails = async (retryCount = 0) => {
     if (!id) return;
-    
-    setIsLoading(true);
+
+    // Don't show loading spinner on retries to make it seamless
+    if (retryCount === 0) {
+      setIsLoading(true);
+    }
+
     try {
       const response = await escrowApi.getById(parseInt(id));
       setEscrow(response.data);
+      // If it succeeds on a retry, clear any potential error messages
+      if (retryCount > 0) {
+        toast.success('Escrow details updated successfully!');
+      }
     } catch (error: any) {
       // If it's a server error and we haven't retried too many times, try again
       if (error?.response?.status === 500 && retryCount < 2) {
+        const delay = 1000 * (retryCount + 1); // Exponential backoff (1s, 2s)
+        console.debug(`Backend busy. Retrying escrow fetch in ${delay}ms... (Attempt ${retryCount + 1})`);
+        toast.loading(`Server is busy, retrying... (Attempt ${retryCount + 1})`, { id: 'retry-toast' });
+        
         setTimeout(() => {
+          toast.dismiss('retry-toast');
           fetchEscrowDetails(retryCount + 1);
-        }, 1000 * (retryCount + 1)); // Exponential backoff
-        return;
+        }, delay);
+        return; // Important: exit the function to avoid showing a final error prematurely
       }
-      
-      // Show error message only if all retries failed
-      if (retryCount >= 2) {
-        toast.error('Unable to load escrow details after multiple attempts. Please refresh the page.');
+
+      // Handle final error after all retries have failed
+      toast.dismiss('retry-toast');
+      const errorMessage = error.response?.data?.error || 'Failed to fetch escrow details.';
+      if (error.response?.status === 500) {
+        toast.error(`🔧 Server Error: ${errorMessage} Please try refreshing the page.`);
+      } else if (error.response?.status === 404) {
+        toast.error('❌ Escrow not found.');
       } else {
-        toast.error('Failed to fetch escrow details');
+        toast.error(`Error: ${errorMessage}`);
       }
+      console.error('Failed to fetch escrow details after all retries:', error);
+
     } finally {
       setIsLoading(false);
     }
@@ -183,10 +202,11 @@ const EscrowDetails = () => {
     setShowPayment(false);
     toast.success('Payment completed successfully!');
     
-    // Add a delay before refreshing to give backend time to process
+    // Add a slightly longer delay before refreshing to give backend time to process
     setTimeout(() => {
+      console.log('Payment complete. Fetching updated escrow details after delay...');
       fetchEscrowDetails();
-    }, 2000);
+    }, 2500); // Increased to 2.5 seconds
   };
 
   const handlePhoneSubmit = async () => {
