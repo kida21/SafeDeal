@@ -162,7 +162,7 @@ func HandleDecision(w http.ResponseWriter, r *http.Request) {
     }
 
     // Create AI client
-    client, err := ai_mediator.NewAiArbitratorClient("ai-arbitrator-service:50055")
+    client, err := ai_mediator.NewAiArbitratorClient("")
     if err != nil {
         log.Printf("Failed to create AI arbitrator client: %v", err)
         http.Error(w, "Failed to connect to AI service", http.StatusInternalServerError)
@@ -182,7 +182,7 @@ func HandleDecision(w http.ResponseWriter, r *http.Request) {
         DisputeConditionsJson: "{}", // Add empty JSON object as placeholder
     }
 
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
     defer cancel()
 
     // Request a decision from the AI
@@ -235,7 +235,7 @@ func triggerAutomatedMediation(escrowDetails *v1_escrow.EscrowResponse, escrowID
     }
 
     // Create AI client
-    client, err := ai_mediator.NewAiArbitratorClient("ai-arbitrator-service:50055")
+    client, err := ai_mediator.NewAiArbitratorClient("")
     if err != nil {
         log.Printf("Failed to create AI arbitrator client: %v", err)
         return
@@ -250,7 +250,7 @@ func triggerAutomatedMediation(escrowDetails *v1_escrow.EscrowResponse, escrowID
         Chat:        []*v1_ai.ChatMessage{}, // Initialize empty chat
     }
 
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
     defer cancel()
 
     // Request mediation from the AI
