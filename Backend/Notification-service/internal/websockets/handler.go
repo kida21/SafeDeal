@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"notification_service/internal/model"
+	
 	"strconv"
 
 	"github.com/gorilla/websocket"
@@ -23,7 +24,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// notification-service/internal/websockets/handler.go
+
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.Header.Get("X-User-ID")
 	if userIDStr == "" {
@@ -54,11 +55,14 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-			var req map[string]string
+
+			var req map[string]interface{}
 			if err := json.Unmarshal(msg, &req); err != nil {
 				continue
 			}
-			if req["type"] == "get_history" {
+
+			switch req["type"] {
+			case "get_history":
 				var notifications []model.Notification
 				DB.Where("user_id = ?", uint(userID)).
 					Order("created_at DESC").
@@ -81,6 +85,36 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				conn.WriteJSON(map[string]interface{}{
 					"type": "history",
 					"data": res,
+				})
+
+			// Handle mark as read
+			case "mark_read":
+				idFloat, ok := req["id"].(float64)
+				if !ok {
+					continue
+				}
+				id := uint(idFloat)
+
+				var notif model.Notification
+				if err := DB.First(&notif, "id = ? AND user_id = ?", id, uint(userID)).Error; err != nil {
+					continue
+				}
+
+				
+				notif.Read = true
+				DB.Save(&notif)
+                //log.Printf("Marked notification %d as read for user %d", id, userID)
+				// Broadcast update to all connections of this user
+				data, _ := json.Marshal(map[string]interface{}{
+					"type": "read_updated",
+					"data": map[string]interface{}{
+						"id":   notif.ID,
+						"read": true,
+					},
+				})
+				HubInstance.Broadcast(Message{
+					UserID:  uint(userID),
+					Content: data,
 				})
 			}
 		}
