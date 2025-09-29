@@ -1,22 +1,18 @@
 package handlers
 
 import (
-	"context"
+	
 	"escrow_service/internal/auth"
 	"escrow_service/internal/model"
-	"math/big"
-    "blockchain_adapter"
-     "strconv"
-    "github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"escrow_service/internal/rabbitmq"
+	"log"
+	"strconv"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
-var blockchainClient *blockchain.Client
 
-func SetBlockchainClient(client *blockchain.Client) {
-	blockchainClient = client
-}
 
 func CreateEscrow(c fiber.Ctx) error {
 	escrow := new(model.Escrow)
@@ -27,14 +23,14 @@ func CreateEscrow(c fiber.Ctx) error {
 	userIDStr := c.Get("X-User-ID")
 	if userIDStr == "" {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "Missing X-User-ID header",
+			"error": "Missing X-User-ID",
 		})
 	}
 
 	buyerID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid user ID format",
+			"error": "Invalid user ID",
 		})
 	}
 
@@ -43,7 +39,11 @@ func CreateEscrow(c fiber.Ctx) error {
 			"error": "Seller ID is required",
 		})
 	}
-
+    if escrow.Amount <= 0 {
+		 return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+             "error": "Amount must be greater than zero",
+	       })
+    }
 	if uint32(buyerID) == uint32(escrow.SellerID) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Buyer and seller cannot be the same user",
@@ -53,12 +53,11 @@ func CreateEscrow(c fiber.Ctx) error {
 	userServiceClient, err := auth.NewUserServiceClient("user-service:50051")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to connect to user service"+ err.Error(),
+			"error": "Failed to connect to user service",
 		})
 	}
 	defer userServiceClient.Close()
 
-	
 	buyerRes, err := userServiceClient.GetUser(uint32(buyerID))
 	if err != nil || buyerRes == nil || !buyerRes.Activated {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -66,7 +65,6 @@ func CreateEscrow(c fiber.Ctx) error {
 		})
 	}
 
-	
 	sellerRes, err := userServiceClient.GetUser(uint32(escrow.SellerID))
 	if err != nil || sellerRes == nil || !sellerRes.Activated {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -74,111 +72,71 @@ func CreateEscrow(c fiber.Ctx) error {
 		})
 	}
 
+	// ✅ Validate bank details
+	if buyerRes.AccountName == nil || buyerRes.AccountName.Value == "" ||
+		buyerRes.AccountNumber == nil || buyerRes.AccountNumber.Value == "" ||
+		buyerRes.BankCode == nil || buyerRes.BankCode.Value == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Buyer has not added bank account details",
+		})
+	}
+	if sellerRes.AccountName == nil || sellerRes.AccountName.Value == "" ||
+		sellerRes.AccountNumber == nil || sellerRes.AccountNumber.Value == "" ||
+		sellerRes.BankCode == nil || sellerRes.BankCode.Value == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Seller has not added bank account details",
+		})
+	}
+
+	// ✅ Validate wallet
+	var buyerAddr, sellerAddr common.Address
+	if buyerRes.WalletAddress == nil || buyerRes.WalletAddress.Value == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Buyer has not created a wallet",
+		})
+	}
+	buyerAddr = common.HexToAddress(buyerRes.WalletAddress.Value)
+
+	if sellerRes.WalletAddress == nil || sellerRes.WalletAddress.Value == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Seller has not created a wallet",
+		})
+	}
+	sellerAddr = common.HexToAddress(sellerRes.WalletAddress.Value)
+
+	// ✅ Set escrow fields
 	escrow.BuyerID = uint(buyerID)
 	escrow.Status = model.Pending
 
-	 if buyerRes.AccountName == nil || buyerRes.AccountName.Value == "" ||
-	       buyerRes.AccountNumber == nil || buyerRes.AccountNumber.Value == "" ||
-	          buyerRes.BankCode == nil || buyerRes.BankCode.Value == 0 {
-	              return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-		             "error": "Buyer has not added bank account details",
-	                   })
-    }
-	if sellerRes.AccountName == nil || sellerRes.AccountName.Value == "" ||
-	       sellerRes.AccountNumber == nil || sellerRes.AccountNumber.Value == "" ||
-	        sellerRes.BankCode == nil || sellerRes.BankCode.Value == 0 {
-	           return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-		            "error": "Seller has not added bank account details",
-	              })
-    }
+	
 
-	var buyerAddr, sellerAddr common.Address
-
-	if buyerRes.WalletAddress == nil || buyerRes.WalletAddress.Value == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Buyer has not created a wallet. Escrow creation requires seller opt-in.",
+	// ✅ Save in DB
+	db := c.Locals("db").(*gorm.DB)
+	if err := db.Create(&escrow).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create escrow",
 		})
-		
-	} else 
-	   {
-		buyerAddr = common.HexToAddress(buyerRes.WalletAddress.GetValue())
-	  }
-	  
+	}
 
-	if sellerRes.WalletAddress == nil || sellerRes.WalletAddress.Value ==""{
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Seller has not created a wallet. Escrow creation requires seller opt-in.",
-		})
-		} else {
-		    sellerAddr = common.HexToAddress(sellerRes.WalletAddress.GetValue())
-	     }
-	   
-
-	if blockchainClient == nil {
-	   return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-		  "error": "Blockchain client not initialized",
-	   })
-   }
-
-     if blockchainClient.Contract == nil {
-	    return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-		  "error": "Blockchain contract not loaded",
-	      })
-        }
-	amount := new(big.Int).SetUint64(uint64(escrow.Amount * 100))
-	tx, err := blockchainClient.Contract.CreateEscrow(
-		blockchainClient.Auth,
-		buyerAddr,
-		sellerAddr,
-		amount,
+	// ✅ Publish event
+	producer := rabbitmq.NewProducer()
+	err = producer.PublishCreateEscrow(
+		uint64(escrow.ID),
+		uint32(escrow.BuyerID),
+		uint32(escrow.SellerID),
+		escrow.Amount,
+		buyerAddr.Hex(),
+		sellerAddr.Hex(),
 	)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create on-chain escrow: " + err.Error(),
-		})
-	}
-      receipt, err := bind.WaitMined(context.Background(), blockchainClient.Client, tx)
-	   if err != nil {
-		  return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Transaction mining failed: " + err.Error(),
-		    })
-	    }
-       var escrowID *big.Int
-	    for _, log := range receipt.Logs {
-		event, err := blockchainClient.Contract.ParseEscrowCreated(*log)
-		if err == nil && event != nil {
-			escrowID = event.Id
-			break
-		}
-	    }
-		if escrowID == nil {
-	         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-		        "error": "Failed to get escrow ID from logs",
-	          })
-         }
-		 txHash := tx.Hash().Hex()
-         id := escrowID.Uint64()
-         
-		 escrow.BlockchainTxHash = &txHash
-	     escrow.BlockchainEscrowID = &id
-
-		db := c.Locals("db").(*gorm.DB)
-	      if err := db.Create(&escrow).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create escrow"+ err.Error(),
-		})
+		log.Printf("Failed to publish CreateEscrow event: %v", err)
+		// Don't fail — best effort
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"id":                 escrow.ID,
-		"buyer_id":           escrow.BuyerID,
-		"seller_id":          escrow.SellerID,
-		"amount":             escrow.Amount,
-		"status":             escrow.Status,
-		"conditions":         escrow.Conditions,
-		"blockchain_tx_hash": txHash,
-		"blockchain_escrow_id": id,
-		"created_at":         escrow.CreatedAt,
-		"updated_at":         escrow.UpdatedAt,
+	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+		"message": "Escrow creation started",
+		"id":      escrow.ID,
+		"status":  "Pending",
+		"on_chain_status": "awaiting_confirmation",
 	})
 }

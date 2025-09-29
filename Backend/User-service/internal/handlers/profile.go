@@ -39,6 +39,8 @@ func Profile(c fiber.Ctx) error {
 		"last_name":  user.LastName,
 		"email":      user.Email,
 		"activated":  user.Activated,
+		"account_number": user.AccountNumber,
+		"wallet_address": user.WalletAddress,
 	})
 }
 

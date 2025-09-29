@@ -5,7 +5,6 @@ go 1.24.5
 require (
 	github.com/SafeDeal/proto/ai_arbitrator v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
-	github.com/go-chi/chi/v5 v5.2.3
 	gorm.io/gorm v1.30.1
 )
 

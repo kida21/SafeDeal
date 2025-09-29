@@ -30,10 +30,12 @@ message User {
   string email = 4;
   bool activated = 5;
   int32 version = 6;
- google.protobuf.StringValue wallet_address = 7;
- google.protobuf.StringValue account_name = 8;
-  google.protobuf.StringValue account_number = 9;
-  google.protobuf.Int32Value bank_code = 10;
+  string profession = 7;
+ google.protobuf.StringValue wallet_address = 8;
+ google.protobuf.StringValue account_name = 9;
+  google.protobuf.StringValue account_number = 10;
+  google.protobuf.Int32Value bank_code = 11;
+  
 }
 
 message GetUserRequest {

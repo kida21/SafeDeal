@@ -17,6 +17,7 @@ func Register(c fiber.Ctx) error {
 		LastName  string `json:"last_name" validate:"required,chars_only,min=2,max=50"`
 		Email     string `json:"email" validate:"required,email"`
 		Password  string `json:"password" validate:"required,min=8"`
+		Profession string `json:"profession" validate:"required,min=2,max=100"`
 	}
 
 	var req RegisterRequest
@@ -48,6 +49,7 @@ func Register(c fiber.Ctx) error {
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Password:  string(hashedPassword),
+		Profession: req.Profession,
 		Activated: false,
 		Version:   1,
 		WalletAddress: nil,
@@ -73,6 +75,7 @@ func Register(c fiber.Ctx) error {
 		"user": fiber.Map{
 			"first_name": user.FirstName,
 			"last_name":  user.LastName,
+			"profession": user.Profession,
 			"email":      user.Email,
 			"activated":  user.Activated,
 		},

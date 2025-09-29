@@ -19,6 +19,8 @@ func SetupRoutes(app *fiber.App) {
 	app.Post("/register", middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
 	app.Get("/activate", middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
 	app.Post("/refresh-token", middleware.RateLimitByIP(publicLimiter), proxy.ProxyHandler("user-service"))
+	app.Post("/resend",middleware.RateLimitByIP(publicLimiter),proxy.ProxyHandler("user-service"))
+	
 
 	// Authenticated routes
 	authenticated := app.Group("/api")
@@ -35,21 +37,34 @@ func SetupRoutes(app *fiber.App) {
            return websocket.New(proxy.WebSocketProxy("chat-service"))(c)
           })
 
+        // Notification WebSocket
+	    authenticated.Get("/notifications/ws", func(c *fiber.Ctx) error {
+
+		     c.Locals("user_id", c.Get("X-User-ID"))
+		     c.Locals("session_id", c.Get("X-Session-ID"))
+		     return websocket.New(proxy.NotificationProxy("notification-service"))(c)
+	     })
 
 		// User routes
 		authenticated.Use("/logout", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/profile", proxy.ProxyHandler("user-service"))
+		authenticated.Use("/updateprofile",proxy.ProxyHandler("user-service"))
 		authenticated.Use("/profile/bank-details", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/wallet", proxy.ProxyHandler("user-service"))
 		authenticated.Use("/users", proxy.ProxyHandler("user-service"))
+		authenticated.Use("/search",proxy.ProxyHandler("user-service"))
 
 		// Escrow routes
 		authenticated.Use("/escrows", proxy.ProxyHandler("escrow-service"))
+		authenticated.Use("/escrows/:id",proxy.ProxyHandler("escrow-service"))
+		authenticated.Use("/escrows/my",proxy.ProxyHandler("escrow-service"))
 		authenticated.Use("/escrows/:id/accept", proxy.ProxyHandler("escrow-service"))
 		authenticated.Use("/escrows/:id/confirm-receipt", proxy.ProxyHandler("escrow-service"))
 		authenticated.Use("/escrows/dispute/:id",proxy.ProxyHandler("escrow-service"))
+		authenticated.Use("/escrows/contacts",proxy.ProxyHandler("escrow-service"))
 
 		// Payment routes
-		authenticated.Use("/payments", proxy.ProxyHandler("payment-service"))
+		authenticated.Use("/payments/initiate", proxy.ProxyHandler("payment-service"))
+		authenticated.Use("/payments/transactions",proxy.ProxyHandler("payment-service"))
 	}
 }

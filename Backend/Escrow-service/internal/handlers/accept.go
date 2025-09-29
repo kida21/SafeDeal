@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"escrow_service/internal/model"
+	"escrow_service/internal/rabbitmq"
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
@@ -41,6 +43,12 @@ func AcceptEscrow(c fiber.Ctx) error {
 
 	escrow.Active = true
 	db.Save(&escrow)
+
+	producer := rabbitmq.NewProducer()
+	err = producer.PublishEscrowAccepted(uint64(escrow.ID), uint32(userID))
+	if err != nil {
+		log.Printf("Failed to publish escrow.accepted: %v", err)
+	}
 
 	return c.JSON(fiber.Map{
 		"message": "Escrow accepted. Chat is now enabled.",

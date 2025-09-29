@@ -46,11 +46,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize blockchain client: %v", err)
 	}
-    nextID, err := blockchainClient.Contract.NextId(&bind.CallOpts{})
+    _, err = blockchainClient.Contract.NextId(&bind.CallOpts{})
 	if err != nil {
 		log.Fatalf("Contract call failed: %v", err)
 	}
-	log.Printf("Connected to contract. Next ID: %d", nextID)
+	log.Printf("Connected to contract")
     
    handlers.SetBlockchainClient(blockchainClient)
    

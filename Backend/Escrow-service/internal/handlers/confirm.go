@@ -58,6 +58,11 @@ func ConfirmReceipt(c fiber.Ctx) error {
 			"error": "Escrow is not in a state to be confirmed",
 		})
 	}
+	if !escrow.Active{
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Escrow must be accepted by seller first",
+		})
+	}
 	userServiceClient, err := auth.NewUserServiceClient("user-service:50051")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"escrow_service/internal/model"
+	"escrow_service/internal/rabbitmq"
+	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v3"
@@ -54,21 +57,37 @@ func DisputeEscrow(c fiber.Ctx) error {
 		})
 	}
 
-	
+	if escrow.Status == model.Released{
+		return  c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":"Escrow is Released,Can't issue a dispute",
+		})
+	}
 	if escrow.Status == "Disputed" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Escrow is already resolved or disputed",
 		})
 	}
-
+	var raisedBy string
+    if userID == uint64(escrow.BuyerID){
+		raisedBy = fmt.Sprintf("Buyer-Id:%d",userID)
+	}else{
+		raisedBy = fmt.Sprintf("Seller-Id:%d",userID)
+	}
 	
 	escrow.Status = model.Disputed
 	db.Save(&escrow)
+
+	producer := rabbitmq.NewProducer()
+	err = producer.PublishEscrowDisputed(escrowID, uint32(userID))
+	if err != nil {
+		log.Printf("Failed to publish escrow.disputed: %v", err)
+	}
 
     return c.JSON(fiber.Map{
 		"message":     "Dispute raised successfully",
 		"status":      "Disputed",
 		"escrow_id":   escrow.ID,
+		"RaisedBy":    raisedBy,
 		
 	})
 }

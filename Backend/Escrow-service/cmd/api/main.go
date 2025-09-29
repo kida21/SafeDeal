@@ -5,7 +5,6 @@ import (
 	"escrow_service/internal"
 	"escrow_service/internal/consul"
 	"escrow_service/internal/db"
-	"escrow_service/internal/handlers"
 	"escrow_service/internal/model"
 	"escrow_service/internal/rabbitmq"
 	"escrow_service/internal/server"
@@ -39,6 +38,7 @@ func main() {
     db.ConnectDB()
    
     db.DB.AutoMigrate(&model.Escrow{})
+    db.DB.AutoMigrate(&model.Contact{})
     go startGRPCServer(db.DB)
     consul.RegisterService("escrow-service", "escrow-service", 8082)
     
@@ -49,16 +49,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize blockchain client: %v", err)
 	}
-    nextID, err := blockchainClient.Contract.NextId(&bind.CallOpts{})
+    _, err = blockchainClient.Contract.NextId(&bind.CallOpts{})
 	if err != nil {
 		log.Fatalf("Contract call failed: %v", err)
 	}
-    handlers.SetBlockchainClient(blockchainClient)
-	log.Printf("Connected to contract. Next ID: %d", nextID)
+  
+	log.Printf("Connected to contract")
     
     consumer := rabbitmq.NewConsumer(db.DB,blockchainClient)
     go consumer.Listen()                    
 	go consumer.ListenForTransferEvents()
+    go consumer.StartEscrowWorker()
 
     app := fiber.New()
 
