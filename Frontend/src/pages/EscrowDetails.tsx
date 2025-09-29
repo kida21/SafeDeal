@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Shield, 
-  Clock, 
-  CheckCircle, 
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Shield,
+  Clock,
+  CheckCircle,
   AlertCircle,
   User,
   MessageCircle,
@@ -12,18 +12,18 @@ import {
   Phone,
   X,
   FileText,
-  ExternalLink
-} from 'lucide-react';
-import Layout from '../components/Layout';
-import { useAuthStore } from '../store/authStore';
-import { escrowApi, paymentApi } from '../lib/api';
-import { formatCurrency, getStatusColor } from '../lib/utils';
-import { Escrow, EscrowPayment } from '../types';
-import { toast } from 'react-hot-toast';
-import LoadingSpinner from '../components/LoadingSpinner';
-import RealTimeChat from '../components/RealTimeChat';
-import PaymentModal from '../components/PaymentModal';
-import { motion, AnimatePresence } from 'framer-motion';
+  ExternalLink,
+} from "lucide-react";
+import Layout from "../components/Layout";
+import { useAuthStore } from "../store/authStore";
+import { escrowApi, paymentApi } from "../lib/api";
+import { formatCurrency, getStatusColor } from "../lib/utils";
+import { Escrow, EscrowPayment } from "../types";
+import { toast } from "react-hot-toast";
+import LoadingSpinner from "../components/LoadingSpinner";
+import RealTimeChat from "../components/RealTimeChat";
+import PaymentModal from "../components/PaymentModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 const formatDateSafe = (date: string | number | Date | null | undefined) => {
   if (!date) return "Unknown date";
@@ -32,9 +32,7 @@ const formatDateSafe = (date: string | number | Date | null | undefined) => {
 
   if (typeof date === "string") {
     // Convert "2025-09-14 12:49:29.00232+00" → "2025-09-14T12:49:29.002+00"
-    const normalized = date
-      .replace(" ", "T")
-      .replace(/(\.\d{3})\d+/, "$1"); // trim microseconds
+    const normalized = date.replace(" ", "T").replace(/(\.\d{3})\d+/, "$1"); // trim microseconds
     d = new Date(normalized);
   } else {
     d = new Date(date);
@@ -62,8 +60,12 @@ const EscrowDetails = () => {
   const [showPayment, setShowPayment] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [disputeReason, setDisputeReason] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [disputeReason, setDisputeReason] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
+  // Calculate user roles early so they can be used in useEffects
+  const isBuyer = user?.id === escrow?.buyer_id;
+  const isSeller = user?.id === escrow?.seller_id;
 
   useEffect(() => {
     if (id) {
@@ -71,8 +73,47 @@ const EscrowDetails = () => {
     }
   }, [id]);
 
+  // Auto-reload escrow details for buyer when seller accepts
+  useEffect(() => {
+    if (!escrow || !isBuyer) return;
+
+    // Set up polling to check for escrow status changes
+    const pollInterval = setInterval(async () => {
+      // Only poll if escrow is funded but not yet active (waiting for seller acceptance)
+      if (escrow.status === "Funded" && !escrow.active) {
+        console.log("Polling for seller acceptance...");
+        try {
+          const response = await escrowApi.getById(parseInt(id!));
+          const rawData = response.data as any;
+          
+          // Check if seller has accepted (escrow became active)
+          const newActive = rawData.active !== undefined ? rawData.active : rawData.Active;
+          if (newActive && !escrow.active) {
+            toast.success("🎉 Seller has accepted the escrow! You can now chat and confirm receipt.");
+            fetchEscrowDetails(); // Refresh the full details
+          }
+        } catch (error) {
+          console.error("Error polling for seller acceptance:", error);
+        }
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Clean up interval
+    return () => clearInterval(pollInterval);
+  }, [escrow?.status, escrow?.active, isBuyer, id]);
+
   const fetchEscrowDetails = async (retryCount = 0) => {
-    if (!id) return;
+    if (!id) {
+      console.error('No escrow ID provided');
+      return;
+    }
+
+    const escrowId = parseInt(id);
+    if (isNaN(escrowId) || escrowId <= 0) {
+      console.error('Invalid escrow ID:', id);
+      toast.error('Invalid escrow ID');
+      return;
+    }
 
     // Don't show loading spinner on retries to make it seamless
     if (retryCount === 0) {
@@ -80,38 +121,79 @@ const EscrowDetails = () => {
     }
 
     try {
-      const response = await escrowApi.getById(parseInt(id));
-      setEscrow(response.data);
+      console.log('Fetching escrow details for ID:', escrowId);
+      const response = await escrowApi.getById(escrowId);
+      
+      // Validate response data
+      if (!response.data || typeof response.data !== 'object') {
+        throw new Error('Invalid response data from server');
+      }
+      
+      const escrowData = response.data;
+      console.log('Received escrow data:', escrowData);
+      
+      // Validate essential fields - handle both lowercase and uppercase field names
+      const rawData = escrowData as any; // Type assertion to handle backend field name differences
+      const hasId = rawData.id || rawData.ID;
+      const hasBuyerId = rawData.buyer_id;
+      const hasSellerId = rawData.seller_id;
+      
+      if (!hasId || !hasBuyerId || !hasSellerId) {
+        console.error('Escrow data missing essential fields:', escrowData);
+        console.error('Field check - ID:', hasId, 'buyer_id:', hasBuyerId, 'seller_id:', hasSellerId);
+        throw new Error('Incomplete escrow data received');
+      }
+      
+      // Normalize field names to match frontend expectations
+      const normalizedEscrowData: Escrow = {
+        ...rawData,
+        id: rawData.id || rawData.ID,
+        active: rawData.active !== undefined ? rawData.active : rawData.Active,
+        created_at: rawData.created_at || rawData.CreatedAt,
+        updated_at: rawData.updated_at || rawData.UpdatedAt,
+      };
+      
+      setEscrow(normalizedEscrowData);
+      
       // If it succeeds on a retry, clear any potential error messages
       if (retryCount > 0) {
-        toast.success('Escrow details updated successfully!');
+        toast.success("Escrow details updated successfully!");
       }
     } catch (error: any) {
       // If it's a server error and we haven't retried too many times, try again
       if (error?.response?.status === 500 && retryCount < 2) {
         const delay = 1000 * (retryCount + 1); // Exponential backoff (1s, 2s)
-        console.debug(`Backend busy. Retrying escrow fetch in ${delay}ms... (Attempt ${retryCount + 1})`);
-        toast.loading(`Server is busy, retrying... (Attempt ${retryCount + 1})`, { id: 'retry-toast' });
-        
+        console.debug(
+          `Backend busy. Retrying escrow fetch in ${delay}ms... (Attempt ${
+            retryCount + 1
+          })`
+        );
+        toast.loading(
+          `Server is busy, retrying... (Attempt ${retryCount + 1})`,
+          { id: "retry-toast" }
+        );
+
         setTimeout(() => {
-          toast.dismiss('retry-toast');
+          toast.dismiss("retry-toast");
           fetchEscrowDetails(retryCount + 1);
         }, delay);
         return; // Important: exit the function to avoid showing a final error prematurely
       }
 
       // Handle final error after all retries have failed
-      toast.dismiss('retry-toast');
-      const errorMessage = error.response?.data?.error || 'Failed to fetch escrow details.';
+      toast.dismiss("retry-toast");
+      const errorMessage =
+        error.response?.data?.error || "Failed to fetch escrow details.";
       if (error.response?.status === 500) {
-        toast.error(`🔧 Server Error: ${errorMessage} Please try refreshing the page.`);
+        toast.error(
+          `🔧 Server Error: ${errorMessage} Please try refreshing the page.`
+        );
       } else if (error.response?.status === 404) {
-        toast.error('❌ Escrow not found.');
+        toast.error("❌ Escrow not found.");
       } else {
         toast.error(`Error: ${errorMessage}`);
       }
-      console.error('Failed to fetch escrow details after all retries:', error);
-
+      console.error("Failed to fetch escrow details after all retries:", error);
     } finally {
       setIsLoading(false);
     }
@@ -120,21 +202,25 @@ const EscrowDetails = () => {
   const handleAccept = async () => {
     const escrowId = Number(id);
     if (!Number.isFinite(escrowId) || escrowId <= 0) {
-      toast.error('Invalid escrow ID');
+      toast.error("Invalid escrow ID");
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       await escrowApi.accept(escrowId);
-      toast.success('Escrow accepted successfully!');
-      
+      toast.success("Escrow accepted successfully!");
+
       // Add delay before refreshing to give backend time to process
       setTimeout(() => {
         fetchEscrowDetails();
       }, 1500);
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to accept escrow');
+      toast.error(
+        error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          "Failed to accept escrow"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -143,21 +229,25 @@ const EscrowDetails = () => {
   const handleConfirmReceipt = async () => {
     const escrowId = Number(id);
     if (!Number.isFinite(escrowId) || escrowId <= 0) {
-      toast.error('Invalid escrow ID');
+      toast.error("Invalid escrow ID");
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       await escrowApi.confirmReceipt(escrowId);
-      toast.success('Receipt confirmed! Funds will be released to the seller.');
-      
+      toast.success("Receipt confirmed! Funds will be released to the seller.");
+
       // Add delay before refreshing to give backend time to process
       setTimeout(() => {
         fetchEscrowDetails();
       }, 1500);
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to confirm receipt');
+      toast.error(
+        error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          "Failed to confirm receipt"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -166,16 +256,18 @@ const EscrowDetails = () => {
   const handleInitiatePayment = async () => {
     const escrowId = Number(id);
     if (!Number.isFinite(escrowId) || escrowId <= 0) {
-      toast.error('Invalid escrow ID');
+      toast.error("Invalid escrow ID");
       return;
     }
-    
+
     // Ensure phone number is available (required by payment provider)
     let profile: any = {};
-    try { profile = JSON.parse(localStorage.getItem('user_profile') || '{}'); } catch {}
+    try {
+      profile = JSON.parse(localStorage.getItem("user_profile") || "{}");
+    } catch {}
     let phone = profile?.phone_number as string | undefined;
-    if (!phone || typeof phone !== 'string' || phone.trim().length < 7) {
-      setPhoneNumber('');
+    if (!phone || typeof phone !== "string" || phone.trim().length < 7) {
+      setPhoneNumber("");
       setShowPhoneModal(true);
       return;
     }
@@ -190,9 +282,13 @@ const EscrowDetails = () => {
       });
       setPayment(response.data);
       setShowPayment(true);
-      toast.success('Payment initiated! Please complete the payment.');
+      toast.success("Payment initiated! Please complete the payment.");
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to initiate payment');
+      toast.error(
+        error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          "Failed to initiate payment"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -200,37 +296,39 @@ const EscrowDetails = () => {
 
   const handlePaymentComplete = () => {
     setShowPayment(false);
-    toast.success('Payment completed successfully!');
-    
+    toast.success("Payment completed successfully!");
+
     // Add a slightly longer delay before refreshing to give backend time to process
     setTimeout(() => {
-      console.log('Payment complete. Fetching updated escrow details after delay...');
+      console.log(
+        "Payment complete. Fetching updated escrow details after delay..."
+      );
       fetchEscrowDetails();
     }, 2500); // Increased to 2.5 seconds
   };
 
   const handlePhoneSubmit = async () => {
     if (!phoneNumber || phoneNumber.trim().length < 10) {
-      toast.error('Please enter a valid phone number (at least 10 digits)');
+      toast.error("Please enter a valid phone number (at least 10 digits)");
       return;
     }
 
     const escrowId = Number(id);
     if (!Number.isFinite(escrowId) || escrowId <= 0) {
-      toast.error('Invalid escrow ID');
+      toast.error("Invalid escrow ID");
       return;
     }
 
     // Save phone number for future use
     try {
-      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      const profile = JSON.parse(localStorage.getItem("user_profile") || "{}");
       const nextProfile = { ...profile, phone_number: phoneNumber.trim() };
-      localStorage.setItem('user_profile', JSON.stringify(nextProfile));
+      localStorage.setItem("user_profile", JSON.stringify(nextProfile));
     } catch {}
 
     setShowPhoneModal(false);
     setIsProcessing(true);
-    
+
     try {
       const response = await paymentApi.initiateEscrowPayment(escrowId, {
         email: user?.email,
@@ -240,37 +338,46 @@ const EscrowDetails = () => {
       });
       setPayment(response.data);
       setShowPayment(true);
-      toast.success('Payment initiated! Please complete the payment.');
+      toast.success("Payment initiated! Please complete the payment.");
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || 'Failed to initiate payment';
-      
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to initiate payment";
+
       // Enhanced error handling for bank details compatibility
-      if (errorMessage.toLowerCase().includes('bank') || errorMessage.toLowerCase().includes('account')) {
-        if (errorMessage.toLowerCase().includes('buyer') || errorMessage.toLowerCase().includes('your')) {
+      if (
+        errorMessage.toLowerCase().includes("bank") ||
+        errorMessage.toLowerCase().includes("account")
+      ) {
+        if (
+          errorMessage.toLowerCase().includes("buyer") ||
+          errorMessage.toLowerCase().includes("your")
+        ) {
           toast.error(`❌ Your Bank Details Issue: ${errorMessage}`, {
             duration: 6000,
             style: {
-              background: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#DC2626',
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              color: "#DC2626",
             },
           });
-        } else if (errorMessage.toLowerCase().includes('seller')) {
+        } else if (errorMessage.toLowerCase().includes("seller")) {
           toast.error(`❌ Seller Bank Details Issue: ${errorMessage}`, {
             duration: 6000,
             style: {
-              background: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#DC2626',
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              color: "#DC2626",
             },
           });
         } else {
           toast.error(`❌ Bank Details Issue: ${errorMessage}`, {
             duration: 6000,
             style: {
-              background: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#DC2626',
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              color: "#DC2626",
             },
           });
         }
@@ -284,32 +391,38 @@ const EscrowDetails = () => {
 
   const handleDisputeSubmit = async () => {
     if (!disputeReason || disputeReason.trim().length < 10) {
-      toast.error('Please provide a detailed reason for the dispute (at least 10 characters)');
+      toast.error(
+        "Please provide a detailed reason for the dispute (at least 10 characters)"
+      );
       return;
     }
 
     const escrowId = Number(id);
     if (!Number.isFinite(escrowId) || escrowId <= 0) {
-      toast.error('Invalid escrow ID');
+      toast.error("Invalid escrow ID");
       return;
     }
 
     setShowDisputeModal(false);
     setIsProcessing(true);
-    
+
     try {
       await escrowApi.dispute(escrowId, disputeReason.trim());
-      toast.success('Dispute created successfully');
-      
+      toast.success("Dispute created successfully");
+
       // Send AI arbitrator message to chat
       await sendArbitratorMessage(escrowId, disputeReason.trim());
-      
+
       // Add delay before refreshing to give backend time to process
       setTimeout(() => {
         fetchEscrowDetails();
       }, 1500);
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.response?.data?.message || 'Failed to create dispute');
+      toast.error(
+        error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          "Failed to create dispute"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -321,24 +434,26 @@ const EscrowDetails = () => {
       // In a real implementation, this would be handled by the backend
       const arbitratorMessage = {
         content: `🤖 **AI Arbitrator**: A dispute has been created for this escrow.\n\n**Dispute Reason:** ${reason}\n\nI will review the case and provide a resolution within 24-48 hours. Both parties will be notified of the decision. Please provide any additional evidence or information that may help resolve this dispute.`,
-        type: 'message',
+        type: "message",
         escrow_id: escrowId,
         sender_id: 0, // Special ID for AI arbitrator
         sender: {
           id: 0,
-          first_name: 'AI',
-          last_name: 'Arbitrator',
-          email: 'arbitrator@safedeal.com',
+          first_name: "AI",
+          last_name: "Arbitrator",
+          email: "arbitrator@safedeal.com",
           activated: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          profession: 'AI Arbitrator'
-        }
+          profession: "AI Arbitrator",
+        },
       };
-      
+
       // This would typically be sent via WebSocket or API call
       // For now, we'll just show a toast
-      toast.success('AI Arbitrator has been notified and will join the chat shortly');
+      toast.success(
+        "AI Arbitrator has been notified and will join the chat shortly"
+      );
     } catch (error) {
       // Handle error silently
     }
@@ -346,21 +461,35 @@ const EscrowDetails = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Pending':
+      case "Pending":
         return <Clock className="h-5 w-5" />;
-      case 'Funded':
+      case "Funded":
         return <Shield className="h-5 w-5" />;
-      case 'Released':
+      case "Released":
         return <CheckCircle className="h-5 w-5" />;
-      case 'Disputed':
+      case "Disputed":
         return <AlertCircle className="h-5 w-5" />;
       default:
         return <Clock className="h-5 w-5" />;
     }
   };
 
-  const isBuyer = user?.id === escrow?.buyer_id;
-  const isSeller = user?.id === escrow?.seller_id;
+  // Debug logging for undefined values
+  useEffect(() => {
+    if (escrow) {
+      console.log('=== ESCROW DEBUG INFO ===');
+      console.log('Escrow ID:', escrow.id);
+      console.log('Escrow Active:', escrow.active);
+      console.log('Escrow Status:', escrow.status);
+      console.log('Buyer ID:', escrow.buyer_id);
+      console.log('Seller ID:', escrow.seller_id);
+      console.log('Current User ID:', user?.id);
+      console.log('Is Buyer:', isBuyer);
+      console.log('Is Seller:', isSeller);
+      console.log('Full Escrow Object:', escrow);
+      console.log('========================');
+    }
+  }, [escrow, user, isBuyer, isSeller]);
 
   if (isLoading) {
     return (
@@ -375,8 +504,12 @@ const EscrowDetails = () => {
       <Layout>
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Escrow not found</h3>
-          <p className="text-gray-600 mb-4">The escrow you're looking for doesn't exist.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Escrow not found
+          </h3>
+          <p className="text-gray-600 mb-4">
+            The escrow you're looking for doesn't exist.
+          </p>
           <Link to="/dashboard" className="btn btn-primary">
             Back to Dashboard
           </Link>
@@ -406,7 +539,11 @@ const EscrowDetails = () => {
                 Created on {formatDateSafe(escrow.created_at)}
               </p>
             </div>
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(escrow.status)}`}>
+            <div
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                escrow.status
+              )}`}
+            >
               {getStatusIcon(escrow.status)}
               <span className="ml-2">{escrow.status}</span>
             </div>
@@ -425,30 +562,60 @@ const EscrowDetails = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Amount</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Amount
+                    </label>
                     <p className="text-lg font-semibold text-gray-900">
                       {formatCurrency(escrow.amount)}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Status</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Status
+                    </label>
                     <div className="flex items-center space-x-2">
                       {getStatusIcon(escrow.status)}
                       <span className="font-medium">{escrow.status}</span>
                     </div>
                   </div>
                 </div>
-                
+
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Escrow ID
+                    </label>
+                    <p className="text-sm font-mono text-gray-900">
+                      #{escrow.id}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Active Status
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${escrow.active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className={`text-sm font-medium ${escrow.active ? 'text-green-700' : 'text-red-700'}`}>
+                        {escrow.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {escrow.conditions && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Conditions</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Conditions
+                    </label>
                     <p className="text-gray-900 mt-1">{escrow.conditions}</p>
                   </div>
                 )}
 
                 {escrow.blockchain_tx_hash && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Blockchain Transaction</label>
+                    <label className="text-sm font-medium text-gray-600">
+                      Blockchain Transaction
+                    </label>
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-sm font-mono text-gray-900 break-all flex-1 mr-3">
                         {escrow.blockchain_tx_hash}
@@ -474,77 +641,89 @@ const EscrowDetails = () => {
                 Actions
               </h3>
               <div className="space-y-4">
-                {isBuyer && escrow.status === 'Pending' && (
+                {isBuyer && escrow.status === "Pending" && (
                   <button
                     onClick={handleInitiatePayment}
                     disabled={isProcessing}
                     className="btn btn-primary btn-lg w-full"
                   >
                     <CreditCard className="h-5 w-5 mr-2" />
-                    {isProcessing ? 'Initiating...' : 'Make Payment'}
+                    {isProcessing ? "Initiating..." : "Make Payment"}
                   </button>
                 )}
 
-                {isSeller && escrow.status === 'Pending' && (
+                {isSeller && !escrow.active && escrow.status === "Funded" && (
                   <button
                     onClick={handleAccept}
                     disabled={isProcessing}
                     className="btn btn-primary btn-lg w-full"
                   >
                     <CheckCircle className="h-5 w-5 mr-2" />
-                    {isProcessing ? 'Accepting...' : 'Accept Escrow'}
+                    {isProcessing ? "Accepting..." : "Accept Funded Escrow"}
                   </button>
                 )}
-                
-                {isSeller && escrow.status === 'Funded' && (
+
+                {isSeller && escrow.active && escrow.status === "Funded" && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                      <span className="text-green-800 font-medium">Escrow Accepted</span>
+                      <span className="text-green-800 font-medium">
+                        Escrow Accepted & Active
+                      </span>
                     </div>
                     <p className="text-green-700 text-sm mt-1">
-                      You have successfully accepted this escrow. Waiting for buyer to confirm receipt.
+                      You have accepted the funded escrow. Waiting for buyer to confirm receipt.
                     </p>
                   </div>
                 )}
 
-                {isBuyer && escrow.status === 'Funded' && (
+                {isBuyer && escrow.active && escrow.status === "Funded" && (
                   <button
                     onClick={handleConfirmReceipt}
                     disabled={isProcessing}
                     className="btn btn-success btn-lg w-full"
                   >
                     <CheckCircle className="h-5 w-5 mr-2" />
-                    {isProcessing ? 'Confirming...' : 'Confirm Receipt'}
+                    {isProcessing ? "Confirming..." : "Confirm Receipt"}
                   </button>
                 )}
 
-                {(isBuyer || isSeller) && escrow.status === 'Funded' && (
+                {(isBuyer || isSeller) && escrow.active && escrow.status === "Funded" && (
                   <button
                     onClick={() => {
-                      setDisputeReason('');
+                      setDisputeReason("");
                       setShowDisputeModal(true);
                     }}
                     disabled={isProcessing}
                     className="btn btn-outline btn-lg w-full"
                   >
                     <AlertCircle className="h-5 w-5 mr-2" />
-                    {isProcessing ? 'Creating Dispute...' : 'Create Dispute'}
+                    {isProcessing ? "Creating Dispute..." : "Create Dispute"}
                   </button>
                 )}
 
                 <button
                   onClick={() => setShowChat(true)}
-                  disabled={escrow.status === 'Pending'}
+                  disabled={!escrow.active || (escrow.status !== "Funded" && escrow.status !== "Released")}
                   className={`btn btn-lg w-full ${
-                    escrow.status === 'Pending' 
-                      ? 'btn-disabled cursor-not-allowed opacity-50' 
-                      : 'btn-outline'
+                    !escrow.active || (escrow.status !== "Funded" && escrow.status !== "Released")
+                      ? "btn-disabled cursor-not-allowed opacity-50"
+                      : "btn-outline"
                   }`}
-                  title={escrow.status === 'Pending' ? 'Chat will be available after escrow is accepted' : 'Open chat'}
+                  title={
+                    escrow.status === "Pending"
+                      ? "Chat will be available after payment is made"
+                      : !escrow.active
+                      ? "Chat will be available after seller accepts the funded escrow"
+                      : "Open chat"
+                  }
                 >
                   <MessageCircle className="h-5 w-5 mr-2" />
-                  {escrow.status === 'Pending' ? 'Chat (Pending Acceptance)' : 'Open Chat'}
+                  {escrow.status === "Pending"
+                    ? "Chat (Pending Payment)"
+                    : !escrow.active
+                    ? "Chat (Pending Acceptance)"
+                    : "Open Chat"}
                 </button>
               </div>
             </div>
@@ -573,7 +752,9 @@ const EscrowDetails = () => {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">Seller</p>
-                    <p className="text-sm text-gray-600">User #{escrow.seller_id}</p>
+                    <p className="text-sm text-gray-600">
+                      User #{escrow.seller_id}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -588,27 +769,35 @@ const EscrowDetails = () => {
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Escrow Created</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      Escrow Created
+                    </p>
                     <p className="text-xs text-gray-600">
                       {formatDateSafe(escrow.created_at)}
                     </p>
                   </div>
                 </div>
-                {escrow.status !== 'Pending' && (
+                {escrow.status !== "Pending" && (
                   <div className="flex items-center space-x-3">
                     <div className="w-2 h-2 bg-green-600 rounded-full"></div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Escrow Accepted</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Escrow Accepted
+                      </p>
                       <p className="text-xs text-gray-600">Status updated</p>
                     </div>
                   </div>
                 )}
-                {escrow.status === 'Released' && (
+                {escrow.status === "Released" && (
                   <div className="flex items-center space-x-3">
                     <div className="w-2 h-2 bg-green-600 rounded-full"></div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Funds Released</p>
-                      <p className="text-xs text-gray-600">Transaction completed</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Funds Released
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Transaction completed
+                      </p>
                     </div>
                   </div>
                 )}
@@ -687,7 +876,8 @@ const EscrowDetails = () => {
                       autoFocus
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      This will be used for payment verification and saved for future transactions
+                      This will be used for payment verification and saved for
+                      future transactions
                     </p>
                   </div>
                 </div>
@@ -703,7 +893,7 @@ const EscrowDetails = () => {
                   <button
                     onClick={handlePhoneSubmit}
                     disabled={!phoneNumber || phoneNumber.trim().length < 10}
-                    className="btn btn-primary"
+                    className="btn btn-primary btn-md"
                   >
                     Continue Payment
                   </button>
@@ -771,7 +961,13 @@ const EscrowDetails = () => {
                       <p className="text-xs text-gray-500">
                         Minimum 10 characters required
                       </p>
-                      <p className={`text-xs ${disputeReason.length >= 10 ? 'text-green-600' : 'text-gray-400'}`}>
+                      <p
+                        className={`text-xs ${
+                          disputeReason.length >= 10
+                            ? "text-green-600"
+                            : "text-gray-400"
+                        }`}
+                      >
                         {disputeReason.length}/10
                       </p>
                     </div>
@@ -785,10 +981,21 @@ const EscrowDetails = () => {
                           Important Information
                         </h4>
                         <ul className="text-xs text-yellow-700 space-y-1">
-                          <li>• An AI arbitrator will review your case within 24-48 hours</li>
-                          <li>• Both parties will be notified of the decision</li>
-                          <li>• Provide as much detail as possible for a fair resolution</li>
-                          <li>• The arbitrator will join the chat to gather more information if needed</li>
+                          <li>
+                            • An AI arbitrator will review your case within
+                            24-48 hours
+                          </li>
+                          <li>
+                            • Both parties will be notified of the decision
+                          </li>
+                          <li>
+                            • Provide as much detail as possible for a fair
+                            resolution
+                          </li>
+                          <li>
+                            • The arbitrator will join the chat to gather more
+                            information if needed
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -805,7 +1012,9 @@ const EscrowDetails = () => {
                   </button>
                   <button
                     onClick={handleDisputeSubmit}
-                    disabled={!disputeReason || disputeReason.trim().length < 10}
+                    disabled={
+                      !disputeReason || disputeReason.trim().length < 10
+                    }
                     className="btn btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
                   >
                     Create Dispute

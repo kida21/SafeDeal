@@ -51,7 +51,11 @@ export function truncateAddress(address: string, startLength: number = 6, endLen
     return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 }
 
-export function getStatusColor(status: string): string {
+export function getStatusColor(status: string | undefined | null): string {
+    if (!status) {
+        return 'text-gray-600 bg-gray-100';
+    }
+    
     switch (status.toLowerCase()) {
         case 'pending':
             return 'text-yellow-600 bg-yellow-100';
