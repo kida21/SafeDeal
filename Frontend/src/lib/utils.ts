@@ -23,6 +23,44 @@ export function formatDate(date: string | Date): string {
     }).format(new Date(date));
 }
 
+// Server time offset (difference between server and client time)
+let serverTimeOffset = 0;
+
+// Function to set server time offset based on server response
+export function setServerTimeOffset(serverTimestamp: string | Date) {
+    const serverTime = new Date(serverTimestamp).getTime();
+    const clientTime = new Date().getTime();
+    serverTimeOffset = serverTime - clientTime;
+}
+
+// Get current server time based on offset
+export function getServerTime(): Date {
+    return new Date(new Date().getTime() + serverTimeOffset);
+}
+
+// Format relative time based on server time
+export function formatRelativeTimeFromServer(date: string | Date, serverCurrentTime?: Date): string {
+    const now = serverCurrentTime || getServerTime();
+    const targetDate = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+        return 'Just now';
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else if (diffInSeconds < 2592000) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+    } else {
+        return formatDate(date);
+    }
+}
+
+// Legacy function for backward compatibility (uses client time)
 export function formatRelativeTime(date: string | Date): string {
     const now = new Date();
     const targetDate = new Date(date);

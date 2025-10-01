@@ -29,7 +29,6 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
     setNotifications, 
     addNotification, 
     markAsRead, 
-    markAllAsRead, 
     deleteNotification, 
     clearAllNotifications 
   } = useNotificationStore();
@@ -41,12 +40,12 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
   useEffect(() => {
     if (isOpen) {
       connectWebSocket();
-    } else {
-      disconnectWebSocket();
     }
 
     return () => {
-      disconnectWebSocket();
+      if (wsRef.current) {
+        disconnectWebSocket();
+      }
     };
   }, [isOpen]);
 
@@ -65,37 +64,56 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('🔔 WebSocket message received:', data);
           
           if (data.type === 'history') {
             // Load notification history - clear existing and load all
-            const historyNotifications = (data.data || []).map((item: any) => ({
-              id: item.id || Date.now() + Math.random(),
-              user_id: item.user_id || user?.id || 0,
-              type: item.type || 'info',
-              title: item.title || 'No Title',
-              message: item.message || 'No message',
-              read: false, // Mark as unread initially
-              metadata: item.metadata,
-              created_at: item.created_at || new Date().toISOString()
-            }));
+            const historyNotifications = (data.data || [])
+              .filter((item: any) => item.type !== 'read_updated') // Filter out read_updated notifications
+              .map((item: any, index: number) => ({
+                id: item.id || `fallback-${Date.now()}-${index}`,
+                user_id: item.user_id || user?.id || 0,
+                type: item.type || 'info',
+                title: item.title || 'No Title',
+                message: item.message || 'No message',
+                read: item.read || false, // Use actual read status from backend
+                metadata: item.metadata,
+                created_at: item.created_at && item.created_at !== '0001-01-01T00:00:00Z' ? item.created_at : new Date().toISOString()
+              }));
             // Sort by created_at descending (newest first)
             historyNotifications.sort((a: Notification, b: Notification) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             setNotifications(historyNotifications);
-          } else if (data.type === 'notification') {
-            // Handle new real-time notification
-            const notificationData = data.data || data;
-            const notification: Notification = {
-              id: notificationData.id || Date.now(),
-              user_id: notificationData.user_id || user?.id || 0,
-              type: notificationData.type || 'info',
-              title: notificationData.title || 'New Notification',
-              message: notificationData.message || 'You have a new notification.',
-              read: false, // New notifications are unread
-              metadata: notificationData.metadata,
-              created_at: notificationData.created_at || new Date().toISOString()
-            };
+          // } else if (data.type === 'notification') {
+          //   // Handle new real-time notification
+          //   const notificationData = data.data || data;
+          //   const notification: Notification = {
+          //     id: notificationData.id || `realtime-${Date.now()}-${Math.random()}`,
+          //     user_id: notificationData.user_id || user?.id || 0,
+          //     type: notificationData.type || 'info',
+          //     title: notificationData.title || 'Notification',
+          //     message: notificationData.message || '',
+          //     read: notificationData.read || false, // Use read status from backend
+          //     metadata: notificationData.metadata,
+          //     created_at: notificationData.created_at && notificationData.created_at !== '0001-01-01T00:00:00Z' ? notificationData.created_at : new Date().toISOString()
+          //   };
             
-            addNotification(notification);
+          //   addNotification(notification);
+          // } else if (data.type === 'read_updated') {
+          //   // Handle read status updates from backend
+          //   console.log('🔔 Read status updated from backend:', data);
+          //   if (data.id) {
+          //     markAsRead(data.id);
+          //   }
+          } else if (data.type === 'mark_read_response') {
+            // Handle mark_read command response from backend
+            console.log('🔔 Mark read response from backend:', data);
+            if (data.success && data.id) {
+              // Backend confirmed the read status was updated
+              markAsRead(data.id);
+            }
+          } else {
+            // Log any other message types we might be missing
+            console.log('🔔 Unknown WebSocket message type:', data.type, data);
           }
         } catch (error) {
           // Handle parsing errors silently
@@ -183,6 +201,7 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          key="notification-center-modal"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -235,24 +254,6 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
             {/* Actions */}
             {notifications.length > 0 && (
               <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={markAllAsRead}
-                      className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900"
-                    >
-                      {/* <MarkAsRead className="h-4 w-4" /> */}
-                      <span>Mark all read</span>
-                    </button>
-                  </div>
-                  <button
-                    onClick={clearAllNotifications}
-                    className="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>Clear all</span>
-                  </button>
-                </div>
               </div>
             )}
 
@@ -270,9 +271,18 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                 </div>
               ) : (
                 <div className="p-6 space-y-4">
-                  {notifications.map((notification) => (
+                  {[...notifications]
+                    .sort((a, b) => {
+                      // First: unread before read
+                      if (a.read !== b.read) {
+                        return a.read ? 1 : -1; 
+                      }
+                      // Second: newest first by created_at
+                      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                    })
+                    .map((notification, index) => (
                     <motion.div
-                      key={notification.id}
+                      key={`notification-${notification.id}-${index}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${
@@ -282,7 +292,15 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                       }`}
                       onClick={() => {
                         setSelectedNotification(notification);
-                        if (!notification.read) {
+                        // Send mark_read command to backend if not already read
+                        if (!notification.read && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                          const markReadCommand = {
+                            type: 'mark_read',
+                            id: notification.id
+                          };
+                          console.log('🔔 Sending mark_read command:', markReadCommand);
+                          wsRef.current.send(JSON.stringify(markReadCommand));
+                          // Optimistically mark as read in UI for immediate feedback
                           markAsRead(notification.id);
                         }
                       }}
@@ -321,6 +339,16 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    // Send mark_read command to backend
+                                    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                      const markReadCommand = {
+                                        type: 'mark_read',
+                                        id: notification.id
+                                      };
+                                      console.log('🔔 Sending mark_read command (button):', markReadCommand);
+                                      wsRef.current.send(JSON.stringify(markReadCommand));
+                                    }
+                                    // Optimistically mark as read in UI for immediate feedback
                                     markAsRead(notification.id);
                                   }}
                                   className="text-xs text-primary-600 hover:text-primary-700 px-2 py-1 rounded hover:bg-primary-50"
@@ -354,6 +382,7 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
       <AnimatePresence>
         {selectedNotification && (
           <motion.div
+            key="notification-details-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -403,6 +432,12 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                     <span className="font-semibold w-20 text-gray-700">Time:</span>
                     <span className="flex-1 text-gray-900">
                       {new Date(selectedNotification.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-20 text-gray-700">Status:</span>
+                    <span className={`flex-1 font-medium ${selectedNotification.read ? 'text-gray-600' : 'text-primary-600'}`}>
+                      {selectedNotification.read ? 'Read' : 'Unread'}
                     </span>
                   </div>
 

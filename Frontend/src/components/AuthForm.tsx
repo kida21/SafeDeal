@@ -15,6 +15,9 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(initialMode === "login");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showResendActivation, setShowResendActivation] = useState(false);
+  const [lastAttemptedEmail, setLastAttemptedEmail] = useState("");
+  const [isResendingActivation, setIsResendingActivation] = useState(false);
   const { setUser } = useAuthStore();
   const navigate = useNavigate();
 
@@ -80,7 +83,15 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
         error?.response?.data?.error ||
         error?.message ||
         JSON.stringify(error);
-      toast.error(apiMessage);
+      
+      // Check if it's an activation error
+      if (isLogin && (apiMessage.includes("not activated") || apiMessage.includes("Account not activated"))) {
+        setLastAttemptedEmail((data as LoginRequest).email);
+        setShowResendActivation(true);
+        toast.error("Account not activated. Use the button below to resend activation email.");
+      } else {
+        toast.error(apiMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +99,24 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
 
   const handleTabChange = (tab: "login" | "register") => {
     setIsLogin(tab === "login");
+    setShowResendActivation(false);
     reset();
+  };
+
+  const handleResendActivation = async () => {
+    if (!lastAttemptedEmail) return;
+    
+    setIsResendingActivation(true);
+    try {
+      await userApi.resendActivation(lastAttemptedEmail);
+      toast.success("Activation email sent! Please check your inbox.");
+      setShowResendActivation(false);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to resend activation email";
+      toast.error(errorMessage);
+    } finally {
+      setIsResendingActivation(false);
+    }
   };
 
   return (
@@ -243,6 +271,32 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
           {isLoading ? "Loading..." : isLogin ? "Login" : "Create Account"}
         </button>
       </form>
+
+      {/* Resend Activation Button */}
+      {showResendActivation && isLogin && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">Account Not Activated</h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                Your account needs to be activated before you can login. Click below to resend the activation email to <strong>{lastAttemptedEmail}</strong>.
+              </p>
+              <button
+                onClick={handleResendActivation}
+                disabled={isResendingActivation}
+                className="mt-3 btn btn-sm bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600 hover:border-yellow-700 disabled:opacity-50"
+              >
+                {isResendingActivation ? "Sending..." : "Resend Activation Email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer link */}
       {isLogin && (

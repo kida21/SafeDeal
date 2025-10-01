@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, MessageCircle, Wifi, WifiOff } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
-import { formatRelativeTime } from "../lib/utils";
+import { formatRelativeTimeFromServer, setServerTimeOffset } from "../lib/utils";
 import { Message } from "../types";
 import { wsApi } from "../lib/api";
 import ReactMarkdown from "react-markdown";
@@ -35,6 +35,18 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
     };
   }, [isOpen, escrowId]);
 
+  // Refresh component every 10 seconds to update relative timestamps in real-time
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const interval = setInterval(() => {
+      // Force re-render to update relative timestamps based on current time
+      setMessages(prev => [...prev]);
+    }, 10000); // Update every 10 seconds for real-time timestamp updates
+
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
   const connectWebSocket = () => {
     if (!Number.isFinite(escrowId) || escrowId <= 0) {
       setConnectionError("Invalid escrow ID.");
@@ -64,6 +76,15 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
               created_at: msg.created_at || new Date().toISOString(),
               sender: msg.sender,
             }));
+            
+            // Set server time offset based on the most recent message
+            if (historyMessages.length > 0) {
+              const mostRecentMessage = historyMessages[0];
+              if (mostRecentMessage.created_at) {
+                setServerTimeOffset(mostRecentMessage.created_at);
+              }
+            }
+            
             setMessages(historyMessages);
           } else {
             // Handle single message (direct format from your test)
@@ -75,6 +96,11 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
               created_at: data.created_at || new Date().toISOString(),
               sender: data.sender,
             };
+
+            // Update server time offset with new message timestamp
+            if (message.created_at) {
+              setServerTimeOffset(message.created_at);
+            }
 
             setMessages((prev) => {
               // Check if message already exists to prevent duplicates
@@ -139,6 +165,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
       setConnectionError("Failed to send message");
     }
   };
+
 
   const getConnectionStatus = () => {
     if (isConnected) {
@@ -337,7 +364,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                               isOwn ? "text-right text-gray-500" : "text-left text-gray-500"
                             }`}
                           >
-                            {formatRelativeTime(message.created_at)}
+                            {formatRelativeTimeFromServer(message.created_at)}
                           </p>
                         </div>
                         
@@ -369,7 +396,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                       }
                     }}
                     placeholder={
-                      isConnected ? "Type your message with **markdown**... (Press Enter to send, Shift+Enter for new line)" : "Connecting..."
+                      isConnected ? "Type your message . . . ." : "Connecting..."
                     }
                     className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none transition-all duration-200 max-h-32 min-h-[48px]"
                     disabled={!isConnected}

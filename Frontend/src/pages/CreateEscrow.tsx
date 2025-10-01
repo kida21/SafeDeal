@@ -24,7 +24,21 @@ const CreateEscrow = () => {
     formState: { errors },
     watch,
     setValue,
-  } = useForm<CreateEscrowRequest & { seller_name: string; seller_id: string }>();
+  } = useForm<
+    CreateEscrowRequest & {
+      seller_name: string;
+      seller_id: string;
+      item_description?: string;
+      delivery_date?: string;
+      delivery_method?: string;
+      payment_release_condition?: string;
+      inspection_period_days?: number;
+      refund_policy?: string;
+      governing_law?: string;
+      contact_details?: string;
+      additional_notes?: string;
+    }
+  >();
 
   const watchedAmount = watch('amount');
 
@@ -43,7 +57,93 @@ const CreateEscrow = () => {
     }
   }, [searchParams, setValue]);
 
-  const onSubmit = async (data: CreateEscrowRequest & { seller_name: string; seller_id: string }) => {
+  const buildConditionsText = (
+    data: Partial<{
+      item_description?: string;
+      delivery_date?: string;
+      delivery_method?: string;
+      payment_release_condition?: string;
+      inspection_period_days?: number | string;
+      refund_policy?: string;
+      governing_law?: string;
+      contact_details?: string;
+      additional_notes?: string;
+    }>
+  ) => {
+    const buyerName = user ? `${user.first_name} ${user.last_name}`.trim() : 'Buyer';
+    const sellerName = selectedSeller?.name || 'Seller';
+  
+    const lines: string[] = [];
+    
+
+    lines.push(`Buyer: ${buyerName}`);
+    lines.push('');
+    lines.push(`Seller: ${sellerName}`);
+    lines.push('');
+  
+    if (data.item_description) {
+      lines.push('Item Description:');
+      lines.push(data.item_description);
+      lines.push('');
+    }
+  
+    if (data.delivery_date || data.delivery_method) {
+      lines.push('Delivery:');
+      if (data.delivery_date) lines.push(`- Date: ${data.delivery_date}`);
+      if (data.delivery_method) lines.push(`- Method: ${data.delivery_method}`);
+      lines.push('');
+    }
+  
+    if (data.payment_release_condition) {
+      lines.push('Payment Release:');
+      lines.push(data.payment_release_condition);
+      lines.push('');
+    }
+  
+    if (data.inspection_period_days) {
+      lines.push(`Inspection Period: ${data.inspection_period_days} day(s)`);
+      lines.push('');
+    }
+  
+    if (data.refund_policy) {
+      lines.push('Refund Policy:');
+      lines.push(data.refund_policy);
+      lines.push('');
+    }
+  
+    if (data.governing_law) {
+      lines.push(`Governing Law: ${data.governing_law}`);
+      lines.push('');
+    }
+  
+    if (data.contact_details) {
+      lines.push(`Contact: ${data.contact_details}`);
+      lines.push('');
+    }
+  
+    if (data.additional_notes) {
+      lines.push('Additional Notes:');
+      lines.push(data.additional_notes);
+    }
+  
+    return lines.join('\n');
+  };  
+
+  const onSubmit = async (
+    data: CreateEscrowRequest & {
+      seller_name: string;
+      seller_id: string;
+      item_description?: string;
+      delivery_date?: string;
+      delivery_method?: string;
+      payment_release_condition?: string;
+      inspection_period_days?: number;
+      refund_policy?: string;
+      governing_law?: string;
+      contact_details?: string;
+      additional_notes?: string;
+    }
+  ) => {
     setIsLoading(true);
     try {
       
@@ -75,10 +175,23 @@ const CreateEscrow = () => {
 
       // Create the escrow request with only the required fields
       // The backend will automatically set buyer_id from the authenticated user
+      // Compose a presentable conditions string from all inputs
+      const composedConditions = buildConditionsText({
+        item_description: data.item_description,
+        delivery_date: data.delivery_date,
+        delivery_method: data.delivery_method,
+        payment_release_condition: data.payment_release_condition,
+        inspection_period_days: data.inspection_period_days,
+        refund_policy: data.refund_policy,
+        governing_law: data.governing_law,
+        contact_details: data.contact_details,
+        additional_notes: data.additional_notes,
+      });
+
       const escrowData: CreateEscrowRequest = {
         seller_id: sellerId,
         amount: parseFloat(data.amount.toString()),
-        conditions: data.conditions || "",
+        conditions: composedConditions,
       };
 
       
@@ -422,17 +535,112 @@ const CreateEscrow = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Conditions (Optional)
+                    Item Description
                   </label>
                   <textarea
-                    {...register('conditions')}
-                    rows={4}
+                    {...register('item_description')}
+                    rows={3}
                     className="input w-full"
-                    placeholder="Describe the conditions for releasing the funds (e.g., delivery confirmation, quality check, etc.)"
+                    placeholder="Describe the item/service being transacted"
                   />
-                  <p className="text-sm text-gray-600 mt-1">
-                    Be specific about what needs to happen for the funds to be released
-                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delivery Date
+                    </label>
+                    <input
+                      type="date"
+                      {...register('delivery_date')}
+                      className="input w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delivery Method
+                    </label>
+                    <input
+                      type="text"
+                      {...register('delivery_method')}
+                      className="input w-full"
+                      placeholder="e.g., Courier, Pickup, Digital Delivery"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Release Condition
+                  </label>
+                  <textarea
+                    {...register('payment_release_condition')}
+                    rows={3}
+                    className="input w-full"
+                    placeholder="e.g., Release after delivery confirmation and quality inspection"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Inspection/Dispute Period (days)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      {...register('inspection_period_days', { valueAsNumber: true })}
+                      className="input w-full"
+                      placeholder="e.g., 3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Governing Law / Jurisdiction
+                    </label>
+                    <input
+                      type="text"
+                      {...register('governing_law')}
+                      className="input w-full"
+                      placeholder="e.g., Ethiopia"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Refund Policy
+                  </label>
+                  <textarea
+                    {...register('refund_policy')}
+                    rows={3}
+                    className="input w-full"
+                    placeholder="Describe the refund policy (if applicable)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Details (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    {...register('contact_details')}
+                    className="input w-full"
+                    placeholder="Phone or email for updates/issues"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Additional Notes (Optional)
+                  </label>
+                  <textarea
+                    {...register('additional_notes')}
+                    rows={3}
+                    className="input w-full"
+                    placeholder="Any extra notes to include in the agreement"
+                  />
                 </div>
               </motion.div>
             )}
@@ -480,14 +688,26 @@ const CreateEscrow = () => {
                       {formatCurrency((watch('amount') || 0) * 1.025)}
                     </span>
                   </div>
-                  {watch('conditions') && (
-                    <div>
-                      <span className="text-gray-600 block mb-2">Conditions:</span>
-                      <p className="text-sm bg-white p-3 rounded border">
-                        {watch('conditions')}
-                      </p>
-                    </div>
-                  )}
+                  {(() => {
+                    const v = watch();
+                    const preview = buildConditionsText({
+                      item_description: v?.item_description,
+                      delivery_date: v?.delivery_date,
+                      delivery_method: v?.delivery_method,
+                      payment_release_condition: v?.payment_release_condition,
+                      inspection_period_days: v?.inspection_period_days,
+                      refund_policy: v?.refund_policy,
+                      governing_law: v?.governing_law,
+                      contact_details: v?.contact_details,
+                      additional_notes: v?.additional_notes,
+                    });
+                    return preview ? (
+                      <div>
+                        <span className="text-gray-600 block mb-2">Composed Conditions:</span>
+                        <pre className="text-sm bg-white p-3 rounded border whitespace-pre-wrap">{preview}</pre>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

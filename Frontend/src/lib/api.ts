@@ -33,14 +33,48 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Add access token to all requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
+// Response interceptor for automatic token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401 errors with automatic token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        console.log("🔄 401 detected - attempting automatic token refresh...");
+        const refreshResponse = await api.post('/refresh-token');
+        const newToken = refreshResponse.data.access_token;
+        
+        // Store new token
+        localStorage.setItem('access_token', newToken);
+        console.log("✅ Automatic token refresh successful!");
+        
+        // Update authorization header for the failed request
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        
+        // Retry the original request
+        return api(originalRequest);
+      } catch (refreshError: any) {
+        console.error("❌ Automatic token refresh failed:", refreshError.message);
+        
+        // Clear tokens and redirect to login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_profile');
+        
+        // Only redirect if we're not already on the login page
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+          window.location.href = '/login';
+        }
+        
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 // ---------- API endpoints ----------
@@ -63,7 +97,7 @@ export const userApi = {
   updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
     api.patch('/api/updateprofile', data),
   searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[]; pagination: any }>> =>
-    api.get(`/api/search?q=${encodeURIComponent(query)}`),
+    api.get(`/api/search?first_name=${encodeURIComponent(query)}&last_name=${encodeURIComponent(query)}&profession=${encodeURIComponent(query)}`),
   updateBankDetails: (data: BankDetails): Promise<AxiosResponse<User>> =>
     api.put('/api/profile/bank-details', data),
   createWallet: (): Promise<AxiosResponse<User>> => api.post('/api/wallet'),

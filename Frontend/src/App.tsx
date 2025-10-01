@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "./store/authStore";
-import { authApi, userApi } from "./lib/api";
+import { useNotificationStore } from "./store/notificationStore";
+import { authApi, userApi, wsApi } from "./lib/api";
 import {
   isTokenExpired,
   getOptimalRefreshTime,
-  getTokenInfo,
   logTokenExpiration,
 } from "./lib/tokenUtils";
 
@@ -21,10 +21,13 @@ import UserSearch from "./pages/UserSearch";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotificationToast from "./components/NotificationToast";
+import DebugAuth from "./components/DebugAuth";
 
 function App() {
   const { user, setUser, setLoading, isAuthenticated } = useAuthStore();
+  const { setNotifications, addNotification } = useNotificationStore();
   const refreshTimeoutRef = useRef<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   // 🧩 Initialize auth on page load
   useEffect(() => {
@@ -49,6 +52,8 @@ function App() {
             "user_profile",
             JSON.stringify(profileResponse.data)
           );
+          // Initialize notifications after successful auth
+          initializeNotifications();
         } else {
           console.debug("🔄 Access token expired — refreshing via cookie...");
           const response = await authApi.refreshToken();
@@ -59,6 +64,8 @@ function App() {
             "user_profile",
             JSON.stringify(profileResponse.data)
           );
+          // Initialize notifications after successful auth
+          initializeNotifications();
         }
       } catch (error: any) {
         console.error("❌ Auth initialization failed:", error.message);
@@ -67,6 +74,77 @@ function App() {
         setUser(null);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const initializeNotifications = () => {
+      try {
+        const ws = wsApi.connectNotifications();
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          console.log('🔔 Notification WebSocket connected on app startup');
+          // Request notification history on connect
+          ws.send(JSON.stringify({ type: 'get_history' }));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'history') {
+              // Load notification history
+              const historyNotifications = (data.data || [])
+                .filter((item: any) => item.type !== 'read_updated') // Filter out read_updated notifications
+                .map((item: any, index: number) => ({
+                  id: item.id || `fallback-${Date.now()}-${index}`,
+                  user_id: item.user_id || user?.id || 0,
+                  type: item.type || 'info',
+                  title: item.title || 'No Title',
+                  message: item.message || 'No message',
+                  read: item.read || false,
+                  metadata: item.metadata,
+                  created_at: item.created_at || new Date().toISOString()
+                }));
+              // Sort by created_at descending (newest first)
+              historyNotifications.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+              setNotifications(historyNotifications);
+            } else if (data.type === 'notification') {
+              // Handle new real-time notification
+              const notificationData = data.data || data;
+              
+              // Filter out system notifications that users don't need to see
+              if (notificationData.type === 'read_updated' || notificationData.type === 'mark_read_response') {
+                return;
+              }
+              
+              const notification = {
+                id: notificationData.id || `realtime-${Date.now()}-${Math.random()}`,
+                user_id: notificationData.user_id || user?.id || 0,
+                type: notificationData.type || 'info',
+                title: notificationData.title || 'New Notification',
+                message: notificationData.message || 'You have a new notification.',
+                read: notificationData.read || false,
+                metadata: notificationData.metadata,
+                created_at: notificationData.created_at || new Date().toISOString()
+              };
+              
+              addNotification(notification);
+            }
+          } catch (error) {
+            console.error('Error parsing notification message:', error);
+          }
+        };
+
+        ws.onclose = () => {
+          console.log('🔔 Notification WebSocket disconnected');
+        };
+
+        ws.onerror = (error) => {
+          console.error('🔔 Notification WebSocket error:', error);
+        };
+      } catch (error) {
+        console.error('Failed to initialize notifications:', error);
       }
     };
 
@@ -205,6 +283,7 @@ function App() {
       </Routes>
 
       <NotificationToast isEnabled={isAuthenticated} />
+      <DebugAuth />
     </div>
   );
 }

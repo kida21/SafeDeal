@@ -1,14 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Search,
-  User,
-  Mail,
-  Briefcase,
   CheckCircle,
-  XCircle,
   Loader2,
 } from 'lucide-react';
 import Layout from '../components/Layout';
@@ -22,22 +18,36 @@ const UserSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
+  // Instant search function like Facebook
+  const performSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
 
     setIsSearching(true);
     setHasSearched(true);
     try {
-      const response = await userApi.searchUsers(searchTerm);
+      const response = await userApi.searchUsers(query);
       setSearchResults(response.data.users || []);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to search users');
+      // Silently handle errors for better UX like Facebook
+      console.error('Search error:', error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
+
+  // Super fast search like Facebook
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      performSearch(searchTerm);
+    }, 100); // 100ms delay for instant feel
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, performSearch]);
 
   const clearSearch = () => {
     setSearchTerm('');
@@ -63,76 +73,58 @@ const UserSearch = () => {
           </p>
         </div>
 
-        {/* Search Form */}
+        {/* Search Input */}
         <div className="card p-6">
-          <form onSubmit={handleSearch} className="space-y-4">
+          <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by first name..."
+                placeholder="Search people..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input pl-12 w-full"
-                disabled={isSearching}
+                autoFocus
               />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 animate-spin text-primary-600" />
+              )}
             </div>
-            <div className="flex items-center space-x-3">
-              <button
-                type="submit"
-                disabled={isSearching || !searchTerm.trim()}
-                className="btn btn-primary btn-md"
-              >
-                {isSearching ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Searching...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </>
-                )}
-              </button>
-              {hasSearched && (
+            {hasSearched && searchTerm && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">
+                  {isSearching ? 'Searching...' : `${searchResults.length} user${searchResults.length !== 1 ? 's' : ''} found`}
+                </span>
                 <button
                   type="button"
                   onClick={clearSearch}
-                  className="btn btn-outline btn-md"
+                  className="btn btn-outline btn-sm"
                 >
                   Clear
                 </button>
-              )}
-            </div>
-          </form>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search Results */}
-        {hasSearched && (
+        {searchTerm && (
           <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Search Results
+            {searchResults.length > 0 && (
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                People
               </h3>
-              <span className="text-sm text-gray-600">
-                {searchResults.length} user{searchResults.length !== 1 ? 's' : ''} found
-              </span>
-            </div>
+            )}
 
             {isSearching ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
                 <span className="ml-2 text-gray-600">Searching users...</span>
               </div>
-            ) : searchResults.length === 0 ? (
-              <div className="text-center py-8">
-                <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
-                  No users found
-                </h4>
+            ) : searchResults.length === 0 && searchTerm.length > 0 ? (
+              <div className="text-center py-6">
                 <p className="text-gray-600">
-                  Try searching with different keywords or check your spelling.
+                  No people found for "{searchTerm}"
                 </p>
               </div>
             ) : (
@@ -140,51 +132,43 @@ const UserSearch = () => {
                 {searchResults.map((user, index) => (
                   <motion.div
                     key={`${user.first_name}-${user.last_name}-${index}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="p-3 bg-primary-100 rounded-full">
-                        <User className="h-6 w-6 text-primary-600" />
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold text-lg">
+                          {user.first_name[0]}{user.last_name[0]}
+                        </span>
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">
+                        <h4 className="font-semibold text-gray-900 text-base">
                           {user.first_name} {user.last_name}
                         </h4>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <Briefcase className="h-4 w-4" />
-                            <span>{user.profession}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            {user.activated ? (
-                              <>
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                <span className="text-green-600">Verified</span>
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-4 w-4 text-red-500" />
-                                <span className="text-red-600">Unverified</span>
-                              </>
-                            )}
-                          </div>
+                        <div className="flex items-center space-x-3 text-sm text-gray-600">
+                          <span>{user.profession}</span>
+                          {user.activated && (
+                            <div className="flex items-center space-x-1">
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                              <span className="text-green-600 text-xs">Verified</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div>
                       {user.activated ? (
                         <Link
                           to={`/create-escrow?seller=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&seller_id=${user.id}`}
-                          className="btn btn-primary btn-sm"
+                          className="btn btn-primary btn-sm px-4"
                         >
                           Create Escrow
                         </Link>
                       ) : (
-                        <span className="text-sm text-gray-500">
-                          User not verified
+                        <span className="text-xs text-gray-400 px-3">
+                          Not verified
                         </span>
                       )}
                     </div>
@@ -196,27 +180,37 @@ const UserSearch = () => {
         )}
 
         {/* Search Tips */}
-        {!hasSearched && (
-  <div className="card p-4 sm:p-6">
-    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
-      Search Tips
-    </h3>
-    <div className="grid grid-cols-1 gap-4 sm:gap-6">
-      <div className="flex items-start space-x-3">
-        <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
-          <Search className="h-4 w-4 text-blue-600" />
-        </div>
-        <div>
-          <h4 className="font-medium text-gray-900">Search by Name</h4>
-          <p className="text-sm sm:text-base text-gray-600">
-            Enter the user's first name to find them quickly.
-          </p>
-        </div>
-      </div>
-      {/* Add more search tips here if needed */}
-    </div>
-  </div>
-)}
+        {!searchTerm && (
+          <div className="card p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+              Find People
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
+                  <Search className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">Instant Search</h4>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Just start typing! Results appear instantly as you type, just like Facebook.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-green-100 rounded-full flex-shrink-0">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">Create Escrows</h4>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Find verified users and create secure escrow transactions with them.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </Layout>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { wsApi } from '../lib/api';
 import { Notification } from '../types';
@@ -31,8 +31,19 @@ const NotificationToast = ({ isEnabled = true }: NotificationToastProps) => {
         try {
           const data = JSON.parse(event.data);
           
+          // Skip read_updated notifications and other system messages
+          if (data.type === 'read_updated' || data.type === 'mark_read_response') {
+            return;
+          }
+          
           if (data.type === 'notification') {
             const notificationData = data.data || data;
+            
+            // Also filter out read_updated notifications from the notification data itself
+            if (notificationData.type === 'read_updated') {
+              return;
+            }
+            
             const notification: Notification = {
               id: notificationData.id || Date.now(),
               user_id: notificationData.user_id || user?.id || 0,

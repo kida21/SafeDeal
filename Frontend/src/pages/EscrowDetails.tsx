@@ -62,6 +62,8 @@ const EscrowDetails = () => {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [errorCount, setErrorCount] = useState(0);
+  const [isBackendBusy, setIsBackendBusy] = useState(false);
 
   // Calculate user roles early so they can be used in useEffects
   const isBuyer = user?.id === escrow?.buyer_id;
@@ -71,6 +73,7 @@ const EscrowDetails = () => {
     if (id) {
       fetchEscrowDetails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Auto-reload escrow details for buyer when seller accepts
@@ -81,11 +84,10 @@ const EscrowDetails = () => {
     const pollInterval = setInterval(async () => {
       // Only poll if escrow is funded but not yet active (waiting for seller acceptance)
       if (escrow.status === "Funded" && !escrow.active) {
-        console.log("Polling for seller acceptance...");
         try {
           const response = await escrowApi.getById(parseInt(id!));
           const rawData = response.data as any;
-          
+
           // Check if seller has accepted (escrow became active)
           const newActive = rawData.active !== undefined ? rawData.active : rawData.Active;
           if (newActive && !escrow.active) {
@@ -93,27 +95,40 @@ const EscrowDetails = () => {
             fetchEscrowDetails(); // Refresh the full details
           }
         } catch (error) {
-          console.error("Error polling for seller acceptance:", error);
+          // silently fail the poll
         }
       }
-    }, 3000); // Poll every 3 seconds
+    }, 15000); // Poll every 15 seconds to reduce backend load
 
     // Clean up interval
     return () => clearInterval(pollInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escrow?.status, escrow?.active, isBuyer, id]);
 
   const fetchEscrowDetails = async (retryCount = 0) => {
     if (!id) {
-      console.error('No escrow ID provided');
       return;
+    }
+
+    // Circuit breaker - stop making requests if too many errors
+    if (errorCount > 5) {
+      toast.error("🚫 Backend is experiencing issues. Please refresh the page in a few minutes.");
+      return;
+    }
+
+    if (isBackendBusy) {
+      return; // Skip this request if backend is busy
     }
 
     const escrowId = parseInt(id);
     if (isNaN(escrowId) || escrowId <= 0) {
-      console.error('Invalid escrow ID:', id);
       toast.error('Invalid escrow ID');
       return;
     }
+
+    // Throttle requests
+    setIsBackendBusy(true);
+    setTimeout(() => setIsBackendBusy(false), 2000);
 
     // Don't show loading spinner on retries to make it seamless
     if (retryCount === 0) {
@@ -121,29 +136,25 @@ const EscrowDetails = () => {
     }
 
     try {
-      console.log('Fetching escrow details for ID:', escrowId);
       const response = await escrowApi.getById(escrowId);
-      
+
       // Validate response data
       if (!response.data || typeof response.data !== 'object') {
         throw new Error('Invalid response data from server');
       }
-      
+
       const escrowData = response.data;
-      console.log('Received escrow data:', escrowData);
-      
+
       // Validate essential fields - handle both lowercase and uppercase field names
       const rawData = escrowData as any; // Type assertion to handle backend field name differences
       const hasId = rawData.id || rawData.ID;
       const hasBuyerId = rawData.buyer_id;
       const hasSellerId = rawData.seller_id;
-      
+
       if (!hasId || !hasBuyerId || !hasSellerId) {
-        console.error('Escrow data missing essential fields:', escrowData);
-        console.error('Field check - ID:', hasId, 'buyer_id:', hasBuyerId, 'seller_id:', hasSellerId);
         throw new Error('Incomplete escrow data received');
       }
-      
+
       // Normalize field names to match frontend expectations
       const normalizedEscrowData: Escrow = {
         ...rawData,
@@ -152,22 +163,21 @@ const EscrowDetails = () => {
         created_at: rawData.created_at || rawData.CreatedAt,
         updated_at: rawData.updated_at || rawData.UpdatedAt,
       };
-      
+
       setEscrow(normalizedEscrowData);
-      
-      // If it succeeds on a retry, clear any potential error messages
+
+      // If it succeeds on a retry, clear any potential error messages and reset error count
       if (retryCount > 0) {
         toast.success("Escrow details updated successfully!");
       }
+      setErrorCount(0); // Reset error count on success
     } catch (error: any) {
+      // Increment error count
+      setErrorCount(prev => prev + 1);
+
       // If it's a server error and we haven't retried too many times, try again
       if (error?.response?.status === 500 && retryCount < 2) {
-        const delay = 1000 * (retryCount + 1); // Exponential backoff (1s, 2s)
-        console.debug(
-          `Backend busy. Retrying escrow fetch in ${delay}ms... (Attempt ${
-            retryCount + 1
-          })`
-        );
+        const delay = Math.min(30000, 5000 * (retryCount + 1)); // Cap at 30 seconds
         toast.loading(
           `Server is busy, retrying... (Attempt ${retryCount + 1})`,
           { id: "retry-toast" }
@@ -193,7 +203,6 @@ const EscrowDetails = () => {
       } else {
         toast.error(`Error: ${errorMessage}`);
       }
-      console.error("Failed to fetch escrow details after all retries:", error);
     } finally {
       setIsLoading(false);
     }
@@ -211,7 +220,8 @@ const EscrowDetails = () => {
       await escrowApi.accept(escrowId);
       toast.success("Escrow accepted successfully!");
 
-      // Add delay before refreshing to give backend time to process
+      // Immediate refresh for better UX, then delayed refresh for safety
+      fetchEscrowDetails();
       setTimeout(() => {
         fetchEscrowDetails();
       }, 1500);
@@ -238,7 +248,8 @@ const EscrowDetails = () => {
       await escrowApi.confirmReceipt(escrowId);
       toast.success("Receipt confirmed! Funds will be released to the seller.");
 
-      // Add delay before refreshing to give backend time to process
+      // Immediate refresh for better UX, then delayed refresh for safety
+      fetchEscrowDetails();
       setTimeout(() => {
         fetchEscrowDetails();
       }, 1500);
@@ -298,13 +309,11 @@ const EscrowDetails = () => {
     setShowPayment(false);
     toast.success("Payment completed successfully!");
 
-    // Add a slightly longer delay before refreshing to give backend time to process
+    // Immediate refresh for better UX, then delayed refresh for safety
+    fetchEscrowDetails();
     setTimeout(() => {
-      console.log(
-        "Payment complete. Fetching updated escrow details after delay..."
-      );
       fetchEscrowDetails();
-    }, 2500); // Increased to 2.5 seconds
+    }, 2000);
   };
 
   const handlePhoneSubmit = async () => {
@@ -410,8 +419,8 @@ const EscrowDetails = () => {
       await escrowApi.dispute(escrowId, disputeReason.trim());
       toast.success("Dispute created successfully");
 
-      // Send AI arbitrator message to chat
-      await sendArbitratorMessage(escrowId, disputeReason.trim());
+      // ✅ Automatically open chat after dispute
+      setShowChat(true);
 
       // Add delay before refreshing to give backend time to process
       setTimeout(() => {
@@ -428,36 +437,7 @@ const EscrowDetails = () => {
     }
   };
 
-  const sendArbitratorMessage = async (escrowId: number, reason: string) => {
-    try {
-      // Simulate sending a message from AI arbitrator to the chat
-      // In a real implementation, this would be handled by the backend
-      const arbitratorMessage = {
-        content: `🤖 **AI Arbitrator**: A dispute has been created for this escrow.\n\n**Dispute Reason:** ${reason}\n\nI will review the case and provide a resolution within 24-48 hours. Both parties will be notified of the decision. Please provide any additional evidence or information that may help resolve this dispute.`,
-        type: "message",
-        escrow_id: escrowId,
-        sender_id: 0, // Special ID for AI arbitrator
-        sender: {
-          id: 0,
-          first_name: "AI",
-          last_name: "Arbitrator",
-          email: "arbitrator@safedeal.com",
-          activated: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          profession: "AI Arbitrator",
-        },
-      };
 
-      // This would typically be sent via WebSocket or API call
-      // For now, we'll just show a toast
-      toast.success(
-        "AI Arbitrator has been notified and will join the chat shortly"
-      );
-    } catch (error) {
-      // Handle error silently
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -474,22 +454,6 @@ const EscrowDetails = () => {
     }
   };
 
-  // Debug logging for undefined values
-  useEffect(() => {
-    if (escrow) {
-      console.log('=== ESCROW DEBUG INFO ===');
-      console.log('Escrow ID:', escrow.id);
-      console.log('Escrow Active:', escrow.active);
-      console.log('Escrow Status:', escrow.status);
-      console.log('Buyer ID:', escrow.buyer_id);
-      console.log('Seller ID:', escrow.seller_id);
-      console.log('Current User ID:', user?.id);
-      console.log('Is Buyer:', isBuyer);
-      console.log('Is Seller:', isSeller);
-      console.log('Full Escrow Object:', escrow);
-      console.log('========================');
-    }
-  }, [escrow, user, isBuyer, isSeller]);
 
   if (isLoading) {
     return (
@@ -602,14 +566,101 @@ const EscrowDetails = () => {
                   </div>
                 </div>
 
-                {escrow.conditions && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">
-                      Conditions
-                    </label>
-                    <p className="text-gray-900 mt-1">{escrow.conditions}</p>
-                  </div>
-                )}
+                {escrow.conditions && (() => {
+                  const lines = escrow.conditions.split('\n').filter(line => line.trim());
+                  const conditions: { [key: string]: string } = {};
+                  let currentKey = '';
+                  
+                  // Parse the conditions text to extract individual fields
+                  lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed.includes(':') && !trimmed.startsWith('-')) {
+                      const [key, ...valueParts] = trimmed.split(':');
+                      currentKey = key.trim();
+                      const value = valueParts.join(':').trim();
+                      if (value) conditions[currentKey] = value;
+                    } else if (currentKey && trimmed && !trimmed.startsWith('Buyer:') && !trimmed.startsWith('Seller:')) {
+                      if (trimmed.startsWith('-')) {
+                        conditions[currentKey] = (conditions[currentKey] || '') + '\n' + trimmed;
+                      } else {
+                        conditions[currentKey] = trimmed;
+                      }
+                    }
+                  });
+
+                  return (
+                    <div className="space-y-4 pt-2">
+                      {conditions['Item Description'] && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">
+                            Item Description
+                          </label>
+                          <p className="text-gray-900 text-sm mt-1">{conditions['Item Description']}</p>
+                        </div>
+                      )}
+
+                      {(conditions['Delivery'] || lines.find(l => l.includes('Date:')) || lines.find(l => l.includes('Method:'))) && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">
+                              Delivery Date
+                            </label>
+                            <p className="text-gray-900 text-sm mt-1">
+                              {lines.find(l => l.includes('Date:'))?.replace('- Date:', '').trim() || 'Not specified'}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">
+                              Delivery Method
+                            </label>
+                            <p className="text-gray-900 text-sm mt-1">
+                              {lines.find(l => l.includes('Method:'))?.replace('- Method:', '').trim() || 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {conditions['Payment Release'] && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">
+                            Payment Release Condition
+                          </label>
+                          <p className="text-gray-900 text-sm mt-1">{conditions['Payment Release']}</p>
+                        </div>
+                      )}
+
+                      {(lines.find(l => l.includes('Inspection Period:')) || conditions['Governing Law']) && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">
+                              Inspection Period
+                            </label>
+                            <p className="text-gray-900 text-sm mt-1">
+                              {lines.find(l => l.includes('Inspection Period:'))?.replace('Inspection Period:', '').trim() || 'Not specified'}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">
+                              Governing Law
+                            </label>
+                            <p className="text-gray-900 text-sm mt-1">
+                              {conditions['Governing Law']?.replace('Governing Law:', '').trim() || 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {conditions['Refund Policy'] && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">
+                            Refund Policy
+                          </label>
+                          <p className="text-gray-900 text-sm mt-1">{conditions['Refund Policy']}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {escrow.blockchain_tx_hash && (
                   <div>
@@ -702,11 +753,16 @@ const EscrowDetails = () => {
                   </button>
                 )}
 
+
                 <button
                   onClick={() => setShowChat(true)}
-                  disabled={!escrow.active || (escrow.status !== "Funded" && escrow.status !== "Released")}
+                  disabled={
+                    !escrow.active ||
+                    (escrow.status !== "Funded" && escrow.status !== "Released" && escrow.status !== "Disputed")
+                  }
                   className={`btn btn-lg w-full ${
-                    !escrow.active || (escrow.status !== "Funded" && escrow.status !== "Released")
+                    !escrow.active ||
+                    (escrow.status !== "Funded" && escrow.status !== "Released" && escrow.status !== "Disputed")
                       ? "btn-disabled cursor-not-allowed opacity-50"
                       : "btn-outline"
                   }`}
@@ -715,6 +771,8 @@ const EscrowDetails = () => {
                       ? "Chat will be available after payment is made"
                       : !escrow.active
                       ? "Chat will be available after seller accepts the funded escrow"
+                      : escrow.status === "Disputed"
+                      ? "Chat with other party"
                       : "Open chat"
                   }
                 >
@@ -723,8 +781,11 @@ const EscrowDetails = () => {
                     ? "Chat (Pending Payment)"
                     : !escrow.active
                     ? "Chat (Pending Acceptance)"
+                    : escrow.status === "Disputed"
+                    ? "Chat (Dispute Mode)"
                     : "Open Chat"}
                 </button>
+
               </div>
             </div>
           </div>
@@ -803,8 +864,8 @@ const EscrowDetails = () => {
                 )}
               </div>
             </div>
-          </div>
         </div>
+
 
         {/* Modals */}
         <RealTimeChat
@@ -952,7 +1013,7 @@ const EscrowDetails = () => {
                     <textarea
                       value={disputeReason}
                       onChange={(e) => setDisputeReason(e.target.value)}
-                      placeholder="Please provide a detailed explanation of the issue. Include any relevant information that will help the AI arbitrator understand the situation..."
+                      placeholder="Please provide a detailed explanation of the issue. Include any relevant information that will help resolve the situation..."
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
                       rows={6}
                       autoFocus
@@ -982,8 +1043,7 @@ const EscrowDetails = () => {
                         </h4>
                         <ul className="text-xs text-yellow-700 space-y-1">
                           <li>
-                            • An AI arbitrator will review your case within
-                            24-48 hours
+                            • Your dispute will be reviewed within 24-48 hours
                           </li>
                           <li>
                             • Both parties will be notified of the decision
@@ -993,8 +1053,8 @@ const EscrowDetails = () => {
                             resolution
                           </li>
                           <li>
-                            • The arbitrator will join the chat to gather more
-                            information if needed
+                            • You may be contacted for additional information
+                            if needed
                           </li>
                         </ul>
                       </div>
@@ -1015,7 +1075,7 @@ const EscrowDetails = () => {
                     disabled={
                       !disputeReason || disputeReason.trim().length < 10
                     }
-                    className="btn btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
+                    className="btn btn-primary btn-md bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
                   >
                     Create Dispute
                   </button>
@@ -1024,6 +1084,7 @@ const EscrowDetails = () => {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </div>
     </Layout>
   );
