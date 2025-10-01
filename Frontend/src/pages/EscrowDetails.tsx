@@ -13,6 +13,7 @@ import {
   X,
   FileText,
   ExternalLink,
+  RotateCcw,
 } from "lucide-react";
 import Layout from "../components/Layout";
 import { useAuthStore } from "../store/authStore";
@@ -258,6 +259,34 @@ const EscrowDetails = () => {
         error?.response?.data?.error ||
           error?.response?.data?.message ||
           "Failed to confirm receipt"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    const escrowId = Number(id);
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      toast.error("Invalid escrow ID");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await escrowApi.refund(escrowId);
+      toast.success("Refund successful! Funds will be released to the seller.");
+
+      // Immediate refresh for better UX, then delayed refresh for safety
+      fetchEscrowDetails();
+      setTimeout(() => {
+        fetchEscrowDetails();
+      }, 1500);
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          "Failed to refund"
       );
     } finally {
       setIsProcessing(false);
@@ -785,7 +814,16 @@ const EscrowDetails = () => {
                     ? "Chat (Dispute Mode)"
                     : "Open Chat"}
                 </button>
-
+                {isSeller && escrow.active && escrow.status === "Disputed" && (
+                  <button
+                    onClick={handleRefund}
+                    disabled={isProcessing}
+                    className="btn btn-error btn-lg w-full"
+                  >
+                    <RotateCcw className="h-5 w-5 mr-2" />
+                    {isProcessing ? "Refunding..." : "Refund"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

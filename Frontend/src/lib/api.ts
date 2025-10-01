@@ -135,6 +135,9 @@ export const escrowApi = {
     // GET Dispute (if available)
     getDispute: (id: number): Promise<AxiosResponse<any>> =>
         api.get(`/api/escrows/dispute/${id}`),
+    // POST Refund
+    refund: (id: number): Promise<AxiosResponse<Escrow>> =>
+        api.post(`/api/escrows/${id}/refund`),
 
     // Helper function to get multiple escrows by IDs
     getMultipleByIds: async (ids: number[]): Promise<Escrow[]> => {
