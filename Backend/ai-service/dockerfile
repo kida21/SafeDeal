@@ -12,11 +12,12 @@ WORKDIR /app
 # COPY . .
 COPY Backend/ai-service/main.py ./Backend/ai-service/main.py 
 COPY Backend/ai-service/requirements.txt ./Backend/ai-service/requirements.txt
-COPY Backend/ai-service/arbitrator.proto ./Backend/ai-service/arbitrator.proto
+# Use the shared proto so Python and Go share the exact same service/package
+COPY proto/ai_arbitrator/v1/arbitrator.proto ./Backend/ai-service/arbitrator.proto
 WORKDIR /app/Backend/ai-service
 RUN pip install --no-cache-dir -r requirements.txt
-# Generate Python code from the .proto file
-# This command needs to be run before the application starts
+# Generate Python code from the shared .proto file
+# Ensures service name is ai_arbitrator.v1.AIArbitrator matching the Go client
 RUN python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. arbitrator.proto
 
 # Expose the gRPC port

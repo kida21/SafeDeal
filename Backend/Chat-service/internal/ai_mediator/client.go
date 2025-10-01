@@ -2,11 +2,13 @@ package ai_mediator
 
 import (
     "context"
+    "fmt"
+    "os"
     "time"
 
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
-    v1 "github.com/SafeDeal/proto/ai-arbitrator/v1"
+    v1 "github.com/SafeDeal/proto/ai_arbitrator/v1"
 )
 
 // AiArbitratorClient represents the gRPC client for the AI Arbitrator service.
@@ -17,14 +19,26 @@ type AiArbitratorClient struct {
 // NewAiArbitratorClient creates a new client for the AI Arbitrator service.
 // It takes the gRPC address as a string and returns a pointer to the client.
 func NewAiArbitratorClient(addr string) (*AiArbitratorClient, error) {
-    // Set a timeout for the connection attempt
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    if addr == "" {
+        if env := os.Getenv("AI_ARBITRATOR_ADDR"); env != "" {
+            addr = env
+        } else {
+            addr = "ai-arbitrator-service:50055"
+        }
+    }
+    // Set a timeout for the connection attempt and block until established
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
-    
-    // Use an insecure connection for local development
-    conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+    // Use an insecure connection for local development and block during dial
+    conn, err := grpc.DialContext(
+        ctx,
+        addr,
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+        grpc.WithBlock(),
+    )
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("failed to dial AI arbitrator at %s: %w", addr, err)
     }
     return &AiArbitratorClient{conn: conn}, nil
 }
