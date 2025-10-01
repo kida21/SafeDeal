@@ -15,39 +15,79 @@ import { toast } from 'react-hot-toast';
 const UserSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [allUsers, setAllUsers] = useState<SearchUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
-  // Instant search function like Facebook
-  const performSearch = useCallback(async (query: string) => {
+  // Load all users on component mount
+  const loadAllUsers = useCallback(async () => {
+    setIsLoadingUsers(true);
+    try {
+      // Use a broad search to get all users (or create a dedicated endpoint)
+      const response = await userApi.searchUsers(''); // Empty query to get all users
+      const users = response.data.users || [];
+      setAllUsers(users);
+      console.log('Loaded all users:', users.length);
+    } catch (error: any) {
+      console.error('Error loading users:', error);
+      // Fallback: try to get users with a common letter
+      try {
+        const fallbackResponse = await userApi.searchUsers('a');
+        setAllUsers(fallbackResponse.data.users || []);
+      } catch (fallbackError) {
+        console.error('Fallback search also failed:', fallbackError);
+      }
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  // Client-side search function with partial matching
+  const performClientSideSearch = useCallback((query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       setHasSearched(false);
       return;
     }
 
+    console.log('Client-side searching for:', query);
     setIsSearching(true);
     setHasSearched(true);
-    try {
-      const response = await userApi.searchUsers(query);
-      setSearchResults(response.data.users || []);
-    } catch (error: any) {
-      // Silently handle errors for better UX like Facebook
-      console.error('Search error:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
 
-  // Super fast search like Facebook
+    const searchQuery = query.trim().toLowerCase();
+    
+    // Filter users with partial matching on multiple fields
+    const filteredUsers = allUsers.filter(user => {
+      const firstName = (user.first_name || '').toLowerCase();
+      const lastName = (user.last_name || '').toLowerCase();
+      const profession = (user.profession || '').toLowerCase();
+      const fullName = `${firstName} ${lastName}`;
+      
+      return firstName.includes(searchQuery) ||
+             lastName.includes(searchQuery) ||
+             profession.includes(searchQuery) ||
+             fullName.includes(searchQuery);
+    });
+
+    setSearchResults(filteredUsers);
+    console.log('Client-side search results:', filteredUsers.length, 'users');
+    setIsSearching(false);
+  }, [allUsers]);
+
+  // Load users on component mount
+  useEffect(() => {
+    loadAllUsers();
+  }, [loadAllUsers]);
+
+  // Debounced client-side search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      performSearch(searchTerm);
-    }, 100); // 100ms delay for instant feel
+      performClientSideSearch(searchTerm);
+    }, 150); // Faster since it's client-side
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, performSearch]);
+  }, [searchTerm, performClientSideSearch]);
 
   const clearSearch = () => {
     setSearchTerm('');
@@ -70,6 +110,11 @@ const UserSearch = () => {
           <h1 className="text-3xl font-bold text-gray-900">Search Users</h1>
           <p className="text-gray-600 mt-2">
             Find users to create escrow transactions with
+            {isLoadingUsers && (
+              <span className="ml-2 text-primary-600">
+                <Loader2 className="inline h-4 w-4 animate-spin" /> Loading users...
+              </span>
+            )}
           </p>
         </div>
 

@@ -97,7 +97,7 @@ export const userApi = {
   updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
     api.patch('/api/updateprofile', data),
   searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[]; pagination: any }>> =>
-    api.get(`/api/search?first_name=${encodeURIComponent(query)}&last_name=${encodeURIComponent(query)}&profession=${encodeURIComponent(query)}`),
+    api.get(`/api/search?q=${encodeURIComponent(query)}`),
   updateBankDetails: (data: BankDetails): Promise<AxiosResponse<User>> =>
     api.put('/api/profile/bank-details', data),
   createWallet: (): Promise<AxiosResponse<User>> => api.post('/api/wallet'),
