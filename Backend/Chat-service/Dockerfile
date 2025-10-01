@@ -8,7 +8,7 @@ COPY Backend/Chat-service/go.sum ./Backend/Chat-service/go.sum
 
 
 COPY proto/escrow ./Proto/escrow
-COPY proto/ai-arbitrator ./Proto/ai-arbitrator
+COPY proto/ai_arbitrator ./Proto/ai_arbitrator
 
 COPY Backend/Chat-service ./Backend/Chat-service
 

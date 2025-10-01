@@ -15,7 +15,7 @@ import (
     "time"
 
     "github.com/gorilla/websocket"
-    v1_ai "github.com/SafeDeal/proto/ai-arbitrator/v1"
+    v1_ai "github.com/SafeDeal/proto/ai_arbitrator/v1"
     v1_escrow "github.com/SafeDeal/proto/escrow/v1"
 )
 
@@ -149,42 +149,44 @@ func HandleDecision(w http.ResponseWriter, r *http.Request) {
     chatLog := []*v1_ai.ChatMessage{}
     for _, msg := range messages {
         chatLog = append(chatLog, &v1_ai.ChatMessage{
-            SenderId:  strconv.FormatUint(uint64(msg.SenderID), 10),
-            Text:      msg.Content,
+            SenderId: strconv.FormatUint(uint64(msg.SenderID), 10),
+            Text:     msg.Content,
         })
     }
     
     escrowDetails, err := getEscrowDetails(escrowID, 0) // UserID is not needed for this call
     if err != nil {
-        http.Error(w, err.Error(), http.StatusForbidden)
+        log.Printf("Failed to get escrow details: %v", err)
+        http.Error(w, "Failed to get escrow details", http.StatusInternalServerError)
         return
     }
 
     // Create AI client
-    aiClient, err := ai_mediator.NewAiArbitratorClient("ai-arbitrator:50053")
+    client, err := ai_mediator.NewAiArbitratorClient("")
     if err != nil {
-        log.Printf("Failed to connect to AI arbitrator service: %v", err)
+        log.Printf("Failed to create AI arbitrator client: %v", err)
         http.Error(w, "Failed to connect to AI service", http.StatusInternalServerError)
         return
     }
-    defer aiClient.Close()
+    defer client.Close()
 
     // Create the decision request
     req := &v1_ai.DecisionRequest{
-        EscrowId: strconv.FormatUint(escrowID, 10),
-        Description: escrowDetails.Conditions,  // Changed from Description to Conditions
-        Status: escrowDetails.Status,
-        Amount: escrowDetails.Amount,
-        BuyerId: strconv.FormatUint(uint64(escrowDetails.BuyerId), 10),
-        SellerId: strconv.FormatUint(uint64(escrowDetails.SellerId), 10),
-        Chat:  chatLog,
+        EscrowId:         strconv.FormatUint(escrowID, 10),
+        Description:      escrowDetails.Conditions,
+        Status:           escrowDetails.Status,
+        Amount:           escrowDetails.Amount,
+        BuyerId:          strconv.FormatUint(uint64(escrowDetails.BuyerId), 10),
+        SellerId:         strconv.FormatUint(uint64(escrowDetails.SellerId), 10),
+        Chat:             chatLog,
+        DisputeConditionsJson: "{}", // Add empty JSON object as placeholder
     }
 
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
     defer cancel()
 
     // Request a decision from the AI
-    resp, err := aiClient.RequestDecision(ctx, req)
+    resp, err := client.RequestDecision(ctx, req)
     if err != nil {
         log.Printf("Failed to request decision from AI: %v", err)
         http.Error(w, "Failed to get decision from AI", http.StatusInternalServerError)
@@ -193,7 +195,10 @@ func HandleDecision(w http.ResponseWriter, r *http.Request) {
 
     // Respond with the AI's decision
     w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(resp)
+    json.NewEncoder(w).Encode(map[string]string{
+        "decision":     resp.Decision,
+        "justification": resp.Justification,
+    })
 }
 
 // getEscrowDetails checks access and returns escrow details.
@@ -219,24 +224,37 @@ func getEscrowDetails(escrowID uint64, userID uint) (*v1_escrow.EscrowResponse, 
 
 // triggerAutomatedMediation sends a request to the AI service and broadcasts the response.
 func triggerAutomatedMediation(escrowDetails *v1_escrow.EscrowResponse, escrowID uint64) {
-    aiClient, err := ai_mediator.NewAiArbitratorClient("ai-arbitrator:50055")
-    if err != nil {
-        log.Printf("Failed to connect to AI arbitrator service: %v", err)
+    // Check if an AI message already exists in the chat history for this escrow.
+    var existingAiMessage model.Message
+    result := db.DB.Where("escrow_id = ? AND sender_id = ?", escrowID, AiUserId).First(&existingAiMessage)
+    
+    // If a message from the AI is found, do nothing and return.
+    if result.Error == nil {
+        log.Printf("AI has already mediated for escrow %d. Skipping mediation.", escrowID)
         return
     }
-    defer aiClient.Close()
+
+    // Create AI client
+    client, err := ai_mediator.NewAiArbitratorClient("")
+    if err != nil {
+        log.Printf("Failed to create AI arbitrator client: %v", err)
+        return
+    }
+    defer client.Close()
     
     // Create the mediation request
     req := &v1_ai.MediationRequest{
-        EscrowId: strconv.FormatUint(escrowID, 10),
-        Description: escrowDetails.Conditions,  // Changed from Description to Conditions
-        Status: escrowDetails.Status,
+        EscrowId:    strconv.FormatUint(escrowID, 10),
+        Description: escrowDetails.Conditions,
+        Status:      escrowDetails.Status,
+        Chat:        []*v1_ai.ChatMessage{}, // Initialize empty chat
     }
 
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
     defer cancel()
 
-    resp, err := aiClient.RequestMediation(ctx, req)
+    // Request mediation from the AI
+    resp, err := client.RequestMediation(ctx, req)
     if err != nil {
         log.Printf("Failed to request mediation from AI: %v", err)
         return
@@ -244,9 +262,9 @@ func triggerAutomatedMediation(escrowDetails *v1_escrow.EscrowResponse, escrowID
 
     // Create a new message from the AI service
     aiMessage := model.Message{
-        EscrowID:  uint(escrowID),
-        SenderID:  AiUserId,
-        Content:   resp.Message,
+        EscrowID: uint(escrowID),
+        SenderID: AiUserId,
+        Content:  resp.Message,
     }
 
     // Save and broadcast the AI's message

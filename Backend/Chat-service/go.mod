@@ -3,7 +3,7 @@ module chat_service
 go 1.24.5
 
 require (
-	github.com/SafeDeal/proto/ai-arbitrator v0.0.0-00010101000000-000000000000
+	github.com/SafeDeal/proto/ai_arbitrator v0.0.0-00010101000000-000000000000
 	github.com/SafeDeal/proto/escrow v0.0.0-00010101000000-000000000000
 	gorm.io/gorm v1.30.1
 )
@@ -39,7 +39,7 @@ require (
 
 replace github.com/SafeDeal/proto/escrow => ../../Proto/escrow
 
-replace github.com/SafeDeal/proto/ai-arbitrator => ../../Proto/ai-arbitrator
+replace github.com/SafeDeal/proto/ai_arbitrator => ../../Proto/ai_arbitrator
 
 require (
 	github.com/gorilla/websocket v1.5.3
