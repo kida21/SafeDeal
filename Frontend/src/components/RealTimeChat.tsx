@@ -274,7 +274,7 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                       }`}
                     >
                       <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
-                        isOwn ? "flex-row-reverse space-x-reverse" : "flex-row"
+                        isOwn ? "space-x-reverse" : "flex-row"
                       }`}>
                         {/* Avatar */}
                         {!isOwn && (
