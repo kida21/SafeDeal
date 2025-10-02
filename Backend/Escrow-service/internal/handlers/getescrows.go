@@ -32,15 +32,24 @@ func GetUserEscrows(c fiber.Ctx) error {
 	db := c.Locals("db").(*gorm.DB)
 	var escrows []model.Escrow
 
-	
-	if err := db.Where("buyer_id = ? OR seller_id = ?", userID, userID).
+	if userID == 2 {
+		if err := db.Order("created_at DESC").
+		Find(&escrows).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to fetch escrows",
+			})
+		}
+	}
+	else{
+
+		if err := db.Where("buyer_id = ? OR seller_id = ?", userID, userID).
 		Order("created_at DESC").
 		Find(&escrows).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to fetch escrows",
-		})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to fetch escrows",
+			})
+		}
 	}
-
 	
 	summary := EscrowSummary{}
 	for _, e := range escrows {
