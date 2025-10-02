@@ -598,12 +598,21 @@ const CreateEscrow = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Governing Law / Jurisdiction
                     </label>
-                    <input
-                      type="text"
+                    <select
                       {...register('governing_law')}
                       className="input w-full"
-                      placeholder="e.g., Ethiopia"
-                    />
+                    >
+                      <option value="Ethiopia">Ethiopia</option>
+                      <option value="Eritrea">Eritrea</option>
+                      <option value="Somalia">Somalia</option>
+                      <option value="Sudan">Sudan</option>
+                      <option value="Kenya">Kenya</option>
+                      <option value="Uganda">Uganda</option>
+                      <option value="Tanzania">Tanzania</option>
+                      <option value="Burundi">Burundi</option>
+                      <option value="Rwanda">Rwanda</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                 </div>
 

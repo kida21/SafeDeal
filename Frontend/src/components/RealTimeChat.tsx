@@ -7,6 +7,7 @@ import { Message } from "../types";
 import { wsApi } from "../lib/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import botAvatar from "../assets/gemini.svg";
 
 interface RealTimeChatProps {
   isOpen: boolean;
@@ -278,9 +279,13 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                       }`}>
                         {/* Avatar */}
                         {!isOwn && (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                            {message.sender?.first_name?.[0] || 'U'}
-                          </div>
+                          message.sender_id === 1 ? (
+                            <img src={botAvatar} alt="AI Bot" className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                              {message.sender?.first_name?.[0] || 'U'}
+                            </div>
+                          )
                         )}
                         
                         {/* Message bubble */}
@@ -370,9 +375,13 @@ const RealTimeChat = ({ isOpen, onClose, escrowId }: RealTimeChatProps) => {
                         
                         {/* Own avatar */}
                         {isOwn && (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                            {user?.first_name?.[0] || 'M'}
-                          </div>
+                          message.sender_id === 1 ? (
+                            <img src={botAvatar} alt="AI Bot" className="w-8 h-8 rounded-full flex-shrink-0 object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                              {user?.first_name?.[0] || 'M'}
+                            </div>
+                          )
                         )}
                       </div>
                     </motion.div>

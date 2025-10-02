@@ -41,7 +41,7 @@ const Layout = ({ children }: LayoutProps) => {
     }
   };
 
-  const navigation = [
+  const normalNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'My Escrows', href: '/escrows', icon: Shield },
     { name: 'Create Escrow', href: '/create-escrow', icon: Plus },
@@ -50,7 +50,10 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Transactions', href: '/transactions', icon: CreditCard },
     { name: 'Profile', href: '/profile', icon: User },
   ];
-
+  const adminNavigation = [
+    { name: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
+  ];
+ const navigation = user?.id === 2 ? adminNavigation : normalNavigation;
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -130,9 +133,12 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-4">
+              {
+                user?.id != 2 && (
               <button 
                 onClick={() => setShowNotifications(true)}
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors relative"
+
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
@@ -141,6 +147,8 @@ const Layout = ({ children }: LayoutProps) => {
                   </span>
                 )}
               </button>
+                  )
+                }
               <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <Settings className="h-5 w-5" />
               </button>

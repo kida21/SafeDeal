@@ -79,44 +79,48 @@ const Contacts = () => {
         {!isLoading && !error && contacts.length > 0 && (
           <div className="card p-0">
             <div className="divide-y">
-              {contacts.map((user, idx) => (
-                <motion.div
-                  key={`${user.id}-${idx}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex items-center justify-between p-4 hover:bg-gray-50"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center">
+            {contacts.map((user, index) => (
+                  <motion.div
+                    key={`${user.first_name}-${user.last_name}-${index}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center">
                       <span className="text-white font-semibold text-lg">
                         {(user.first_name?.[0] || '').toUpperCase()}{(user.last_name?.[0] || '').toUpperCase()}
                       </span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 text-base">
-                        {user.first_name} {user.last_name}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                        <span className="">ID: {user.id}</span>
-                        <span className="">{user.profession}</span>
-                        { (
-                          <span className="inline-flex items-center space-x-1 text-green-600">
-                            <CheckCircle className="h-3 w-3" />
-                            <span className="text-xs">Verified</span>
-                          </span>
-                        )}
-                        {user.created_at && (
-                          <span className="text-xs text-gray-500">since {formatRelativeTime(user.created_at)}</span>
-                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-base">
+                          {user.first_name} {user.last_name}
+                        </h4>
+                        <div className="flex items-center space-x-3 text-sm text-gray-600">
+                          <span>{user.profession}</span>
+                          <span>{user.email}</span>
+                          { (
+                            <div className="flex items-center space-x-1">
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                              <span className="text-green-600 text-xs">Verified</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    
-                  </div>
-                </motion.div>
-              ))}
+                    <div>
+                      { (
+                        <Link
+                          to={`/create-escrow?seller=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&seller_id=${user.id}`}
+                          className="btn btn-primary btn-sm px-4"
+                        >
+                          Create Escrow
+                        </Link>
+                      ) }
+                    </div>
+                  </motion.div>
+                ))}
             </div>
           </div>
         )}
