@@ -10,6 +10,7 @@ const (
     Released  EscrowStatus = "Released"
     Disputed  EscrowStatus = "Disputed"
     Refunded  EscrowStatus = "Refunded"
+	Cancelled EscrowStatus = "Cancelled"
 )
 
 type Escrow struct {
