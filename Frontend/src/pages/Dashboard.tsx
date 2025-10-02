@@ -25,9 +25,12 @@ import {
 // import { Escrow } from "../types"; // Not used in this component
 import { toast } from "react-hot-toast";
 import LoadingSpinner from "../components/LoadingSpinner";
-
+import AdminDashboard from "./AdminDashboard";
 const Dashboard = () => {
   const { user } = useAuthStore();
+  if (user?.id === 2) {
+    return <AdminDashboard />;
+  }
   const [escrows, setEscrows] = useState<any[]>([]);
   const [stats, setStats] = useState<{
     total_escrows: number;

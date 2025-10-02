@@ -20,6 +20,7 @@ export interface SearchUser {
     last_name: string;
     profession: string;
     activated: boolean;
+    email?: string;
 }
 
 export interface AuthResponse {
