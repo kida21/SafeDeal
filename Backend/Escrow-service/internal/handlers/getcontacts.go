@@ -55,6 +55,7 @@ func GetContacts(c fiber.Ctx) error {
 			"id":         resp.Id,
 			"first_name": resp.FirstName,
 			"last_name":  resp.LastName,
+			"email": 	  resp.Email,
 			"profession": resp.Profession,
 			"since":      contact.CreatedAt,
 			"escrow_id":  contact.EscrowID,
