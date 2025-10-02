@@ -23,6 +23,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     api.Post("/:id/confirm-receipt", handlers.ConfirmReceipt)
     api.Post("/dispute/:id",handlers.DisputeEscrow)
     api.Post("/:id/refund", handlers.RefundEscrow)
+    api.Post("/:id/cancel", handlers.CancelEscrow)
     
     }
     
