@@ -21,7 +21,6 @@ import UserSearch from "./pages/UserSearch";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotificationToast from "./components/NotificationToast";
-import DebugAuth from "./components/DebugAuth";
 import Contacts from "./pages/Contacts";
 
 function App() {
@@ -292,7 +291,6 @@ function App() {
       </Routes>
 
       <NotificationToast isEnabled={isAuthenticated} />
-      <DebugAuth />
     </div>
   );
 }
