@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -35,10 +34,11 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
         response = await authApi.register(data as RegisterRequest);
       }
 
-      const { user, access_token, refresh_token } = response.data;
+      const { user, access_token } = response.data;
       
+      // Only store access token in localStorage
+      // Refresh token should be HTTP-only cookie (handled by backend)
       localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
       setUser(user);
       
       toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');

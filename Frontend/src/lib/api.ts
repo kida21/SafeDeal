@@ -14,7 +14,7 @@ import {
 } from '../types';
 
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://192.168.0.115:8080';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080';
 
 // Create Axios instance
 const api = axios.create({
@@ -94,8 +94,13 @@ export const authApi = {
 
 export const userApi = {
   getProfile: (): Promise<AxiosResponse<User>> => api.get('/api/profile'),
-  updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
-    api.patch('/api/updateprofile', data),
+  updateProfile: (data: UpdateProfileRequest, userId: number): Promise<AxiosResponse<User>> =>
+    api.patch('/api/updateprofile', data, {
+      headers: {
+        'X-User-ID': userId.toString(),
+      },
+    }),
+  
   searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[]; pagination: any }>> =>
     api.get(`/api/search?q=${encodeURIComponent(query)}`),
 

@@ -526,11 +526,6 @@ const CreateEscrow = () => {
                   {errors.amount && (
                     <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
                   )}
-                  {watchedAmount && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      SafeDeal fee: {formatCurrency(watchedAmount * 0.025)} (2.5%)
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -686,15 +681,14 @@ const CreateEscrow = () => {
                     <span className="font-medium">{formatCurrency(watch('amount') || 0)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">SafeDeal Fee (2.5%):</span>
                     <span className="font-medium">
-                      {formatCurrency((watch('amount') || 0) * 0.025)}
+                      {formatCurrency((watch('amount') || 0))}
                     </span>
                   </div>
                   <div className="flex justify-between border-t pt-4">
                     <span className="text-gray-600">Total to Pay:</span>
                     <span className="font-bold text-lg">
-                      {formatCurrency((watch('amount') || 0) * 1.025)}
+                      {formatCurrency((watch('amount') || 0))}
                     </span>
                   </div>
                   {(() => {

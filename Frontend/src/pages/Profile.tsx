@@ -129,13 +129,26 @@ const Profile = () => {
   };
 
   const handleUpdateProfile = async (data: UpdateProfileRequest) => {
+    if (!user?.id) {
+      toast.error("User ID not available");
+      return;
+    }
+    
     setIsUpdatingProfile(true);
     try {
-      const response = await userApi.updateProfile(data);
-      setUser(response.data);
+      const response = await userApi.updateProfile(data, user.id);
+      
+      // Backend returns partial user data, merge with existing user data
+      const updatedUserData = response.data.user || response.data;
+      setUser({
+        ...user,
+        ...updatedUserData
+      });
+      
       toast.success("Profile updated successfully!");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to update profile");
+      console.error("Profile update error:", error);
+      toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to update profile");
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -150,7 +163,6 @@ const Profile = () => {
     { id: "profile", name: "Profile", icon: User },
     { id: "wallet", name: "Wallet", icon: Wallet },
     { id: "banking", name: "Banking", icon: CreditCard },
-    { id: "security", name: "Security", icon: Shield },
   ];
 
   if (!user || isFetchingProfile) {
@@ -264,6 +276,34 @@ const Profile = () => {
                       )}
                     </div>
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Profession
+                    </label>
+                    <input
+                      {...registerProfile("profession", {
+                        required: "Profession is required",
+                        minLength: {
+                          value: 2,
+                          message: "Profession must be at least 2 characters"
+                        },
+                        maxLength: {
+                          value: 100,
+                          message: "Profession must be less than 100 characters"
+                        }
+                      })}
+                      type="text"
+                      className="input w-full"
+                      placeholder="e.g., Software Developer, Teacher, etc."
+                    />
+                    {profileErrors.profession && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {profileErrors.profession.message}
+                      </p>
+                    )}
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address
@@ -645,67 +685,7 @@ const Profile = () => {
               </motion.div>
             )}
 
-            {/* Security Tab */}
-            {activeTab === "security" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
-              >
-                <div className="card p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                    Security Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          Two-Factor Authentication
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Add an extra layer of security to your account
-                        </p>
-                      </div>
-                      <button className="btn btn-outline btn-sm">Enable</button>
-                    </div>
 
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          Login Notifications
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Get notified when someone logs into your account
-                        </p>
-                      </div>
-                      <button className="btn btn-outline btn-sm">Enable</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Account Activity
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-sm text-gray-600">Last login</span>
-                      <span className="text-sm font-medium">
-                        Today at 2:30 PM
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-sm text-gray-600">
-                        Account created
-                      </span>
-                      <span className="text-sm font-medium">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
           </div>
         </div>
       </div>
