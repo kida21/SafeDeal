@@ -39,8 +39,7 @@ func GetUserEscrows(c fiber.Ctx) error {
 				"error": "Failed to fetch escrows",
 			})
 		}
-	}
-	else{
+	}else{
 
 		if err := db.Where("buyer_id = ? OR seller_id = ?", userID, userID).
 		Order("created_at DESC").
