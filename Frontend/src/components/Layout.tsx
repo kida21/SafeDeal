@@ -10,7 +10,9 @@ import {
   Settings,
   Shield,
   CreditCard,
-  Search
+  Search,
+  Users,
+  Phone
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
@@ -44,6 +46,7 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'My Escrows', href: '/escrows', icon: Shield },
     { name: 'Create Escrow', href: '/create-escrow', icon: Plus },
     { name: 'Search Users', href: '/search', icon: Search },
+    { name: 'Contacts', href: '/contacts', icon: Phone },
     { name: 'Transactions', href: '/transactions', icon: CreditCard },
     { name: 'Profile', href: '/profile', icon: User },
   ];

@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotificationToast from "./components/NotificationToast";
 import DebugAuth from "./components/DebugAuth";
+import Contacts from "./pages/Contacts";
 
 function App() {
   const { user, setUser, setLoading, isAuthenticated } = useAuthStore();
@@ -267,6 +268,14 @@ function App() {
           element={
             <ProtectedRoute>
               <UserSearch />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contacts"
+          element={
+            <ProtectedRoute>
+              <Contacts />
             </ProtectedRoute>
           }
         />
