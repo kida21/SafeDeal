@@ -14,7 +14,7 @@ import {
 } from '../types';
 
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://192.168.0.115:8080';
 
 // Create Axios instance
 const api = axios.create({
@@ -137,16 +137,18 @@ export const escrowApi = {
     dispute: (id: number, reason: string): Promise<AxiosResponse<Escrow>> =>
         api.post(`/api/escrows/dispute/${id}`, { reason }),
 
+    // POST Cancel
+    cancel: (id: number): Promise<AxiosResponse<Escrow>> =>
+        api.post(`/api/escrows/${id}/cancel`),
+
     // GET Dispute (if available)
     getDispute: (id: number): Promise<AxiosResponse<any>> =>
         api.get(`/api/escrows/dispute/${id}`),
+
+
     // POST Refund
     refund: (id: number): Promise<AxiosResponse<Escrow>> =>
         api.post(`/api/escrows/${id}/refund`),
-
-    // PUT Cancel escrow (buyer only)
-    cancel: (id: number): Promise<AxiosResponse<Escrow>> =>
-        api.put(`/api/escrows/${id}/cancel`),
 
     // Helper function to get multiple escrows by IDs
     getMultipleByIds: async (ids: number[]): Promise<Escrow[]> => {

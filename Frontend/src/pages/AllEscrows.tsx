@@ -12,6 +12,8 @@ import {
   Filter,
   RefreshCw,
   Loader2,
+  RotateCcw,
+  X,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useAuthStore } from '../store/authStore';
@@ -66,6 +68,10 @@ const AllEscrows = () => {
         return <Shield className="h-4 w-4" />;
       case 'Released':
         return <CheckCircle className="h-4 w-4" />;
+      case 'Cancelled':
+        return <X className="h-4 w-4" />;
+      case 'Refunded':
+        return <RotateCcw className="h-4 w-4" />;
       case 'Disputed':
         return <AlertCircle className="h-4 w-4" />;
       default:
@@ -154,6 +160,8 @@ const AllEscrows = () => {
                 <option value="all">All Status</option>
                 <option value="Pending">Pending</option>
                 <option value="Funded">Funded</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Refunded">Refunded</option>
                 <option value="Released">Released</option>
                 <option value="Disputed">Disputed</option>
               </select>
