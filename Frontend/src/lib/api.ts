@@ -97,15 +97,20 @@ export const userApi = {
   updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
     api.patch('/api/updateprofile', data),
   searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[]; pagination: any }>> =>
-    api.get(`/api/search?first_name=${encodeURIComponent(query)}&last_name=${encodeURIComponent(query)}&profession=${encodeURIComponent(query)}`),
+    api.get(`/api/search?q=${encodeURIComponent(query)}`),
+
   getContacts: (): Promise<AxiosResponse<{ contacts: SearchUser[]; total: number }>> => 
     api.get('/api/escrows/contacts'),
   getAllUsers: (): Promise<AxiosResponse<{ users: SearchUser[]; total: number }>> => 
     api.get('/api/search'),
+  updateBankDetails: (data: BankDetails): Promise<AxiosResponse<User>> =>
+    api.put('/api/profile/bank-details', data),
   createWallet: (): Promise<AxiosResponse<User>> => api.post('/api/wallet'),
   resendActivation: (email: string): Promise<AxiosResponse<{ message: string }>> =>
     axios.post(`${API_BASE_URL}/resend`, { email }),
 };
+
+// Escrow API - Based on backend endpoints
 export const escrowApi = {
     // POST Create-escrow
     create: (data: CreateEscrowRequest): Promise<AxiosResponse<Escrow>> =>
