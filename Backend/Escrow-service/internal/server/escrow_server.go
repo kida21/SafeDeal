@@ -2,11 +2,13 @@
 package server
 
 import (
-    "context"
-    "fmt"
-    "github.com/SafeDeal/proto/escrow/v1"
-    "gorm.io/gorm"
-    "escrow_service/internal/model"
+	"context"
+	"escrow_service/internal/model"
+	"fmt"
+	"log"
+
+	"github.com/SafeDeal/proto/escrow/v1"
+	"gorm.io/gorm"
 )
 
 type EscrowServer struct {
@@ -42,11 +44,18 @@ func (s *EscrowServer) UpdateStatus(ctx context.Context, req *v1.UpdateEscrowSta
 }
 
 func (s *EscrowServer) GetEscrow(ctx context.Context, req *v1.GetEscrowRequest) (*v1.EscrowResponse, error) {
+    if s.DB == nil {
+        log.Printf("🚨 s.DB is nil in GetEscrow!")
+        return nil, fmt.Errorf("internal server error: database not initialized")
+    }
     var escrow model.Escrow
     if err := s.DB.First(&escrow, req.EscrowId).Error; err != nil {
         return nil, fmt.Errorf("escrow not found")
     }
-
+    var blockchainEscrowId uint32
+    if escrow.BlockchainEscrowID != nil {
+        blockchainEscrowId = uint32(*escrow.BlockchainEscrowID)
+    }
     return &v1.EscrowResponse{
         Id:         uint32(escrow.ID),
         BuyerId:    uint32(escrow.BuyerID),
@@ -54,7 +63,7 @@ func (s *EscrowServer) GetEscrow(ctx context.Context, req *v1.GetEscrowRequest) 
         Amount:     float32(escrow.Amount),
         Status:     string(escrow.Status),
         Conditions: escrow.Conditions,
-        BlockchainEscrowId: uint32(*escrow.BlockchainEscrowID),
+        BlockchainEscrowId: blockchainEscrowId,
         Active: escrow.Active,
     }, nil
 }
