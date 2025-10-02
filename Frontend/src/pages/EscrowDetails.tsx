@@ -275,7 +275,7 @@ const EscrowDetails = () => {
     setIsProcessing(true);
     try {
       await escrowApi.refund(escrowId);
-      toast.success("Refund successful! Funds will be released to the seller.");
+      toast.success("Refund successful! Funds will be released to the buyer.");
 
       // Immediate refresh for better UX, then delayed refresh for safety
       fetchEscrowDetails();
@@ -287,6 +287,33 @@ const EscrowDetails = () => {
         error?.response?.data?.error ||
           error?.response?.data?.message ||
           "Failed to refund"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  const handleCancel = async () => {
+    const escrowId = Number(id);
+    if (!Number.isFinite(escrowId) || escrowId <= 0) {
+      toast.error("Invalid escrow ID");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await escrowApi.cancel(escrowId);
+      toast.success("Cancel successful! Funds will be released to the buyer.");
+
+      // Immediate refresh for better UX, then delayed refresh for safety
+      fetchEscrowDetails();
+      setTimeout(() => {
+        fetchEscrowDetails();
+      }, 1500);
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          "Failed to cancel"
       );
     } finally {
       setIsProcessing(false);
@@ -822,6 +849,16 @@ const EscrowDetails = () => {
                   >
                     <RotateCcw className="h-5 w-5 mr-2" />
                     {isProcessing ? "Refunding..." : "Refund"}
+                  </button>
+                )}
+                {isBuyer && (!escrow.active) && (escrow.status === "Funded") && (
+                  <button
+                    onClick={handleCancel}
+                    disabled={isProcessing}
+                    className="btn btn-error btn-lg w-full"
+                  >
+                    <RotateCcw className="h-5 w-5 mr-2" />
+                    {isProcessing ? "Canceling..." : "Cancel"}
                   </button>
                 )}
               </div>
