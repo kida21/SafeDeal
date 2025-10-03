@@ -26,7 +26,7 @@ export interface SearchUser {
 export interface AuthResponse {
     user: User;
     access_token: string;
-    refresh_token: string;
+    refresh_token?: string; // Optional - should be HTTP-only cookie
 }
 
 export interface LoginRequest {
