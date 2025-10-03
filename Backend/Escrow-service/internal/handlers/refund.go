@@ -136,7 +136,7 @@ func RefundEscrow(c fiber.Ctx) error {
 	if err != nil {
 		log.Printf("gRPC Finalize error: %v ", err)
 	}
-	if response != nil && !response.Success {
+	if !response.Success {
 		log.Printf("Finalize failed: %s", response.Error)
 	}
 
