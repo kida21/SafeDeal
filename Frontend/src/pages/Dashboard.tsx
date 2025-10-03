@@ -445,14 +445,14 @@ const Dashboard = () => {
                 <Shield className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">Security Center</h4>
+                <h4 className="font-semibold text-gray-900">Profile Center</h4>
                 <p className="text-sm text-gray-600">
-                  Review your account security and settings
+                  Review your account
                 </p>
               </div>
             </div>
             <Link to="/profile" className="btn btn-outline btn-sm mt-4">
-              Security Settings
+              Manage Profile
             </Link>
           </div>
         </motion.div>

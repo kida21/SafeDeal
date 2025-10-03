@@ -94,8 +94,13 @@ export const authApi = {
 
 export const userApi = {
   getProfile: (): Promise<AxiosResponse<User>> => api.get('/api/profile'),
-  updateProfile: (data: UpdateProfileRequest): Promise<AxiosResponse<User>> =>
-    api.patch('/api/updateprofile', data),
+  updateProfile: (data: UpdateProfileRequest, userId: number): Promise<AxiosResponse<User>> =>
+    api.patch('/api/updateprofile', data, {
+      headers: {
+        'X-User-ID': userId.toString(),
+      },
+    }),
+  
   searchUsers: (query: string): Promise<AxiosResponse<{ users: SearchUser[]; pagination: any }>> =>
     api.get(`/api/search?q=${encodeURIComponent(query)}`),
 
