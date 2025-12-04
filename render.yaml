@@ -1,150 +1,195 @@
 services:
-  # -------------------------------
-  # RabbitMQ (Private Service)
-  # -------------------------------
+  # -----------------------------------------
+  # RabbitMQ (Internal worker)
+  # -----------------------------------------
   - name: rabbitmq
-    type: private-service
+    type: worker
     env: docker
     plan: starter
     dockerfilePath: ./rabbitmq.Dockerfile
     autoDeploy: true
+    envVars:
+      - key: RABBITMQ_DEFAULT_USER
+        value: guest
+      - key: RABBITMQ_DEFAULT_PASS
+        value: guest
 
-  # -------------------------------
-  # Consul (Private Service)
-  # -------------------------------
+  # -----------------------------------------
+  # Consul (Internal worker)
+  # -----------------------------------------
   - name: consul
-    type: private-service
+    type: worker
     env: docker
     plan: starter
     dockerfilePath: ./consul.Dockerfile
-
-  # -------------------------------
-  # Escrow Service
-  # -------------------------------
-  - name: escrow-service
-    type: web
-    env: docker
-    dockerfilePath: Backend/Escrow-service/Dockerfile
-    plan: starter
+    autoDeploy: true
     envVars:
-      - key: DB_HOST
-        value: ${ESCROW_DB_HOST}
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_USER
-        value: postgres
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_NAME
-        value: escrowdb
-      - key: RABBITMQ_URL
-        value: http://rabbitmq:5672
-      - key: CONSUL_HOST
-        value: http://consul:8500
-      - key: AI_ARBITRATOR_HOST
-        value: ai-arbitrator-service
-      - key: AI_ARBITRATOR_PORT
-        value: "50055"
+      - key: CONSUL_BIND_INTERFACE
+        value: eth0
 
-  # -------------------------------
-  # Chat Service
-  # -------------------------------
-  - name: chat-service
-    type: web
-    env: docker
-    plan: starter
-    dockerfilePath: Backend/Chat-service/Dockerfile
-    envVars:
-      - key: DB_HOST
-        value: ${CHAT_DB_HOST}
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_USER
-        value: postgres
-      - key: DB_PASSWORD
-        sync: false
-
-  # -------------------------------
-  # Payment Service
-  # -------------------------------
-  - name: payment-service
-    type: web
-    env: docker
-    plan: starter
-    dockerfilePath: Backend/Payment-service/Dockerfile
-    envVars:
-      - key: DB_HOST
-        value: ${PAYMENT_DB_HOST}
-      - key: DB_USER
-        value: postgres
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_PASSWORD
-        sync: false
-
-  # -------------------------------
+  # -----------------------------------------
   # User Service
-  # -------------------------------
+  # -----------------------------------------
   - name: user-service
     type: web
     env: docker
     plan: starter
     dockerfilePath: Backend/User-service/Dockerfile
+    autoDeploy: true
     envVars:
-      - key: DB_HOST
-        value: ${USER_DB_HOST}
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_USER
-        value: postgres
-      - key: DB_PASSWORD
-        sync: false
-      - key: REDIS_HOST
-        value: ${REDIS_HOST}
-      - key: REDIS_PORT
-        value: "6379"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: user-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: redis-auth
+          type: redis
+      - key: JWT_SECRET_KEY
+        value: "x>(A9PWN5KV@Pm9"
+      - key: SMTP_SENDER_EMAIL
+        value: "jtime5115@gmail.com"
+      - key: SMTP_USERNAME
+        value: "f5aaa678d7bed4"
+      - key: SMTP_PASSWORD
+        value: "eaf85eb8a8e9c2"
+      - key: SMTP_HOST
+        value: "sandbox.smtp.mailtrap.io"
+      - key: SMTP_PORT
+        value: "2525"
+      - key: ENCRYPTION_KEY
+        value: "k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1"
 
-  # -------------------------------
+  # -----------------------------------------
+  # Escrow Service
+  # -----------------------------------------
+  - name: escrow-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/Escrow-service/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: escrow-db
+          property: connectionString
+      - key: RABBITMQ_HOST
+        value: rabbitmq
+      - key: CONSUL_HOST
+        value: consul
+      - key: ETHEREUM_NODE_URL
+        value: "https://sepolia.infura.io/v3/14b4f0bb32964daea0a3c1b8bc6c2936"
+      - key: PRIVATE_KEY
+        value: "34aea489b9a710abe49a7b080735cb93fd8eb6e90d6d2ad1b3dad8d0d2d25601"
+      - key: ENCRYPTION_KEY
+        value: "k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1"
+      - key: CONTRACT_ADDRESS
+        value: "0x2D85E1064125c442c4ECb544215d3F8E9Be7353B"
+      - key: CHAIN_ID
+        value: "11155111"
+      - key: CHAPA_SECRET_KEY
+        value: "CHASECK_TEST-G1bjeFJd8ImE8fooYscsUsgexP7phU03"
+      - key: CHAPA_PUBLIC_KEY
+        value: "CHAPUBK_TEST-Tf4hrt7wf6cDB8xNDy48WPrS8OUK7UXJ"
+      - key: AI_ARBITRATOR_HOST
+        value: ai-arbitrator-service
+      - key: AI_ARBITRATOR_PORT
+        value: "50055"
+
+  # -----------------------------------------
+  # Chat Service
+  # -----------------------------------------
+  - name: chat-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/Chat-service/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chat-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        value: "x>(A9PWN5KV@Pm9"
+
+  # -----------------------------------------
+  # Payment Service
+  # -----------------------------------------
+  - name: payment-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/Payment-service/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: payment-db
+          property: connectionString
+      - key: CHAPA_SECRET_KEY
+        value: "CHASECK_TEST-G1bjeFJd8ImE8fooYscsUsgexP7phU03"
+      - key: CHAPA_WEBHOOK_URL
+        value: "https://your-domain/render/webhook/chapa"
+      - key: CHAPA_WEBHOOK_SECRET
+        value: "d6P/GCR_RP};HOS"
+      - key: ETHEREUM_NODE_URL
+        value: "https://sepolia.infura.io/v3/14b4f0bb32964daea0a3c1b8bc6c2936"
+      - key: PRIVATE_KEY
+        value: "34aea489b9a710abe49a7b080735cb93fd8eb6e90d6d2ad1b3dad8d0d2d25601"
+      - key: ENCRYPTION_KEY
+        value: "k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1"
+      - key: CONTRACT_ADDRESS
+        value: "0x2D85E1064125c442c4ECb544215d3F8E9Be7353B"
+      - key: CHAIN_ID
+        value: "11155111"
+
+  # -----------------------------------------
   # API Gateway
-  # -------------------------------
+  # -----------------------------------------
   - name: api-gateway
     type: web
     env: docker
     plan: starter
     dockerfilePath: Backend/Api-gateway/Dockerfile
+    autoDeploy: true
     envVars:
       - key: CONSUL_HOST
-        value: http://consul:8500
+        value: consul
 
-  # -------------------------------
+  # -----------------------------------------
   # AI Arbitrator Service
-  # -------------------------------
+  # -----------------------------------------
   - name: ai-arbitrator-service
-    type: private-service
+    type: web
     env: docker
     plan: starter
     dockerfilePath: Backend/ai-service/dockerfile
+    autoDeploy: true
     envVars:
       - key: GEMINI_API_KEY
-        sync: false
+        value: "AIzaSyBdeULTzNyo4D_7qL0oklJS3wkmL-N0Uf4"
 
-# -------------------------------
-# Databases (Render managed)
-# -------------------------------
-
+# -----------------------------------------
+# Render Managed Databases
+# -----------------------------------------
 databases:
   - name: user-db
     plan: starter
+
   - name: escrow-db
     plan: starter
+
   - name: payment-db
     plan: starter
+
   - name: chat-db
     plan: starter
 
-# -------------------------------
-# Redis (Render managed)
-# -------------------------------
+# -----------------------------------------
+# Render Managed Redis
+# -----------------------------------------
 redis:
   - name: redis-auth
     plan: starter
