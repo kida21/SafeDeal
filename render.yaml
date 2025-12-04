@@ -1,0 +1,245 @@
+services:
+  # Messaging Queue
+  - type: private
+    name: rabbitmq
+    env: docker
+    image: rabbitmq:3.13.5-management
+    plan: free
+    ports:
+      - 5672
+      - 15672
+    envVars:
+      - key: RABBITMQ_DEFAULT_USER
+        value: guest
+      - key: RABBITMQ_DEFAULT_PASS
+        value: guest
+
+  # Databases
+  - type: private
+    name: user-db
+    env: docker
+    image: postgres:latest
+    plan: free
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: userdb
+    disk:
+      name: userdb_data
+      mountPath: /var/lib/postgresql/data
+
+  - type: private
+    name: escrow-db
+    env: docker
+    image: postgres:latest
+    plan: free
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: escrowdb
+    disk:
+      name: escrow_data
+      mountPath: /var/lib/postgresql/data
+
+  - type: private
+    name: chat-db
+    env: docker
+    image: postgres:latest
+    plan: free
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: chatdb
+    disk:
+      name: chat_data
+      mountPath: /var/lib/postgresql/data
+
+  - type: private
+    name: payment-db
+    env: docker
+    image: postgres:latest
+    plan: free
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: paymentdb
+    disk:
+      name: payment_data
+      mountPath: /var/lib/postgresql/data
+
+  # Redis
+  - type: private
+    name: redis
+    env: docker
+    image: redis:latest
+    plan: free
+    ports:
+      - 6379
+
+  # Consul
+  - type: private
+    name: consul
+    env: docker
+    image: hashicorp/consul:latest
+    plan: free
+    ports:
+      - 8500
+      - 8600
+    envVars:
+      - key: CONSUL_BIND_INTERFACE
+        value: eth0
+    startCommand: agent -dev -client 0.0.0.0
+
+  # Microservices
+  - type: web
+    name: user-service
+    env: docker
+    dockerfilePath: Backend/User-service/Dockerfile
+    plan: free
+    envVars:
+      - key: DB_HOST
+        value: user-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: userdb
+      - key: JWT_SECRET_KEY
+        value: x>(A9PWN5KV@Pm9
+      - key: ENCRYPTION_KEY
+        value: k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1
+      - key: SMTP_SENDER_EMAIL
+        value: jtime5115@gmail.com
+      - key: SMTP_USERNAME
+        value: f5aaa678d7bed4
+      - key: SMTP_PASSWORD
+        value: eaf85eb8a8e9c2
+      - key: SMTP_HOST
+        value: sandbox.smtp.mailtrap.io
+      - key: SMTP_PORT
+        value: "2525"
+
+  - type: web
+    name: escrow-service
+    env: docker
+    dockerfilePath: Backend/Escrow-service/Dockerfile
+    plan: free
+    envVars:
+      - key: DB_HOST
+        value: escrow-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: escrowdb
+      - key: ETHEREUM_NODE_URL
+        value: https://sepolia.infura.io/v3/14b4f0bb32964daea0a3c1b8bc6c2936
+      - key: PRIVATE_KEY
+        value: 34aea489b9a710abe49a7b080735cb93fd8eb6e90d6d2ad1b3dad8d0d2d25601
+      - key: ENCRYPTION_KEY
+        value: k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1
+      - key: CONTRACT_ADDRESS
+        value: 0x2D85E1064125c442c4ECb544215d3F8E9Be7353B
+      - key: CHAIN_ID
+        value: "11155111"
+      - key: CHAPA_SECRET_KEY
+        value: CHASECK_TEST-G1bjeFJd8ImE8fooYscsUsgexP7phU03
+      - key: CHAPA_PUBLIC_KEY
+        value: CHAPUBK_TEST-Tf4hrt7wf6cDB8xNDy48WPrS8OUK7UXJ
+      - key: AI_ARBITRATOR_HOST
+        value: ai-arbitrator-service
+      - key: AI_ARBITRATOR_PORT
+        value: "50055"
+
+  - type: web
+    name: chat-service
+    env: docker
+    dockerfilePath: Backend/Chat-service/Dockerfile
+    plan: free
+    ports:
+      - 8085
+    envVars:
+      - key: DB_HOST
+        value: chat-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: chatdb
+      - key: JWT_SECRET_KEY
+        value: x>(A9PWN5KV@Pm9
+
+  - type: web
+    name: payment-service
+    env: docker
+    dockerfilePath: Backend/Payment-service/Dockerfile
+    plan: free
+    ports:
+      - 8083
+    envVars:
+      - key: DB_HOST
+        value: payment-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: paymentdb
+      - key: CHAPA_SECRET_KEY
+        value: CHASECK_TEST-G1bjeFJd8ImE8fooYscsUsgexP7phU03
+      - key: CHAPA_WEBHOOK_URL
+        value: https://evolved-bonefish-hardly.ngrok-free.app/webhook/chapa
+      - key: CHAPA_WEBHOOK_SECRET
+        value: d6P/GCR_RP};HOS
+      - key: ETHEREUM_NODE_URL
+        value: https://sepolia.infura.io/v3/14b4f0bb32964daea0a3c1b8bc6c2936
+      - key: PRIVATE_KEY
+        value: 34aea489b9a710abe49a7b080735cb93fd8eb6e90d6d2ad1b3dad8d0d2d25601
+      - key: ENCRYPTION_KEY
+        value: k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1
+      - key: CONTRACT_ADDRESS
+        value: 0x2D85E1064125c442c4ECb544215d3F8E9Be7353B
+      - key: CHAIN_ID
+        value: "11155111"
+
+  - type: web
+    name: api-gateway
+    env: docker
+    dockerfilePath: Backend/Api-gateway/Dockerfile
+    plan: free
+    ports:
+      - 8080
+
+  - type: web
+    name: ai-arbitrator-service
+    env: docker
+    dockerfilePath: Backend/ai-service/dockerfile
+    plan: free
+    ports:
+      - 50055
+    envVars:
+      - key: GEMINI_API_KEY
+        value: AIzaSyBdeULTzNyo4D_7qL0oklJS3wkmL-N0Uf4
