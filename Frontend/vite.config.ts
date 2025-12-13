@@ -56,6 +56,9 @@ export default defineConfig({
   preview: {
     allowedHosts: [
       "elida-necktieless-unaspiringly.ngrok-free.dev"
-    ]
+    ],
+    headers: {
+    "ngrok-skip-browser-warning": "true"
+    }
   }
 })
