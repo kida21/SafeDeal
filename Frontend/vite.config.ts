@@ -50,6 +50,9 @@ export default defineConfig({
         secure: false,
       },
     },
+    headers: {
+    "ngrok-skip-browser-warning": true
+    }
   },
 
   // ✅ Add this block for ngrok
@@ -58,7 +61,7 @@ export default defineConfig({
       "elida-necktieless-unaspiringly.ngrok-free.dev"
     ],
     headers: {
-    "ngrok-skip-browser-warning": "true"
+    "ngrok-skip-browser-warning": true
     }
   }
 })
