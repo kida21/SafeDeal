@@ -2,3 +2,4 @@ docker-compose.yml
 .env
 node_modules/
 dist/
+android_build
