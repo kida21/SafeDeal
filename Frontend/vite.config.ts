@@ -51,4 +51,11 @@ export default defineConfig({
       },
     },
   },
+
+  // ✅ Add this block for ngrok
+  preview: {
+    allowedHosts: [
+      "elida-necktieless-unaspiringly.ngrok-free.dev"
+    ]
+  }
 })
