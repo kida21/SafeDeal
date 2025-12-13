@@ -10,13 +10,13 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/src/assets/logoonlylock.png",
+      "src": "/public/logoonlylock.png",
       "sizes": "300x300",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/src/assets/logoonlylock.png",
+      "src": "/public/logoonlylock.png",
       "sizes": "300x300",
       "type": "image/png",
       "purpose": "any maskable"
