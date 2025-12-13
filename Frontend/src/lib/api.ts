@@ -1,4 +1,4 @@
-import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import {
   AuthResponse,
   LoginRequest,
@@ -169,7 +169,7 @@ export const escrowApi = {
 // Payment API - Based on backend endpoints
 export const paymentApi = {
     // POST Payment
-    initiateEscrowPayment: async (escrowId: number, p0: { email: string | undefined; first_name: string | undefined; last_name: string | undefined; phone_number: string; }): Promise<AxiosResponse<EscrowPayment>> => {
+    initiateEscrowPayment: async (escrowId: number): Promise<AxiosResponse<EscrowPayment>> => {
         // Fetch escrow to get amount if needed
         const escrowResp = await api.get(`/api/escrows/${escrowId}`);
         const amount = escrowResp?.data?.amount;

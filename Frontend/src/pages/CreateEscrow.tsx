@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, User as UserIcon, DollarSign, Shield, CheckCircle } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { escrowApi, userApi } from '../lib/api';
+import { escrowApi } from '../lib/api';
 import { toast } from 'react-hot-toast';
 import { CreateEscrowRequest } from '../types';
 import { formatCurrency } from '../lib/utils';
@@ -40,7 +40,6 @@ const CreateEscrow = () => {
     }
   >();
 
-  const watchedAmount = watch('amount');
 
   // Pre-fill seller name/id if coming from search
   useEffect(() => {

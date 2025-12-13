@@ -9,9 +9,7 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Filter,
   RefreshCw,
-  Loader2,
   RotateCcw,
   X,
 } from 'lucide-react';
@@ -24,7 +22,7 @@ import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AllEscrows = () => {
-  const { user } = useAuthStore();
+  const {  } = useAuthStore();
   const [escrows, setEscrows] = useState<Escrow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

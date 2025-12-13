@@ -11,7 +11,6 @@ import {
   Shield,
   CreditCard,
   Search,
-  Users,
   Phone
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';

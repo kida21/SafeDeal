@@ -5,8 +5,6 @@ import {
   User,
   Wallet,
   CreditCard,
-  Shield,
-  Key,
   Copy,
   Eye,
   EyeOff,
@@ -139,7 +137,7 @@ const Profile = () => {
       const response = await userApi.updateProfile(data, user.id);
       
       // Backend returns partial user data, merge with existing user data
-      const updatedUserData = response.data.user || response.data;
+      const updatedUserData = response.data;
       setUser({
         ...user,
         ...updatedUserData

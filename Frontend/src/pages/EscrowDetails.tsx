@@ -341,12 +341,7 @@ const EscrowDetails = () => {
 
     setIsProcessing(true);
     try {
-      const response = await paymentApi.initiateEscrowPayment(escrowId, {
-        email: user?.email,
-        first_name: user?.first_name,
-        last_name: user?.last_name,
-        phone_number: phone,
-      });
+      const response = await paymentApi.initiateEscrowPayment(escrowId);
       setPayment(response.data);
       setShowPayment(true);
       toast.success("Payment initiated! Please complete the payment.");
@@ -395,12 +390,7 @@ const EscrowDetails = () => {
     setIsProcessing(true);
 
     try {
-      const response = await paymentApi.initiateEscrowPayment(escrowId, {
-        email: user?.email,
-        first_name: user?.first_name,
-        last_name: user?.last_name,
-        phone_number: phoneNumber.trim(),
-      });
+      const response = await paymentApi.initiateEscrowPayment(escrowId);
       setPayment(response.data);
       setShowPayment(true);
       toast.success("Payment initiated! Please complete the payment.");

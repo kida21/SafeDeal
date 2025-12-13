@@ -10,7 +10,6 @@ import {
 import Layout from '../components/Layout';
 import { userApi } from '../lib/api';
 import { SearchUser } from '../types';
-import { toast } from 'react-hot-toast';
 
 const UserSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');

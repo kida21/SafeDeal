@@ -17,7 +17,7 @@ const ChatModal = ({ isOpen, onClose, escrowId }: ChatModalProps) => {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, ] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Mock messages for demonstration

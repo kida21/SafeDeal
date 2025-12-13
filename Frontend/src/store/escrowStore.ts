@@ -31,7 +31,7 @@ interface EscrowState {
     refreshAll: () => Promise<void>;
 }
 
-export const useEscrowStore = create<EscrowState>((set, get) => ({
+export const useEscrowStore = create<EscrowState>((set) => ({
     escrows: [],
     currentEscrow: null,
     isLoading: false,
@@ -59,7 +59,7 @@ export const useEscrowStore = create<EscrowState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await escrowApi.getMyEscrows();
-            const escrows = response.data.slice(0, limit);
+            const escrows = response.data.escrows.slice(0, limit);
             set({ escrows, isLoading: false });
         } catch (error: any) {
             set({
@@ -72,7 +72,7 @@ export const useEscrowStore = create<EscrowState>((set, get) => ({
         set({ statsLoading: true, error: null });
         try {
             const response = await escrowApi.getMyEscrows();
-            const escrows = response.data;
+            const escrows = response.data.escrows;
 
             // Calculate stats from escrows
             const stats = {
@@ -110,7 +110,7 @@ export const useEscrowStore = create<EscrowState>((set, get) => ({
                 escrowApi.getMyEscrows()
             ]);
 
-            const escrows = escrowsResponse.data;
+            const escrows = escrowsResponse.data.escrows;
             const stats = {
                 total_escrows: escrows.length,
                 active_escrows: escrows.filter(e => e.status === 'Pending' || e.status === 'Funded').length,

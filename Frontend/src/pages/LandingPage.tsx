@@ -2,9 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Send, 
-  Wifi, 
   User, 
-  ArrowRight, 
   Lock,
   Shield,
   Users,
@@ -38,25 +36,6 @@ import GeminiLogo1 from "../assets/gemini.svg";
 
 
 const LandingPage = () => {
-
-  const features = [
-    {
-      icon: <Shield className="h-12 w-12 text-[#005356]" />,
-      title: "Secure",
-      description: "Your funds are protected by military-grade encryption and smart contracts. Every transaction is secured until completion."
-    },
-    {
-      icon: <Users className="h-12 w-12 text-[#005356]" />,
-      title: "Decentralized",
-      description: "Built on blockchain technology for transparency. No single point of failure, completely trustless transactions."
-    },
-    {
-      icon: <Star className="h-12 w-12 text-[#005356]" />,
-      title: "Smart",
-      description: "AI-powered dispute resolution and automated escrow release. Smart contracts handle everything seamlessly."
-    }
-  ];
-
   const steps = [
     {
       step: "STEP 1",
@@ -128,22 +107,6 @@ const LandingPage = () => {
     }
   ];
 
-  const benefits = [
-    {
-      icon: <Wifi className="h-6 w-6 text-primary-600" />,
-      text: "You can withdraw funds instantly once deals are completed"
-    },
-    {
-      icon: (
-        <div className="flex items-center space-x-1">
-          <User className="h-4 w-4 text-primary-600" />
-          <ArrowRight className="h-4 w-4 text-primary-600" />
-          <Lock className="h-4 w-4 text-primary-600" />
-        </div>
-      ),
-      text: "Holds payments safely until both sides fulfill the agreement"
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-white">
