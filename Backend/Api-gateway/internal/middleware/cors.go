@@ -4,7 +4,6 @@ import "github.com/gofiber/fiber/v2"
 
 func CORSMiddleware() fiber.Handler {
     allowedOrigins := map[string]bool{
-        "http://localhost:3000":        true,
         "https://safe-deal.vercel.app": true,
     }
 

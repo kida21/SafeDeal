@@ -71,9 +71,22 @@ func ProxyHandler(serviceName string) fiber.Handler {
 		}
 
 		c.Status(resp.StatusCode())
+		
+		// Set CORS headers to ensure no wildcard leaks through
+		origin := c.Get("Origin")
+		if origin == "https://safe-deal.vercel.app" {
+			c.Set("Access-Control-Allow-Origin", origin)
+			c.Set("Access-Control-Allow-Credentials", "true")
+			c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+			c.Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-User-ID, ngrok-skip-browser-warning")
+		}
+		
 		resp.Header.VisitAll(func(key, value []byte) {
 			switch string(key) {
 			case "Connection", "Keep-Alive":
+				return
+			case "Access-Control-Allow-Origin", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers", "Access-Control-Allow-Credentials":
+				// Block CORS headers from backend - use gateway's CORS only
 				return
 			}
 			c.Response().Header.SetBytesKV(key, value)
