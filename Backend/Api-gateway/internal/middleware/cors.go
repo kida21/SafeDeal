@@ -3,15 +3,14 @@ package middleware
 import "github.com/gofiber/fiber/v2"
 
 func CORSMiddleware() fiber.Handler {
-    allowedOrigins := map[string]bool{
-        "https://safe-deal.vercel.app": true,
-    }
+    allowedOrigin := "https://safe-deal.vercel.app"
 
     return func(c *fiber.Ctx) error {
         origin := c.Get("Origin")
 
-        if allowedOrigins[origin] {
-            c.Set("Access-Control-Allow-Origin", origin)
+        // Allow only the exact origin
+        if origin == allowedOrigin {
+            c.Set("Access-Control-Allow-Origin", allowedOrigin)
         }
 
         c.Set("Vary", "Origin")
