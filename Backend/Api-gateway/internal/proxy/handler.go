@@ -70,17 +70,37 @@ func ProxyHandler(serviceName string) fiber.Handler {
 			})
 		}
 
+		// First, strip ALL CORS headers from backend response
+		var backendHasWildcard bool
+		resp.Header.VisitAll(func(key, value []byte) {
+			keyStr := string(key)
+			valueStr := string(value)
+			if keyStr == "Access-Control-Allow-Origin" && valueStr == "*" {
+				backendHasWildcard = true
+				log.Printf("Backend has wildcard CORS: %s", keyStr)
+			}
+		})
+
 		c.Status(resp.StatusCode())
-		
+
 		// Set CORS headers to ensure no wildcard leaks through
 		origin := c.Get("Origin")
-		if origin == "https://safe-deal.vercel.app" {
+		log.Printf("Request origin: %s", origin)
+		// Allow both production and development origins
+		if origin == "https://safe-deal.vercel.app" || origin == "https://elida-necktieless-unaspiringly.ngrok-free.dev" {
 			c.Set("Access-Control-Allow-Origin", origin)
 			c.Set("Access-Control-Allow-Credentials", "true")
 			c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 			c.Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-User-ID, ngrok-skip-browser-warning")
+			log.Printf("Set CORS headers for origin: %s", origin)
+		} else {
+			log.Printf("Origin not allowed: %s", origin)
 		}
-		
+
+		if backendHasWildcard {
+			log.Printf("Blocked wildcard CORS from backend")
+		}
+
 		resp.Header.VisitAll(func(key, value []byte) {
 			switch string(key) {
 			case "Connection", "Keep-Alive":
