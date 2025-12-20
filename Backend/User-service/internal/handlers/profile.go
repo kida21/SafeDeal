@@ -89,3 +89,4 @@ func UpdateBankDetails(c *fiber.Ctx) error {
         "message": "Bank details updated successfully",
     })
 }
+
