@@ -70,14 +70,14 @@ func ProxyHandler(serviceName string) fiber.Handler {
 			})
 		}
 
-		// First, strip ALL CORS headers from backend response
+		// Inspect backend response CORS headers (case-insensitive)
 		var backendHasWildcard bool
 		resp.Header.VisitAll(func(key, value []byte) {
-			keyStr := string(key)
+			keyStr := strings.ToLower(string(key))
 			valueStr := string(value)
-			if keyStr == "Access-Control-Allow-Origin" && valueStr == "*" {
+			if keyStr == "access-control-allow-origin" && valueStr == "*" {
 				backendHasWildcard = true
-				log.Printf("Backend has wildcard CORS: %s", keyStr)
+				log.Printf("Backend has wildcard CORS header from upstream")
 			}
 		})
 
@@ -86,12 +86,21 @@ func ProxyHandler(serviceName string) fiber.Handler {
 		// Set CORS headers to ensure no wildcard leaks through
 		origin := c.Get("Origin")
 		log.Printf("Request origin: %s", origin)
+
+		// Remove any existing CORS headers on the response first
+		c.Response().Header.Del("Access-Control-Allow-Origin")
+		c.Response().Header.Del("Access-Control-Allow-Credentials")
+		c.Response().Header.Del("Access-Control-Allow-Methods")
+		c.Response().Header.Del("Access-Control-Allow-Headers")
+		c.Response().Header.Del("Vary")
+
 		// Allow both production and development origins
 		if origin == "https://safe-deal.vercel.app" || origin == "https://elida-necktieless-unaspiringly.ngrok-free.dev" {
 			c.Set("Access-Control-Allow-Origin", origin)
 			c.Set("Access-Control-Allow-Credentials", "true")
 			c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 			c.Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-User-ID, ngrok-skip-browser-warning")
+			c.Set("Vary", "Origin")
 			log.Printf("Set CORS headers for origin: %s", origin)
 		} else {
 			log.Printf("Origin not allowed: %s", origin)
@@ -101,12 +110,14 @@ func ProxyHandler(serviceName string) fiber.Handler {
 			log.Printf("Blocked wildcard CORS from backend")
 		}
 
+		// Copy upstream headers but strip any CORS headers (case-insensitive)
 		resp.Header.VisitAll(func(key, value []byte) {
-			switch string(key) {
-			case "Connection", "Keep-Alive":
+			keyStr := strings.ToLower(string(key))
+			switch keyStr {
+			case "connection", "keep-alive":
 				return
-			case "Access-Control-Allow-Origin", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers", "Access-Control-Allow-Credentials":
-				// Block CORS headers from backend - use gateway's CORS only
+			case "access-control-allow-origin", "access-control-allow-methods", "access-control-allow-headers", "access-control-allow-credentials", "vary":
+				// Block CORS-related headers from backend - use gateway's CORS only
 				return
 			}
 			c.Response().Header.SetBytesKV(key, value)
