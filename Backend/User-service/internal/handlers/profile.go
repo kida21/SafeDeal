@@ -9,7 +9,8 @@ import (
     "gorm.io/gorm"
 )
 
-func Profile(c *fiber.Ctx) error {
+// Profile returns the current user's profile info
+func Profile(c fiber.Ctx) error {
     userIDStr := c.Get("X-User-ID")
     if userIDStr == "" {
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -44,7 +45,8 @@ func Profile(c *fiber.Ctx) error {
     })
 }
 
-func UpdateBankDetails(c *fiber.Ctx) error {
+// UpdateBankDetails updates the user's bank details
+func UpdateBankDetails(c fiber.Ctx) error {
     type Request struct {
         AccountName   string `json:"account_name" validate:"required,chars_only,min=2"`
         AccountNumber string `json:"account_number"`
@@ -52,7 +54,7 @@ func UpdateBankDetails(c *fiber.Ctx) error {
     }
 
     var req Request
-    if err := c.BodyParser(&req); err != nil {
+    if err := c.Bind().Body(&req); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
     }
 
@@ -89,4 +91,3 @@ func UpdateBankDetails(c *fiber.Ctx) error {
         "message": "Bank details updated successfully",
     })
 }
-

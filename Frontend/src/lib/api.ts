@@ -19,7 +19,9 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost
 // Create Axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'any-value-like-69420'
+   },
   withCredentials: true, // ✅ Enables sending HTTP-only cookies automatically
 });
 
