@@ -11,7 +11,11 @@ import {
   Shield,
   CreditCard,
   Search,
-  Phone
+  Phone,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
@@ -29,6 +33,8 @@ const Layout = ({ children }: LayoutProps) => {
   const { user, logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -57,17 +63,35 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
+      <div
+        className={`fixed inset-y-0 left-0 z-50 bg-white shadow-lg transform transition-transform duration-300 ease-in-out 
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
+          ${isCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64`}
+      >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
-            <Link to="/dashboard" className="flex items-center space-x-2">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+            <Link to="/dashboard" className="flex items-center space-x-2" onClick={() => setMobileMenuOpen(false)}>
               <div className="flex items-center justify-center w-8 h-8 bg-primary-600 rounded-lg">
                 <Lock className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">SafeDeal</span>
+              <span className={`text-xl font-bold text-gray-900 ${isCollapsed ? 'lg:hidden' : ''}`}>SafeDeal</span>
             </Link>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5 text-gray-600" />
+            </button>
           </div>
 
           {/* Navigation */}
@@ -85,7 +109,7 @@ const Layout = ({ children }: LayoutProps) => {
                   }`}
                 >
                   <Icon className="h-5 w-5" />
-                  <span>{item.name}</span>
+                  <span className={`${isCollapsed ? 'lg:hidden' : ''} inline`}>{item.name}</span>
                 </Link>
               );
             })}
@@ -121,12 +145,29 @@ const Layout = ({ children }: LayoutProps) => {
       </div>
 
       {/* Main Content */}
-      <div className="pl-64">
+      <div className={`${isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         {/* Top Bar */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between h-16 px-6">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
+        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5 text-gray-600" />
+              </button>
+              {/* Desktop collapse toggle */}
+              <button
+                onClick={() => setIsCollapsed(prev => !prev)}
+                className="hidden lg:inline-flex p-2 rounded-lg hover:bg-gray-100"
+                aria-label="Toggle sidebar"
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? <ChevronRight className="h-5 w-5 text-gray-600" /> : <ChevronLeft className="h-5 w-5 text-gray-600" />}
+              </button>
+              <h1 className="text-lg sm:text-2xl font-semibold text-gray-900">
                 {navigation.find(item => isActive(item.href))?.name || 'Dashboard'}
               </h1>
             </div>
@@ -156,7 +197,7 @@ const Layout = ({ children }: LayoutProps) => {
         </header>
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-4 sm:p-6">
           {children}
         </main>
       </div>
