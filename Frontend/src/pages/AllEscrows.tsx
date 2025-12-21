@@ -118,16 +118,16 @@ const AllEscrows = () => {
               Manage all your escrow transactions
             </p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 flex-wrap gap-2">
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="btn btn-outline btn-md"
+              className="btn btn-outline btn-sm sm:btn-md"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
-            <Link to="/create-escrow" className="btn btn-primary btn-md">
+            <Link to="/create-escrow" className="btn btn-primary btn-sm sm:btn-md">
               <Plus className="h-4 w-4 mr-2" />
               Create Escrow
             </Link>
@@ -215,9 +215,9 @@ const AllEscrows = () => {
                 key={escrow.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="card p-6 hover:shadow-lg transition-shadow"
+                className="card p-4 sm:p-6 hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center space-x-4">
                     <div
                       className={`p-3 rounded-full ${getStatusColor(escrow.status)}`}
@@ -238,7 +238,7 @@ const AllEscrows = () => {
                       )}
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-xl font-bold text-gray-900">
                       {formatCurrency(escrow.amount)}
                     </p>
@@ -254,7 +254,7 @@ const AllEscrows = () => {
                     </div>
                     <Link
                       to={`/escrow/${escrow.id}`}
-                      className="btn btn-outline btn-sm mt-3"
+                      className="btn btn-outline btn-sm mt-3 w-full sm:w-auto"
                     >
                       View Details
                     </Link>

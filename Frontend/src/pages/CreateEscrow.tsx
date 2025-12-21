@@ -328,7 +328,7 @@ const CreateEscrow = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="mb-8">
           <Link
@@ -338,7 +338,7 @@ const CreateEscrow = () => {
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Dashboard</span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Create New Escrow</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create New Escrow</h1>
           <p className="text-gray-600 mt-2">
             Set up a secure escrow transaction to protect your deal
           </p>
@@ -393,7 +393,7 @@ const CreateEscrow = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card p-8"
+          className="card p-4 sm:p-8"
         >
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {/* Step 1: Seller Details */}
@@ -414,7 +414,7 @@ const CreateEscrow = () => {
 
                 <div>
                   <div className="mb-3">
-                    <Link to="/search" className="btn btn-outline btn-sm">Search Users</Link>
+                    <Link to="/search" className="btn btn-outline btn-sm w-full sm:w-auto">Search Users</Link>
                   </div>
                   
                   {selectedSeller ? (
@@ -460,7 +460,7 @@ const CreateEscrow = () => {
                       <p className="text-gray-600 mb-4">
                         Please use the search button above to find and select a seller for this escrow.
                       </p>
-                      <Link to="/search" className="btn btn-primary btn-md">
+                      <Link to="/search" className="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto">
                         Search for Seller
                       </Link>
                     </div>
@@ -730,12 +730,12 @@ const CreateEscrow = () => {
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6 border-t">
+            <div className="flex items-center justify-between pt-6 border-t flex-col-reverse sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => setStep(Math.max(1, step - 1))}
                 disabled={step === 1}
-                className="btn btn-outline btn-md"
+                className="btn btn-outline btn-sm sm:btn-md w-full sm:w-auto"
               >
                 Previous
               </button>
