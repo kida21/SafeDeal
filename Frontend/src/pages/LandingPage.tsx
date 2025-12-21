@@ -116,7 +116,7 @@ const LandingPage = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <img src={Logo} alt="SafeDeal Logo" className="h-32 w-auto" />
+              <img src={Logo} alt="SafeDeal Logo" className="h-10 sm:h-12 w-auto" />
             </Link>
 
             {/* Navigation */}
@@ -137,7 +137,7 @@ const LandingPage = () => {
         </div>
       </header>
 {/* Hero Section */}
-<section className="relative overflow-hidden py-24">
+<section className="relative overflow-hidden py-16 sm:py-24">
   {/* Background Image Effect */}
   <div 
   className="absolute inset-0"
@@ -149,7 +149,7 @@ const LandingPage = () => {
   />
 
   <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
-    <div className="grid lg:grid-cols-2 gap-12 items-center">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
       {/* Left Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -157,19 +157,19 @@ const LandingPage = () => {
         transition={{ duration: 0.6 }}
         className="text-white"
       >
-        <h1 className="text-6xl lg:text-7xl font-semibold leading-tight mb-6 text-black">
+        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-semibold leading-tight mb-4 sm:mb-6 text-black">
           Secure Escrow
         </h1>
-        <h2 className="text-4xl lg:text-6xl leading-tight mb-6 text-black" >
+        <h2 className="text-2xl sm:text-4xl lg:text-6xl leading-tight mb-4 sm:mb-6 text-black" >
           Made Simple
         </h2>
-        <p className="text-xl text-gray-600 mb-8">
+        <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">
         The world's most trusted escrow platform. Secure your deals, and trade with confidence.
         </p>
 
         <Link
             to="/login?mode=register"
-            className="btn bg-[#005356] text-white hover:bg-[#005356]/80 btn-lg w-auto h-12"
+            className="btn bg-[#005356] text-white hover:bg-[#005356]/80 btn-lg w-full xs:w-auto h-12"
           >
             Get Started
           </Link>
@@ -189,10 +189,10 @@ const LandingPage = () => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="space-y-8"
+        className="space-y-6 sm:space-y-8"
       >
         {/* Main Content Card */}
-        <img src={PhoneNum} alt="" className='border-2 border-transparent rounded-2xl w-auto h-80 relative left-[275px] top-[60px] z-10' />
+        <img src={PhoneNum} alt="" className='border-2 border-transparent rounded-2xl h-64 sm:h-80 w-auto mx-auto z-10' />
 
         {/* Transfer Card */}
         <motion.div
@@ -201,7 +201,7 @@ const LandingPage = () => {
           transition={{ duration: 0.6, delay: 0.4 }}
           
         >
-          <img src={Transfer} alt="" className='border-2 border-transparent rounded-2xl w-auto h-[450px] relative bottom-[155px] left-10' />
+          <img src={Transfer} alt="" className='border-2 border-transparent rounded-2xl h-72 sm:h-[450px] w-auto mx-auto' />
         </motion.div>
       </motion.div>
     </div>

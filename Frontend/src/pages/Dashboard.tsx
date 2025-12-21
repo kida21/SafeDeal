@@ -155,7 +155,7 @@ const Dashboard = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">
                 Welcome back, {user?.first_name}!
               </h2>
               <p className="text-primary-100">
@@ -168,11 +168,11 @@ const Dashboard = () => {
                 Dashboard uses available backend endpoints only
               </p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-wrap gap-2">
               <button
                 onClick={handleRefresh}
                 disabled={isLoading || statsLoading}
-                className="btn bg-white/20 text-white hover:bg-white/30 btn-md"
+                className="btn bg-white/20 text-white hover:bg-white/30 btn-sm sm:btn-md"
               >
                 <RefreshCw
                   className={`h-4 w-4 mr-2 ${
@@ -183,7 +183,7 @@ const Dashboard = () => {
               </button>
               <Link
                 to="/create-escrow"
-                className="btn bg-white text-[#014d46] hover:bg-gray-100 btn-md"
+                className="btn bg-white text-[#014d46] hover:bg-gray-100 btn-sm sm:btn-md"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Create Escrow
