@@ -50,7 +50,7 @@ func Register(c fiber.Ctx) error {
 		LastName:  req.LastName,
 		Password:  string(hashedPassword),
 		Profession: req.Profession,
-		Activated: false,
+		Activated: true,
 		Version:   1,
 		WalletAddress: nil,
 		EncryptedPrivateKey: nil,
@@ -71,7 +71,7 @@ func Register(c fiber.Ctx) error {
 	}()
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Registration successful. Please check your email to activate your account.",
+		"message": "Registration successful. You can login now.",
 		"user": fiber.Map{
 			"first_name": user.FirstName,
 			"last_name":  user.LastName,
@@ -80,4 +80,5 @@ func Register(c fiber.Ctx) error {
 			"activated":  user.Activated,
 		},
 	})
+
 }

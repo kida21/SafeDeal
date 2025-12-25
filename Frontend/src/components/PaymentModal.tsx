@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CreditCard, Shield, CheckCircle, ExternalLink } from 'lucide-react';
+import { X, CreditCard, Shield, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 
 interface PaymentModalProps {

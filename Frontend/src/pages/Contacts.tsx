@@ -5,7 +5,6 @@ import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { userApi } from '../lib/api';
 import { SearchUser } from '../types';
-import { formatRelativeTime } from '../lib/utils';
 import { toast } from 'react-hot-toast';
 
 type Contact = SearchUser & { created_at?: string };

@@ -107,7 +107,7 @@ func RefreshToken(c fiber.Ctx) error {
 		MaxAge:   604800,
 		Secure:   true,
 		HTTPOnly: true,
-		SameSite: fiber.CookieSameSiteStrictMode,
+		SameSite: "None",
 	})
 
 	// Revoke old refresh token
@@ -129,7 +129,7 @@ func clearRefreshCookie(c fiber.Ctx) {
 		MaxAge:   -1, // Expire immediately
 		Secure:   true,
 		HTTPOnly: true,
-		SameSite: fiber.CookieSameSiteStrictMode,
+		SameSite: "None",
 	})
 }
 

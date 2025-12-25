@@ -9,9 +9,7 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Filter,
   RefreshCw,
-  Loader2,
   RotateCcw,
   X,
 } from 'lucide-react';
@@ -24,7 +22,7 @@ import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AllEscrows = () => {
-  const { user } = useAuthStore();
+  const {  } = useAuthStore();
   const [escrows, setEscrows] = useState<Escrow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,21 +108,21 @@ const AllEscrows = () => {
           <div>
             <Link
               to="/dashboard"
-              className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
+              className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-xs sm:text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Dashboard</span>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">My Escrows</h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">My Escrows</h1>
             <p className="text-gray-600 mt-2">
               Manage all your escrow transactions
             </p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 flex-wrap gap-2">
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="btn btn-outline btn-md"
+              className="btn btn-outline btn-md ml-8 sm:ml-0"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
@@ -217,9 +215,9 @@ const AllEscrows = () => {
                 key={escrow.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="card p-6 hover:shadow-lg transition-shadow"
+                className="card p-4 sm:p-6 hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center space-x-4">
                     <div
                       className={`p-3 rounded-full ${getStatusColor(escrow.status)}`}
@@ -240,7 +238,7 @@ const AllEscrows = () => {
                       )}
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-xl font-bold text-gray-900">
                       {formatCurrency(escrow.amount)}
                     </p>
@@ -256,7 +254,7 @@ const AllEscrows = () => {
                     </div>
                     <Link
                       to={`/escrow/${escrow.id}`}
-                      className="btn btn-outline btn-sm mt-3"
+                      className="btn btn-outline btn-sm mt-3 w-full sm:w-auto"
                     >
                       View Details
                     </Link>

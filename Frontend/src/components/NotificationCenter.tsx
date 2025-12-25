@@ -8,7 +8,6 @@ import {
   Info, 
   Wifi, 
   WifiOff,
-  Trash2
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
@@ -27,10 +26,10 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
     notifications, 
     unreadCount, 
     setNotifications, 
-    addNotification, 
+     
     markAsRead, 
     deleteNotification, 
-    clearAllNotifications 
+     
   } = useNotificationStore();
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isConnected, setIsConnected] = useState(false);

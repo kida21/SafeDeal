@@ -72,10 +72,10 @@ const AuthForm = ({ initialMode = "login" }: AuthFormProps) => {
       } else {
         // Registration flow
         await authApi.register(data as RegisterRequest);
-        toast("Account created. Please verify your email before login.", {
+        toast("Account created.", {
           icon: "✉️",
         });
-        navigate("/");
+        navigate("/login");
       }
     } catch (error: any) {
       const apiMessage =

@@ -1,0 +1,269 @@
+# render.yaml - Everything as Docker services (including Postgres & Redis)
+# WARNING: Databases run as plain Docker services here and will be ephemeral.
+# Use this only for local/dev/POC. For production, use managed DBs.
+
+services:
+  # RabbitMQ (internal worker)
+  - name: rabbitmq
+    type: worker
+    env: docker
+    plan: starter
+    image: rabbitmq:3.13.5-management
+    autoDeploy: true
+    envVars:
+      - key: RABBITMQ_DEFAULT_USER
+        value: guest
+      - key: RABBITMQ_DEFAULT_PASS
+        value: guest
+
+  # Consul (internal worker)
+  - name: consul
+    type: worker
+    env: docker
+    plan: starter
+    image: hashicorp/consul:latest
+    autoDeploy: true
+    command: ["agent", "-dev", "-client", "0.0.0.0"]
+    envVars:
+      - key: CONSUL_BIND_INTERFACE
+        value: eth0
+
+  # Postgres: user-db
+  - name: user-db
+    type: worker
+    env: docker
+    plan: starter
+    image: postgres:latest
+    autoDeploy: true
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: userdb
+
+  # Postgres: escrow-db
+  - name: escrow-db
+    type: worker
+    env: docker
+    plan: starter
+    image: postgres:latest
+    autoDeploy: true
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: escrowdb
+
+  # Postgres: payment-db
+  - name: payment-db
+    type: worker
+    env: docker
+    plan: starter
+    image: postgres:latest
+    autoDeploy: true
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: paymentdb
+
+  # Postgres: chat-db
+  - name: chat-db
+    type: worker
+    env: docker
+    plan: starter
+    image: postgres:latest
+    autoDeploy: true
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        value: postgres
+      - key: POSTGRES_DB
+        value: chatdb
+
+  # Redis (ephemeral)
+  - name: redis-auth
+    type: worker
+    env: docker
+    plan: starter
+    image: redis:latest
+    autoDeploy: true
+
+  # ----------------------------
+  # YOUR MICROSERVICES (Web)
+  # ----------------------------
+
+  # User service
+  - name: user-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/User-service/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        value: user-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: userdb
+      - key: DB_SSLMODE
+        value: disable
+      - key: REDIS_HOST
+        value: redis-auth
+      - key: REDIS_PORT
+        value: "6379"
+      - key: JWT_SECRET_KEY
+        value: "x>(A9PWN5KV@Pm9"
+      - key: SMTP_SENDER_EMAIL
+        value: "jtime5115@gmail.com"
+      - key: SMTP_USERNAME
+        value: "f5aaa678d7bed4"
+      - key: SMTP_PASSWORD
+        value: "eaf85eb8a8e9c2"
+      - key: SMTP_HOST
+        value: "sandbox.smtp.mailtrap.io"
+      - key: SMTP_PORT
+        value: "2525"
+      - key: ENCRYPTION_KEY
+        value: "k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1"
+
+  # Escrow service
+  - name: escrow-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/Escrow-service/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        value: escrow-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: escrowdb
+      - key: DB_SSLMODE
+        value: disable
+      - key: RABBITMQ_HOST
+        value: rabbitmq
+      - key: RABBITMQ_PORT
+        value: "5672"
+      - key: CONSUL_HOST
+        value: consul
+      - key: ETHEREUM_NODE_URL
+        value: "https://sepolia.infura.io/v3/14b4f0bb32964daea0a3c1b8bc6c2936"
+      - key: PRIVATE_KEY
+        value: "34aea489b9a710abe49a7b080735cb93fd8eb6e90d6d2ad1b3dad8d0d2d25601"
+      - key: ENCRYPTION_KEY
+        value: "k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1"
+      - key: CONTRACT_ADDRESS
+        value: "0x2D85E1064125c442c4ECb544215d3F8E9Be7353B"
+      - key: CHAIN_ID
+        value: "11155111"
+      - key: CHAPA_SECRET_KEY
+        value: "CHASECK_TEST-G1bjeFJd8ImE8fooYscsUsgexP7phU03"
+      - key: CHAPA_PUBLIC_KEY
+        value: "CHAPUBK_TEST-Tf4hrt7wf6cDB8xNDy48WPrS8OUK7UXJ"
+      - key: AI_ARBITRATOR_HOST
+        value: ai-arbitrator-service
+      - key: AI_ARBITRATOR_PORT
+        value: "50055"
+
+  # Chat service
+  - name: chat-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/Chat-service/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        value: chat-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: chatdb
+      - key: DB_SSLMODE
+        value: disable
+      - key: JWT_SECRET_KEY
+        value: "x>(A9PWN5KV@Pm9"
+
+  # Payment service
+  - name: payment-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/Payment-service/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        value: payment-db
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: postgres
+      - key: DB_NAME
+        value: paymentdb
+      - key: DB_SSLMODE
+        value: disable
+      - key: CHAPA_SECRET_KEY
+        value: "CHASECK_TEST-G1bjeFJd8ImE8fooYscsUsgexP7phU03"
+      - key: CHAPA_WEBHOOK_URL
+        value: "https://your-domain/render/webhook/chapa"
+      - key: CHAPA_WEBHOOK_SECRET
+        value: "d6P/GCR_RP};HOS"
+      - key: ETHEREUM_NODE_URL
+        value: "https://sepolia.infura.io/v3/14b4f0bb32964daea0a3c1b8bc6c2936"
+      - key: PRIVATE_KEY
+        value: "34aea489b9a710abe49a7b080735cb93fd8eb6e90d6d2ad1b3dad8d0d2d25601"
+      - key: ENCRYPTION_KEY
+        value: "k3l5m9n2p7q8r4s6t1u3v6w9x2y8z5a1"
+      - key: CONTRACT_ADDRESS
+        value: "0x2D85E1064125c442c4ECb544215d3F8E9Be7353B"
+      - key: CHAIN_ID
+        value: "11155111"
+
+  # API Gateway
+  - name: api-gateway
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/Api-gateway/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: CONSUL_HOST
+        value: consul
+
+  # AI Arbitrator Service
+  - name: ai-arbitrator-service
+    type: web
+    env: docker
+    plan: starter
+    dockerfilePath: Backend/ai-service/dockerfile
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        value: "AIzaSyBdeULTzNyo4D_7qL0oklJS3wkmL-N0Uf4"
+
+# End of render.yaml
