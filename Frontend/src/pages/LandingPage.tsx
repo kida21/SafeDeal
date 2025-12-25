@@ -2,7 +2,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Send, 
+  Wifi, 
   User, 
+  ArrowRight, 
   Lock,
   Shield,
   Users,
@@ -36,6 +38,7 @@ import GeminiLogo1 from "../assets/gemini.svg";
 
 
 const LandingPage = () => {
+
   const steps = [
     {
       step: "STEP 1",
@@ -107,7 +110,6 @@ const LandingPage = () => {
     }
   ];
 
-
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -116,7 +118,7 @@ const LandingPage = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <img src={Logo} alt="SafeDeal Logo" className="h-10 sm:h-12 w-auto" />
+              <img src={Logo} alt="SafeDeal Logo" className="h-20 md:h-32 w-auto" />
             </Link>
 
             {/* Navigation */}
@@ -137,7 +139,7 @@ const LandingPage = () => {
         </div>
       </header>
 {/* Hero Section */}
-<section className="relative overflow-hidden py-16 sm:py-24">
+<section className="relative overflow-hidden py-[267px] lg:py-48">
   {/* Background Image Effect */}
   <div 
   className="absolute inset-0"
@@ -149,37 +151,37 @@ const LandingPage = () => {
   />
 
   <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
+    <div className="grid lg:grid-cols-2 lg:gap-12 items-center">
       {/* Left Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-white"
+        className="text-white text-center lg:text-left"
       >
-        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-semibold leading-tight mb-4 sm:mb-6 text-black">
+        <h1 className="text-4xl lg:text-7xl font-semibold leading-tight mb-2 lg:mb-6 text-black">
           Secure Escrow
         </h1>
-        <h2 className="text-2xl sm:text-4xl lg:text-6xl leading-tight mb-4 sm:mb-6 text-black" >
+        <h2 className="text-3xl md:text-4xl lg:text-6xl leading-tight mb-4 lg:mb-6 text-black" >
           Made Simple
         </h2>
-        <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">
+        <p className="text-sm md:text-xl text-gray-600 mb-8 mx-8 lg:mx-0">
         The world's most trusted escrow platform. Secure your deals, and trade with confidence.
         </p>
 
         <Link
             to="/login?mode=register"
-            className="btn bg-[#005356] text-white hover:bg-[#005356]/80 btn-lg w-full xs:w-auto h-12"
+            className="btn bg-[#005356] text-white hover:bg-[#005356]/80 btn-lg w-1/2 sm:w-auto h-12"
           >
             Get Started
           </Link>
-<div className="flex items-center gap-8 opacity-60 mt-8">
-  <img src={ChapaLogo} alt="Chapa" className="h-16 sm:h-16 w-auto text-black" />
-  <div className="flex space-x-2 h-8 sm:h-7 w-auto">
+<div className="flex flex-wrap items-center justify-center sm:justify-start gap-0 md:gap-8 opacity-60 mt-8">
+  <img src={ChapaLogo} alt="Chapa" className="h-10 md:h-16 w-auto text-black" />
+  <div className="flex space-x-2 h-5 md:h-8 w-auto">
   <img src={GeminiLogo1} alt="Gemini1" />
   <img src={GeminiLogo} alt="Gemini" />
   </div>
-  <img src={EthereumLogo} alt="Ethereum" className="h-8 sm:h-10 w-auto" />
+  <img src={EthereumLogo} alt="Ethereum" className="h-6 md:h-8 w-auto" />
 </div>
 
       </motion.div>
@@ -189,20 +191,11 @@ const LandingPage = () => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="space-y-6 sm:space-y-8"
+        className="relative h-[400px] md:h-[500px] lg:h-[600px] hidden sm:block"
       >
-        {/* Main Content Card */}
-        <img src={PhoneNum} alt="" className='border-2 border-transparent rounded-2xl h-64 sm:h-80 w-auto mx-auto z-10' />
+        <img src={PhoneNum} alt="" className='border-2 border-transparent rounded-2xl w-auto h-80 relative left-[275px] top-[60px] z-10' />
 
-        {/* Transfer Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          
-        >
-          <img src={Transfer} alt="" className='border-2 border-transparent rounded-2xl h-72 sm:h-[450px] w-auto mx-auto' />
-        </motion.div>
+        <img src={Transfer} alt="" className='border-2 border-transparent rounded-2xl w-auto h-[450px] relative bottom-[155px] left-10' />
       </motion.div>
     </div>
   </div>

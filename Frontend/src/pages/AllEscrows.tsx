@@ -108,12 +108,12 @@ const AllEscrows = () => {
           <div>
             <Link
               to="/dashboard"
-              className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
+              className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-xs sm:text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Dashboard</span>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">My Escrows</h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">My Escrows</h1>
             <p className="text-gray-600 mt-2">
               Manage all your escrow transactions
             </p>
@@ -122,12 +122,12 @@ const AllEscrows = () => {
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="btn btn-outline btn-sm sm:btn-md"
+              className="btn btn-outline btn-md ml-8 sm:ml-0"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
-            <Link to="/create-escrow" className="btn btn-primary btn-sm sm:btn-md">
+            <Link to="/create-escrow" className="btn btn-primary btn-md">
               <Plus className="h-4 w-4 mr-2" />
               Create Escrow
             </Link>

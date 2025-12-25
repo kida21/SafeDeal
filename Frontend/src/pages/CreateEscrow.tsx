@@ -356,7 +356,7 @@ const CreateEscrow = () => {
                 <div key={stepItem.number} className="flex items-center">
                   <div className="flex items-center">
                     <div
-                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                      className={`flex items-center justify-center w-4 h-4 sm:w-10 sm:h-10 rounded-full border-2 ${
                         isCompleted
                           ? 'bg-primary-600 border-primary-600 text-white'
                           : isActive
@@ -371,7 +371,7 @@ const CreateEscrow = () => {
                       )}
                     </div>
                     <div className="ml-3">
-                      <p className={`text-sm font-medium ${
+                      <p className={`text-xs sm:text-sm font-medium ${
                         isActive ? 'text-primary-600' : 'text-gray-500'
                       }`}>
                         {stepItem.title}
